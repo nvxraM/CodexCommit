@@ -10,7 +10,7 @@ Use a personal, unmanaged Codex account. The model follows your saved CLI settin
 1. Connect GitHub to Codex. Select [this repository](https://github.com/nvxraM/CodexCommit).
 2. Ask Codex:
 
-   > Help me install CodexCommit in PyCharm from [this repository](https://github.com/nvxraM/CodexCommit).
+   > Help me install CodexCommit in PyCharm from github.com/nvxraM/CodexCommit.
 
 Codex guides setup. You install the ZIP in local PyCharm.
 Or use [manual installation](#manual-install) below. [Requirements](docs/USAGE.md#requirements).
