@@ -8,7 +8,7 @@ Use **PyCharm 2026.2.3**, native **Codex CLI 0.160.1**, and native **Git** on Wi
 Sign in to Codex with a personal, unmanaged account.
 The plugin detects your saved Codex CLI model. If none is saved, it uses the CLI default.
 
-1. [Download version 1.1.3](https://github.com/nvxraM/CodexCommit/releases/download/v1.1.3/CodexCommit-1.1.3.zip).
+1. [Download version 1.1.3](https://github.com/nvxraM/CodexCommit/blob/v1.1.3/releases/CodexCommit-1.1.3.zip?raw=true).
 2. In PyCharm, open **Settings → Plugins → ⚙ → Install Plugin from Disk**.
 3. Select the ZIP. Restart the IDE if requested.
 

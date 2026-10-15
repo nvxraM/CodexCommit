@@ -103,7 +103,7 @@ Read [PRIVACY.md](PRIVACY.md) and [security boundaries](../SECURITY.md) for the 
 After the update, check the Codex path in **Settings > Tools > CodexCommit**.
 Version 1.1.2 introduced a new settings file. Set a custom executable path again if you update from an older version.
 
-Download the [version 1.1.3 ZIP](https://github.com/nvxraM/CodexCommit/releases/download/v1.1.3/CodexCommit-1.1.3.zip).
+Download the [version 1.1.3 ZIP](https://github.com/nvxraM/CodexCommit/blob/v1.1.3/releases/CodexCommit-1.1.3.zip?raw=true).
 The release and the source repository contain its [SHA-256 value](../releases/SHA256SUMS).
 You can also build the ZIP from the source code.
 
