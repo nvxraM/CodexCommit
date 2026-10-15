@@ -1,12 +1,74 @@
 # Verification record
 
 Date: 15 October 2026.
-Version: 1.1.3.
+Version: 1.1.4.
 
 This record separates software tests from language review.
 It does not prove that the plugin has no risk.
 
 ## Current candidate
+
+Version 1.1.4 names an excluded file and tells the user to uncheck it in the Commit window.
+The warning identifies IDE settings files. The filename exclusions remain unchanged.
+One button click prepares and sends the request in background tasks.
+The draft appears directly in the commit message field. No request or draft dialog opens.
+The prompt requests a subject of at most 50 characters and 1–3 bullet points.
+It requests at most 12 words per bullet and 50 words for the complete message.
+The README gives Codex setup help first and manual installation last.
+Connecting the repository to Codex does not install the plugin in local PyCharm.
+
+The Linux Gradle check, plugin build, plugin structure check, and project configuration check passed.
+The supported-build warning remains. Future IDE versions have no acceptance result.
+The checked ZIP has SHA-256:
+
+`ee49d82a91fc5dd0510cf4c8dbe6f3eb22cba6074994c8b9c62a0b3d0935ca53`
+
+| Suite | Passed | Failed | Skipped |
+| --- | --- | --- | --- |
+| Core and credential boundaries | 31 | 0 | 0 |
+| Git, patch, path, and selection boundaries | 18 | 0 | 0 |
+| Source archive guard | 20 | 0 | 0 |
+| Plugin archive guard | 9 | 0 | 0 |
+| Total | 78 | 0 | 0 |
+
+The new regressions cover `.idea/workspace.xml`, nested IDE settings, credential filenames,
+ordinary Python source, escaped markup, direction controls, bounded notices, and absolute-path refusal.
+The ordinary JUnit and searchable settings tasks remain disabled by design.
+They are not counted as passed tests.
+The native file and CLI checks under the 1.1.3 heading are historical results.
+A real account and model response remain untested.
+
+### Native one-click checks
+
+An isolated PyCharm 2026.2.3 profile loaded the exact checked JAR.
+A test backend supplied a sample model and draft. No real account or external model request was used.
+The actual action, project service, background tasks, Git reads, freshness checks, and message field ran in the IDE.
+
+| Check | Result |
+| --- | --- |
+| One button click | Filled the commit message field. No dialogs opened. |
+| Repeated start during generation | Started one generation only. |
+| Message typed during generation | Preserved the typed message. |
+| Background task cancellation | Left the message unchanged. |
+| Same-size source change with restored timestamp | Refused the stale result. |
+| Backend failure | Left the message unchanged. |
+| New request after these cases | Filled the message field successfully. |
+
+Both README images were captured at twice the original pixel density from this isolated IDE.
+They show the button and the short draft in the message field. They use sample data.
+The final ZIP contains no review-dialog class.
+The native Codex CLI 0.160.1 loopback audit also passed with `gpt-5.4` and the current prompt.
+It used a fake test credential, local server, and synthetic patch. It exposed no tools.
+This does not establish real-model output length or real-account generation.
+
+### Hosted checks
+
+The previous main revision, `7c7caab`, passed the Ubuntu, Windows, and macOS jobs.
+It includes the symbolic-link cleanup fix. The older failed run used `fc06eec`.
+This update pins `actions/upload-artifact` 7.0.2, which uses Node.js 24.
+Read the [workflow results](https://github.com/nvxraM/CodexCommit/actions/workflows/check.yml) for each exact commit.
+
+## Previous 1.1.3 candidate
 
 Version 1.1.3 accepts up to 500 tracked files and 50 MiB of combined before and after text.
 The patch limit is 512 KiB. The complete request limit is 520 KiB.
@@ -193,7 +255,7 @@ Use JDK 25 for the build.
 .\tools\build-local.ps1 -IdeHome 'PATH_TO_YOUR_IDE'
 java tools/SourceArchive.java --self-test
 java tools/ReleaseAudit.java --self-test
-java tools/ReleaseAudit.java build/distributions/CodexCommit-1.1.3.zip
+java tools/ReleaseAudit.java build/distributions/CodexCommit-1.1.4.zip
 ```
 
 The `check` task uses the `coreTest` and `ideBoundaryTest` programs.
@@ -224,10 +286,9 @@ Formal STE conformity is not certified.
 ## Tests that remain incomplete
 
 - A real account and real model response.
-- Active generation and dialog removal during a native IDE update.
+- Active generation during a native IDE update.
 - Classloader garbage collection after removal.
 - Complete native Linux generation with a real account. macOS execution remains blocked.
-- Hosted GitHub Actions, until the workflow runs after the push.
 - Organization policies and managed accounts.
 
 The existing HiClick repository and installed plugin are separate from this source project.

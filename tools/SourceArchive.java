@@ -12,7 +12,7 @@ public final class SourceArchive {
     private static final Set<String> DOCUMENT_FILES = Set.of("docs/README.md", "docs/USAGE.md", "docs/BUILD.md",
             "docs/CHANGELOG.md", "docs/PRIVACY.md", "docs/PUBLISHING.md", "docs/VERIFICATION.md", "docs/SECURITY_AUDIT.md",
             "docs/DESCRIPTION.md", "docs/WRITING_GUIDE.md", "docs/THIRD_PARTY_NOTICES.md", "docs/release.properties.example",
-            "docs/images/README.md", "docs/images/generate-button.png", "docs/images/review-request.png", "docs/images/review-draft.png");
+            "docs/images/README.md", "docs/images/generate-button.png", "docs/images/commit-message.png");
     static boolean allowed(String name) {
         if (name.contains("..") || name.contains("\\") || name.startsWith("/")) return false;
         if (ROOT_FILES.contains(name) || DOCUMENT_FILES.contains(name)) return true;
@@ -40,7 +40,7 @@ public final class SourceArchive {
         boolean listOnly = args.length == 2 && args[0].equals("--list");
         if (args.length != 1 && !listOnly) throw new IllegalArgumentException("Usage: java tools/SourceArchive.java [--list] <project-root>");
         Path root = Path.of(args[listOnly ? 1 : 0]).toRealPath();
-        Path destination = root.resolve("dist/CodexCommit-source-1.1.3.zip");
+        Path destination = root.resolve("dist/CodexCommit-source-1.1.4.zip");
         List<String> fileNames = ROOT_FILES.stream().sorted().toList();
         List<Path> files = new ArrayList<>();
         for (String name : fileNames) {

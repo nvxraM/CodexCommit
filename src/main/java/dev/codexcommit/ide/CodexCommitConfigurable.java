@@ -27,7 +27,9 @@ public final class CodexCommitConfigurable implements Configurable {
                 + "Use an absolute path to codex.exe (Windows) or codex (Linux). macOS execution is disabled in this release.<br>"
                 + "Shell wrappers, WSL, and custom commands are not accepted.<br><br>"
                 + "Sign in using the official Codex CLI outside the IDE. CodexCommit does not store credentials.<br>"
-                + "Every generation requires review of the exact request before it is sent through your Codex account.<br>"
+                + "The Generate button sends the selected patch to OpenAI through your Codex account. Quota or charges may apply.<br>"
+                + "Check your selected changes for private data and secrets before you use the button.<br>"
+                + "Use a personal account without organization policy. Edit the draft in the commit message field.<br>"
                 + "The IDE's Git setting must also identify an absolute path to native Git.</html>"), BorderLayout.CENTER);
         return panel;
     }

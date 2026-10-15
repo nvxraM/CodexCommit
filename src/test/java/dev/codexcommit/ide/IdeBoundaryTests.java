@@ -43,6 +43,33 @@ public final class IdeBoundaryTests {
                 }
                 require(!ChangeSnapshot.sensitive(Path.of("src/Feature.java")), "Ordinary source rejected.");
             });
+            test("excluded IDE paths identify the file and the recovery action", () -> {
+                for (String path : List.of(".idea/workspace.xml", "nested/.IDEA/workspace.xml")) {
+                    String message = filenameFailure(Path.of(path));
+                    require(message.contains(path) && message.startsWith("Uncheck ") && message.contains("Commit window"),
+                            "Blocked file or recovery action missing.");
+                    require(message.endsWith("IDE settings files are excluded."), "IDE settings reason missing.");
+                }
+                ChangeSnapshot.checkSensitivePath(Path.of("src/feature.py"));
+                ChangeSnapshot.checkSensitivePath(Path.of("tests/test_feature.py"));
+            });
+            test("credential filename errors retain the policy and omit absolute paths", () -> {
+                require(filenameFailure(Path.of("config/.env.production")).contains("sensitive-content policy"), "Policy reason missing.");
+                String message = filenameFailure(fixture.resolve(".idea/workspace.xml"));
+                require(!message.contains(fixture.toString()) && !message.contains("workspace.xml"), "Absolute path disclosed.");
+                require(!filenameFailure(Path.of("../.env")).contains("../"), "Parent path disclosed.");
+            });
+            test("excluded filename notices escape markup and bound display length", () -> {
+                require(filenameFailure(Path.of(".idea/a&b.xml")).contains("a&amp;b.xml"), "Filename entity was not escaped.");
+                String longMessage = filenameFailure(Path.of(".idea/" + "x".repeat(300) + ".xml"));
+                require(longMessage.length() < 300 && longMessage.contains("..."), "Filename notice is unbounded.");
+                if (!System.getProperty("os.name").startsWith("Windows")) {
+                    String message = filenameFailure(Path.of(".idea/<b>&file.xml"));
+                    require(message.contains("&lt;b&gt;&amp;file.xml") && !message.contains("<b>"), "Filename markup was not escaped.");
+                    String controls = filenameFailure(Path.of(".idea/bad\n\u202ename.xml"));
+                    require(!controls.contains("\n") && !controls.contains("\u202e"), "Filename changed notice direction or layout.");
+                }
+            });
             test("strict UTF-8 text rejects binary and malformed content", () -> {
                 require(LocalGitReader.text("λ\r\nnext\r".getBytes(StandardCharsets.UTF_8)).equals("λ\nnext\n"), "UTF-8 text mismatch.");
                 rejects(() -> LocalGitReader.text(new byte[]{'a', 0, 'b'}));
@@ -159,6 +186,12 @@ public final class IdeBoundaryTests {
             symlinkTest();
             System.out.println("IDE boundary tests: " + passed + " passed, 0 failed, " + skipped + " skipped. Synthetic local fixtures only; no model request.");
         } finally { cleanup(); }
+    }
+
+    private static String filenameFailure(Path relative) throws Exception {
+        try { ChangeSnapshot.checkSensitivePath(relative); }
+        catch (ChangeSnapshot.SelectionException expected) { return expected.getMessage(); }
+        throw new AssertionError("Excluded filename accepted.");
     }
 
     private static Change selectedChange() {

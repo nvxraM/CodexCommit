@@ -51,7 +51,7 @@ This glossary records project terms. It does not approve arbitrary words under t
 | quota | The account allowance that a request can use. |
 | repository | The directory and Git history for a project. |
 | request | The patch and fixed task instructions sent through the Codex CLI. |
-| review dialog | The window where the user examines a request or a draft. |
+| commit message field | The IDE text box where the draft appears. The user examines it before committing. |
 | SDK | Software development kit. The build uses an IDE SDK. |
 | stage | The Git action that adds a change to the index. The plugin does not do this action. |
 | symbolic link | A filesystem entry that points to another path. |
@@ -60,7 +60,7 @@ This glossary records project terms. It does not approve arbitrary words under t
 | UTF-8 | The supported text encoding. |
 
 Keep UI labels exact when you quote them.
-Examples are `Send to Codex`, `Apply Draft`, and `Generate Commit Message with CodexCommit`.
+An example is `Generate Commit Message with CodexCommit`.
 Keep code identifiers exact. Examples are `CODEX_HOME`, `CODEXCOMMIT_IDE_HOME`, and `local.codex.commitmessage`.
 
 ## Description length

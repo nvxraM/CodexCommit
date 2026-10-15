@@ -11,11 +11,11 @@ The plugin detects the model saved in your normal Codex CLI home settings before
 Project-specific CLI settings and another process's `--profile` selection are excluded.
 If no model is saved, it uses the CLI default. Use `/model` in Codex to change your selection.
 The model must be available to your account and supported by the installed CLI.
-The request review shows the detected model. No separate plugin model setting is necessary.
+No separate plugin model setting is necessary.
 The plugin cannot detect an unsaved model selection in another running session.
 The plugin does not include a CLI, a model, credentials, or an account.
 
-The audited execution profile is for Windows and Linux. Linux execution still needs native acceptance tests.
+The audited execution profile is for Windows and Linux. Linux generation with a real account remains untested.
 This release blocks macOS execution. Its managed device policy controls have not been audited.
 The plugin rejects known system or managed Codex configurations. This detection cannot prove that every account or computer is unmanaged.
 
@@ -35,20 +35,22 @@ Use a different integration if your account needs these settings.
 ## Prepare a commit message
 
 1. Open the Commit tool window.
-2. Select the tracked Git files that you want to describe.
-3. Select each complete file change in one changelist.
-4. Include all hunks for those files.
-5. Select Generate Commit Message with CodexCommit.
-6. Examine the complete request in the review dialog.
-7. Confirm that you use a personal account and a computer without organization policy.
-8. Select Send to Codex to send that request.
-9. Examine the draft message.
-10. Edit the draft if necessary.
-11. Select Apply Draft to put the draft in the commit message field.
+2. Select complete tracked file changes in one changelist. Include all hunks.
+3. Examine the selected changes for private data and secrets.
+4. Select Generate Commit Message with CodexCommit once.
+5. Wait for the draft in the commit message field.
+6. Examine or edit the draft. Make the commit yourself.
 
-The request includes the displayed filenames, code, and comments. It can include secrets that the automatic checks do not find.
+The request runs in the background. No request or draft dialog opens.
+The button sends the selected patch and fixed instructions to OpenAI through your Codex CLI account.
+The request includes filenames, code, and comments. It can include secrets that the automatic checks do not find.
 Send only data that you have permission to disclose to OpenAI.
-Select Cancel in the request review dialog to send nothing.
+Cancel generation from the IDE background task control.
+Cancellation after transmission cannot retract the request.
+
+The prompt requests a subject of at most 50 characters and 1–3 bullet points.
+Each bullet has at most 12 words. The complete message has at most 50 words.
+These are model instructions. A model can return a different format. Edit the message if necessary.
 
 The CLI sends each approved request to OpenAI through your Codex account.
 A request can use account quota or incur charges. The service controls data processing and retention under your account terms.
@@ -85,11 +87,14 @@ The model can impose a smaller context limit. A 50 MiB file allowance does not p
 Content verification runs in the background. It remains subject to the combined limit.
 
 Add unversioned source files to Git before generation. Leave `.idea/workspace.xml` unchecked.
-The plugin excludes IDE settings files.
+The plugin excludes IDE settings files. One excluded file stops the complete request.
+The warning names the file and tells you to uncheck it in the Commit window.
+Uncheck that file. Select Generate Commit Message with CodexCommit again.
+The plugin does not change your checked files.
 
 These limits reduce resource use and data exposure. They do not remove all risk.
 Filename and content checks cannot find every secret or private record.
-Examine the complete request before each transmission.
+Examine the selected changes before you use the button.
 
 The plugin uses a private temporary directory for CLI execution.
 It requests a restricted, ephemeral CLI run. It removes temporary files after the run.
@@ -98,12 +103,22 @@ These controls cannot make an untrusted executable safe.
 Read [PRIVACY.md](PRIVACY.md) and [security boundaries](../SECURITY.md) for the remaining limits.
 
 
-## Install
+## Install with Codex
+
+1. Connect GitHub to Codex.
+2. Select [CodexCommit](https://github.com/nvxraM/CodexCommit).
+3. Ask: "Help me install CodexCommit in PyCharm. Check README.md and guide me through setup on my computer."
+4. Complete the local PyCharm steps that Codex gives you.
+
+Connecting the repository gives Codex access to the setup instructions.
+It does not install the local plugin or sign in to your local Codex CLI.
+
+## Manual install
 
 After the update, check the Codex path in **Settings > Tools > CodexCommit**.
 Version 1.1.2 introduced a new settings file. Set a custom executable path again if you update from an older version.
 
-Download the [version 1.1.3 ZIP](https://github.com/nvxraM/CodexCommit/blob/v1.1.3/releases/CodexCommit-1.1.3.zip?raw=true).
+Download the [version 1.1.4 ZIP](https://github.com/nvxraM/CodexCommit/blob/v1.1.4/releases/CodexCommit-1.1.4.zip?raw=true).
 The release and the source repository contain its [SHA-256 value](../releases/SHA256SUMS).
 You can also build the ZIP from the source code.
 
@@ -121,7 +136,7 @@ The IDE decides whether a restart is necessary.
 ## Verification and release
 
 Native plugin load and unload passed in an idle PyCharm instance.
-Unload during an active job or an open review dialog remains untested.
+Unload during an active job remains untested.
 Plugin classloader garbage collection also remains untested.
 Read [VERIFICATION.md](VERIFICATION.md) for the exact commands, results, and remaining acceptance tests.
 

@@ -1,36 +1,42 @@
 # CodexCommit
 
-This plugin uses Codex in PyCharm to prepare commit messages from selected Git changes. You examine the code before you send it. You examine the message before you use it. The plugin does not make commits or push changes. Each request needs a compatible Codex CLI and an active account.
+This plugin uses Codex in PyCharm to prepare short commit messages from selected Git changes. Select the files, then select the CodexCommit button. The draft appears in the commit message field. Examine it before you commit. The plugin needs a compatible Codex CLI and an active personal account to work.
 
-## Install
+## Install with Codex
 
 Use **PyCharm 2026.2.3**, native **Codex CLI 0.160.1**, and native **Git** on Windows or Linux.
-Sign in to Codex with a personal, unmanaged account.
-The plugin detects your saved Codex CLI model. If none is saved, it uses the CLI default.
+Use a personal, unmanaged Codex account. The model follows your saved CLI setting or the CLI default.
 
-1. [Download version 1.1.3](https://github.com/nvxraM/CodexCommit/blob/v1.1.3/releases/CodexCommit-1.1.3.zip?raw=true).
-2. In PyCharm, open **Settings → Plugins → ⚙ → Install Plugin from Disk**.
-3. Select the ZIP. Restart the IDE if requested.
+1. Connect GitHub to Codex. Select [this repository](https://github.com/nvxraM/CodexCommit).
+2. Ask Codex:
 
-The plugin appears as **CodexCommit** in PyCharm. [Full requirements](docs/USAGE.md#requirements).
+   > Help me install CodexCommit in PyCharm from this repository.
+
+Codex guides setup. You install the ZIP in local PyCharm.
+Or use [manual installation](#manual-install) below. [Requirements](docs/USAGE.md#requirements).
 
 ## Use
 
-1. Open **Commit**. Select complete tracked file changes in one changelist.
+1. Open **Commit**. Select complete tracked file changes in one changelist. Leave `.idea` files unchecked.
 2. Select the coloured **Generate Commit Message with CodexCommit** button.
 
 ![The Codex button in the Commit tool window](docs/images/generate-button.png)
 
-3. Examine the request. Confirm your personal account. Select **Send to Codex**.
+3. Wait for the draft in the commit message box. Edit it if necessary. Make the commit yourself.
 
-[![Request review and Send to Codex button](docs/images/review-request.png)](docs/images/review-request.png)
+[![Short draft in the Commit message box](docs/images/commit-message.png)](docs/images/commit-message.png)
 
-4. Examine or edit the draft. Select **Apply Draft**. Make the commit yourself.
+One click. No review windows. The prompt requests a short subject and 1–3 brief bullet points.
 
-[![Draft review and Apply Draft button](docs/images/review-draft.png)](docs/images/review-draft.png)
+Screens use sample data. Select the draft image to enlarge it.
+The button sends selected code to OpenAI. Check for private data and secrets first.
+Requests can use quota or incur charges. Cancel from the IDE background task control.
 
-Select an image to enlarge it. Screens use sample data.
-Only send code that you can disclose. Check for secrets. Requests can use quota or incur charges.
+## Manual install
+
+1. [Download version 1.1.4](https://github.com/nvxraM/CodexCommit/blob/v1.1.4/releases/CodexCommit-1.1.4.zip?raw=true).
+2. In PyCharm, open **Settings → Plugins → ⚙ → Install Plugin from Disk**.
+3. Select the ZIP. Restart the IDE if requested.
 
 [User guide](docs/USAGE.md) · [Build](docs/BUILD.md) · [Privacy](docs/PRIVACY.md) · [Security](SECURITY.md) · [All guides](docs/README.md)
 

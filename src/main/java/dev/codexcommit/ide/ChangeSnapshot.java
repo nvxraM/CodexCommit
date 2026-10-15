@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
 final class ChangeSnapshot {
     static final int MAX_FILES = 500;
 
-    /** Only fixed validation text may be shown to the user; filesystem exception text is not disclosed. */
+    /** Validation text may include an escaped project-relative name, never filesystem exception text. */
     static final class SelectionException extends IOException {
         SelectionException(String message) { super(message); }
     }
@@ -284,8 +284,27 @@ final class ChangeSnapshot {
         if (virtual != null && virtual.is(VFileProperty.SYMLINK)) throw new SelectionException("Symbolic links are excluded.");
         Path path = Path.of(file.getPath()).toAbsolutePath().normalize();
         if (!path.startsWith(root) || path.equals(root)) throw new SelectionException("Selected files must be inside the project.");
-        if (sensitive(root.relativize(path))) throw new SelectionException("A selected filename is excluded by the sensitive-content policy.");
+        checkSensitivePath(root.relativize(path));
         return path;
+    }
+
+    static void checkSensitivePath(Path relative) throws SelectionException {
+        if (relative.isAbsolute() || relative.normalize().startsWith("..")) {
+            throw new SelectionException("Selected files must be inside the project.");
+        }
+        if (!sensitive(relative)) return;
+        boolean ideSettings = false;
+        for (Path part : relative) if (part.toString().equalsIgnoreCase(".idea")) ideSettings = true;
+        String name = relative.toString().replace('\\', '/');
+        StringBuilder display = new StringBuilder();
+        name.codePoints().limit(160).forEach(c -> display.appendCodePoint(
+                Character.isISOControl(c) || Character.getType(c) == Character.FORMAT || c == 0x2028 || c == 0x2029 ? '?' : c));
+        if (name.codePointCount(0, name.length()) > 160) display.append("...");
+        // IDE notifications accept HTML. Filenames must remain text, including quotes and markup.
+        String escaped = display.toString().replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
+        throw new SelectionException("Uncheck &quot;" + escaped + "&quot; in the Commit window. "
+                + (ideSettings ? "IDE settings files are excluded." : "This filename is excluded by the sensitive-content policy."));
     }
 
     static void validateLocation(Path root, Path path) throws IOException {

@@ -26,7 +26,7 @@ public final class CodexRunner {
     public static final String AUDITED_CLI_VERSION = "0.160.1";
     private static final Pattern MODEL_ID = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}");
     private static final long GENERATION_TIMEOUT_MILLIS = 120_000;
-    // Native exec echoes the reviewed prompt to stderr. Discard it, but allow the
+    // Native exec echoes the selected prompt to stderr. Discard it, but allow the
     // complete bounded prompt plus CLI diagnostics before enforcing the stream cap.
     private static final int STDERR_LIMIT = 2 * ContentPolicy.MAX_PROMPT_BYTES + 64 * 1024;
 

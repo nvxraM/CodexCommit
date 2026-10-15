@@ -8,7 +8,6 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Disposer;
 import com.intellij.vcs.commit.CommitWorkflowUi;
 import dev.codexcommit.core.CodexExecutableLocator;
 import dev.codexcommit.core.CodexRunner;
@@ -20,11 +19,13 @@ import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 
 /** One cancellable job per project, owned by the project/plugin lifetime. */
 @Service(Service.Level.PROJECT)
 public final class CodexCommitProjectService implements Disposable {
     private final Project project;
+    private final Backend backend;
     private volatile boolean disposed;
     private volatile Job active;
 
@@ -42,7 +43,23 @@ public final class CodexCommitProjectService implements Disposable {
         boolean fresh;
     }
 
-    public CodexCommitProjectService(Project project) { this.project = project; }
+    interface Backend {
+        String resolveModel(Path executable, BooleanSupplier cancelled) throws Exception;
+        String generate(Path executable, String prompt, String model, BooleanSupplier cancelled) throws Exception;
+    }
+
+    public CodexCommitProjectService(Project project) {
+        this.project = project;
+        this.backend = new Backend() {
+            private final CodexRunner runner = new CodexRunner();
+            @Override public String resolveModel(Path executable, BooleanSupplier cancelled) throws Exception {
+                return runner.resolveModel(executable, cancelled);
+            }
+            @Override public String generate(Path executable, String prompt, String model, BooleanSupplier cancelled) throws Exception {
+                return runner.generate(executable, prompt, model, cancelled);
+            }
+        };
+    }
 
     public boolean isBusy() { return active != null; }
 
@@ -66,38 +83,20 @@ public final class CodexCommitProjectService implements Disposable {
             job.executable = CodexExecutableLocator.find(CodexCommitSettings.getInstance().getExecutable());
             job.indicator.setIndeterminate(true);
             job.indicator.setText2("Detect the current Codex model");
-            job.model = new CodexRunner().resolveModel(job.executable, () -> cancelled(job));
-        }, () -> whenFresh(job, () -> reviewRequest(job)), "Could not prepare the selected changes or detect the Codex model. "
+            job.model = backend.resolveModel(job.executable, () -> cancelled(job));
+        }, () -> whenFresh(job, () -> generate(job)), "Could not prepare the selected changes or detect the Codex model. "
                 + "Check native Codex/Git paths and select a model in Codex. "
                 + "The combined before/after text must be at most 50 MiB, "
                 + "and the patch at most 512 KiB. No request was sent.");
     }
 
-    private void reviewRequest(Job job) {
-        if (!current(job)) return;
-        ReviewDialog dialog = new ReviewDialog(project, job.prompt, false, job.model);
-        if (!show(job, dialog)) { finish(job); return; }
-        if (!current(job)) return;
-        whenFresh(job, () -> generate(job));
-    }
-
     private void generate(Job job) {
         task(job, "CodexCommit: generate commit message", () -> {
-            job.draft = new CodexRunner().generate(job.executable, job.prompt, job.model, () -> cancelled(job));
+            job.draft = backend.generate(job.executable, job.prompt, job.model, () -> cancelled(job));
             ContentPolicy.validateMessage(job.draft);
-        }, () -> whenFresh(job, () -> reviewDraft(job)), "Codex could not generate a draft. This release requires native Codex CLI 0.160.1 on Windows or Linux "
+        }, () -> whenFresh(job, () -> { job.snapshot.apply(job.draft); finish(job); }), "Codex could not generate a draft. This release requires native Codex CLI 0.160.1 on Windows or Linux "
                 + "and blocks managed/system Codex configuration. Check sign-in, account quota, and connection. "
                 + "The CLI may have processed the request before failing. Your commit message was not changed.");
-    }
-
-    private void reviewDraft(Job job) {
-        if (!current(job)) return;
-        ReviewDialog dialog = new ReviewDialog(project, job.draft, true, job.model);
-        if (show(job, dialog) && current(job)) {
-            whenFresh(job, () -> { job.snapshot.apply(dialog.getText()); finish(job); });
-        } else {
-            finish(job);
-        }
     }
 
     private void whenFresh(Job job, Runnable next) {
@@ -109,14 +108,6 @@ public final class CodexCommitProjectService implements Disposable {
             if (!job.fresh || !job.snapshot.isFresh()) { stale(job); return; }
             next.run();
         }, "Could not verify the selected files. Run CodexCommit again. Your commit message was preserved.");
-    }
-
-    private boolean show(Job job, ReviewDialog dialog) {
-        if (!current(job)) return false;
-        Disposable close = () -> { if (!dialog.isDisposed()) dialog.close(ReviewDialog.CANCEL_EXIT_CODE); };
-        Disposer.register(this, close);
-        try { return dialog.showAndGet(); }
-        finally { Disposer.dispose(close); }
     }
 
     @FunctionalInterface private interface Work { void run() throws Exception; }
@@ -172,7 +163,7 @@ public final class CodexCommitProjectService implements Disposable {
     private void finish(Job job) { if (active == job) active = null; }
 
     private void stale(Job job) {
-        notice("The checked changes, selected hunks, source content, or commit message changed. Run CodexCommit again to review a fresh request. "
+        notice("The checked changes, selected hunks, source content, or commit message changed. Run CodexCommit again for a fresh draft. "
                 + "Your current commit message was preserved.");
         finish(job);
     }

@@ -1,6 +1,9 @@
 # Candidate ZIP
 
-This directory contains the CodexCommit 1.1.3 candidate ZIP.
+This directory contains the CodexCommit 1.1.4 candidate ZIP.
+One click runs generation in the background and fills the commit message field.
+The prompt requests a short subject and 1–3 brief bullet points.
+Excluded filename warnings name the file and tell you to uncheck it.
 It accepts up to 500 tracked files and 50 MiB of combined before and after content.
 It detects the saved Codex CLI model or uses the CLI default.
 The selected patch can be up to 512 KiB.

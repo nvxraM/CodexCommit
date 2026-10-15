@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.4 — one-click generation
+
+Run the request in the background after one button click.
+Put the draft directly in the commit message field. Remove both review dialogs.
+Request a short subject and 1–3 brief bullet points. Retain checks for changed files and typed messages.
+Name the excluded file in the warning. Tell the user to uncheck it.
+Identify IDE settings files. Keep the existing filename exclusions.
+Escape filename markup. Limit the filename length in notifications.
+Add Codex setup help. Keep manual installation at the bottom of the README.
+Update the artifact upload action to Node.js 24.
+
 ## 1.1.3 — larger selections and automatic model detection
 
 Accept up to 500 tracked files and 50 MiB of combined before and after text.
