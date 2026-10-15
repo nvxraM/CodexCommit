@@ -1,0 +1,15 @@
+.gradle/
+.intellijPlatform/
+.idea/
+*.iml
+build/
+dist/
+local.properties
+release.properties
+*.key
+*.pem
+*.p12
+*.pfx
+auth.json
+.env
+.env.*

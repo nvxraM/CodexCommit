@@ -1,0 +1,177 @@
+package dev.diffquill.ide;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.InvalidPathException;
+import java.nio.file.LinkOption;
+import java.nio.file.attribute.DosFileAttributeView;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+/** Account-free regressions. Every Git mutation below is confined to a newly created synthetic directory. */
+public final class IdeBoundaryTests {
+    private static int passed;
+    private static int skipped;
+    private static Path fixture;
+    private static Path git;
+    @FunctionalInterface interface Check { void run() throws Exception; }
+
+    public static void main(String[] args) throws Exception {
+        git = findGit();
+        fixture = Files.createTempDirectory("diffquill-ide-test-").toRealPath();
+        try {
+            command(fixture, "", "init", "--quiet", "--template=");
+            test("blocks sensitive names and research/binary formats", () -> {
+                for (String value : List.of(".env", "src/.env.production", "sub/id_rsa", ".codex/auth.json", "private/secrets.py",
+                        "keys/key.pem", "raw/contact.npy", "genomes/assembly.fa", "backup.sqlite")) {
+                    require(ChangeSnapshot.sensitive(Path.of(value)), "Sensitive path accepted.");
+                }
+                require(!ChangeSnapshot.sensitive(Path.of("src/Feature.java")), "Ordinary source rejected.");
+            });
+            test("strict UTF-8 text rejects binary and malformed content", () -> {
+                require(LocalGitReader.text("λ\r\nnext\r".getBytes(StandardCharsets.UTF_8)).equals("λ\nnext\n"), "UTF-8 text mismatch.");
+                rejects(() -> LocalGitReader.text(new byte[]{'a', 0, 'b'}));
+                rejects(() -> LocalGitReader.text(new byte[]{(byte) 0xc3, 0x28}));
+            });
+            test("current file reads enforce byte cap and project boundary", () -> {
+                Path file = fixture.resolve("bounded.txt");
+                Files.write(file, new byte[LocalGitReader.MAX_FILE_BYTES]);
+                require(ChangeSnapshot.readBounded(fixture, file).length == LocalGitReader.MAX_FILE_BYTES, "Limit boundary rejected.");
+                Files.write(file, new byte[LocalGitReader.MAX_FILE_BYTES + 1]);
+                rejects(() -> ChangeSnapshot.readBounded(fixture, file));
+                rejects(() -> ChangeSnapshot.validateLocation(fixture, fixture.getParent().resolve("outside.txt")));
+                rejects(() -> ChangeSnapshot.validateLocation(fixture, fixture.resolve("bad\nname.txt")));
+            });
+            test("Git object preflight and bounded reads preserve literal filenames", () -> {
+                String name = "odd [draft] file.txt";
+                Files.writeString(fixture.resolve(name), "synthetic baseline λ\n", StandardCharsets.UTF_8);
+                command(fixture, "", "add", "--", name);
+                command(fixture, "", "-c", "user.name=DiffQuill Tests", "-c", "user.email=tests@example.invalid",
+                        "-c", "commit.gpgsign=false", "commit", "--quiet", "--no-verify", "-m", "Synthetic fixture");
+                String revision = command(fixture, "", "rev-parse", "HEAD").strip();
+                LocalGitReader reader = new LocalGitReader(git, () -> false);
+                LocalGitReader.Blob object = reader.inspect(fixture, revision, name);
+                require(reader.read(fixture, object).equals("synthetic baseline λ\n"), "Wrong baseline content.");
+                rejects(() -> reader.inspect(fixture, "HEAD", name));
+                rejects(() -> reader.inspect(fixture, revision, "odd*"));
+                LocalGitReader cancelled = new LocalGitReader(git, () -> true);
+                try { cancelled.inspect(fixture, revision, name); throw new AssertionError("Cancellation ignored."); }
+                catch (InterruptedException expected) { }
+            });
+            test("oversized historical baseline is rejected even when current file is small", () -> {
+                Path file = fixture.resolve("historical.txt");
+                Files.writeString(file, "x".repeat(LocalGitReader.MAX_FILE_BYTES + 1));
+                command(fixture, "", "add", "--", "historical.txt");
+                command(fixture, "", "-c", "user.name=DiffQuill Tests", "-c", "user.email=tests@example.invalid",
+                        "-c", "commit.gpgsign=false", "commit", "--quiet", "--no-verify", "-m", "Oversized synthetic baseline");
+                String revision = command(fixture, "", "rev-parse", "HEAD").strip();
+                Files.writeString(file, "small\n");
+                require(ChangeSnapshot.readBounded(fixture, file).length == 6, "Small current file rejected.");
+                rejects(() -> new LocalGitReader(git, () -> false).inspect(fixture, revision, "historical.txt"));
+            });
+            test("unified patch applies exact modification with multiple changes", () -> {
+                String before = "one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nnine\nten\n";
+                String after = "one\nTWO\nthree\nfour\nfive\nsix\nseven\neight\nNINE\nten\n";
+                applies("multiple.txt", "multiple.txt", before, after,
+                        List.of(new UnifiedPatch.Part(1, 2, 1, 2), new UnifiedPatch.Part(8, 9, 8, 9)));
+            });
+            test("unified patch preserves absent final newline and quoted filenames", () -> {
+                applies("quoted space [a].txt", "quoted space [a].txt", "old\nline\n", "new\nline",
+                        List.of(new UnifiedPatch.Part(0, 2, 0, 2)));
+                applies("newline.txt", "newline.txt", "same\n", "same", List.of(new UnifiedPatch.Part(0, 1, 0, 1)));
+            });
+            test("unified patch represents additions deletions and renames", () -> {
+                applies(null, "new.txt", "", "new\n", List.of(new UnifiedPatch.Part(0, 0, 0, 1)));
+                applies("deleted.txt", null, "deleted\n", "", List.of(new UnifiedPatch.Part(0, 1, 0, 0)));
+                applies("rename-old.txt", "rename-new.txt", "unchanged\n", "unchanged\n", List.of());
+                applies(null, "empty-new.txt", "", "", List.of());
+            });
+            symlinkTest();
+            System.out.println("IDE boundary tests: " + passed + " passed, 0 failed, " + skipped + " skipped. Synthetic local fixtures only; no model request.");
+        } finally { cleanup(); }
+    }
+
+    private static void symlinkTest() throws Exception {
+        Path target = fixture.resolve("link-target.txt");
+        Path link = fixture.resolve("link.txt");
+        Files.writeString(target, "synthetic\n");
+        try { Files.createSymbolicLink(link, target); }
+        catch (IOException | UnsupportedOperationException | SecurityException unavailable) {
+            skipped++;
+            System.out.println("SKIP symbolic-link rejection: host does not allow test symlink creation.");
+            return;
+        }
+        test("symlink path and leaf reads are rejected", () -> {
+            rejects(() -> ChangeSnapshot.validateLocation(fixture, link));
+            rejects(() -> ChangeSnapshot.readBounded(fixture, link));
+        });
+    }
+
+    private static void applies(String beforeName, String afterName, String before, String after, List<UnifiedPatch.Part> parts) throws Exception {
+        if (beforeName != null) Files.writeString(fixture.resolve(beforeName), before, StandardCharsets.UTF_8);
+        String patch = UnifiedPatch.format(beforeName, afterName, before, after, parts, () -> false);
+        command(fixture, patch, "apply", "--check", "--whitespace=nowarn", "-");
+        command(fixture, patch, "apply", "--whitespace=nowarn", "-");
+        if (afterName == null) require(!Files.exists(fixture.resolve(beforeName)), "Deletion not applied.");
+        else require(Files.readString(fixture.resolve(afterName), StandardCharsets.UTF_8).equals(after), "Patch changed unexpected content.");
+        if (beforeName != null && afterName != null && !beforeName.equals(afterName)) {
+            require(!Files.exists(fixture.resolve(beforeName)), "Rename source still exists.");
+        }
+    }
+
+    private static Path findGit() throws IOException {
+        String configured = System.getenv("DIFFQUILL_TEST_GIT");
+        if (configured != null && !configured.isBlank()) return LocalGitReader.requireNativeGit(Path.of(configured));
+        for (String candidate : List.of("C:/Program Files/Git/cmd/git.exe", "/usr/bin/git", "/bin/git")) {
+            Path path = Path.of(candidate);
+            if (Files.isRegularFile(path)) return LocalGitReader.requireNativeGit(path);
+        }
+        throw new IOException("Set DIFFQUILL_TEST_GIT to an absolute native Git binary to run boundary tests.");
+    }
+
+    private static String command(Path directory, String input, String... args) throws Exception {
+        require(directory.equals(fixture), "Git test command escaped synthetic fixture.");
+        List<String> command = new ArrayList<>(List.of(git.toString(), "--no-pager", "--literal-pathspecs"));
+        command.addAll(List.of(args));
+        ProcessBuilder builder = new ProcessBuilder(command).directory(directory.toFile()).redirectErrorStream(true);
+        Map<String, String> environment = builder.environment();
+        environment.keySet().removeIf(name -> name.toUpperCase(Locale.ROOT).startsWith("GIT_"));
+        environment.put("GIT_CONFIG_NOSYSTEM", "1");
+        environment.put("GIT_CONFIG_GLOBAL", System.getProperty("os.name").startsWith("Windows") ? "NUL" : "/dev/null");
+        environment.put("GIT_TERMINAL_PROMPT", "0");
+        Process process = builder.start();
+        try {
+            process.getOutputStream().write(input.getBytes(StandardCharsets.UTF_8));
+            process.getOutputStream().close();
+            require(process.waitFor(10, TimeUnit.SECONDS), "Synthetic Git command timed out.");
+            String output = new String(process.getInputStream().readNBytes(64 * 1024), StandardCharsets.UTF_8);
+            require(process.exitValue() == 0, "Synthetic Git command failed: " + output);
+            return output;
+        } finally { if (process.isAlive()) process.destroyForcibly(); }
+    }
+
+    private static void test(String name, Check check) throws Exception { check.run(); passed++; System.out.println("PASS " + name); }
+    private static void require(boolean condition, String message) { if (!condition) throw new AssertionError(message); }
+    private static void rejects(Check check) throws Exception {
+        try { check.run(); throw new AssertionError("Expected safe rejection."); }
+        catch (IOException | InvalidPathException expected) { }
+    }
+
+    private static void cleanup() throws IOException {
+        Path temp = Path.of(System.getProperty("java.io.tmpdir")).toRealPath();
+        require(fixture.startsWith(temp) && fixture.getFileName().toString().startsWith("diffquill-ide-test-"), "Unsafe test cleanup target.");
+        try (var paths = Files.walk(fixture)) {
+            for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
+                DosFileAttributeView dos = Files.getFileAttributeView(path, DosFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
+                if (dos != null) dos.setReadOnly(false); // Git marks synthetic loose objects read-only on Windows.
+                Files.deleteIfExists(path);
+            }
+        }
+    }
+}

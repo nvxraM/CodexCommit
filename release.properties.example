@@ -1,0 +1,7 @@
+# Copy to ignored release.properties only when preparing Marketplace metadata.
+# Use public business/contact details that you agree to publish.
+publisherName=
+publisherEmail=
+publisherUrl=
+sourceUrl=
+privacyPolicyUrl=
