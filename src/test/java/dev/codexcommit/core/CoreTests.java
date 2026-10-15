@@ -17,8 +17,8 @@ public final class CoreTests {
     private static int passed;
 
     public static void main(String[] args) throws Exception {
-        if (args.length == 2 && args[0].equals("--audit-cli")) {
-            OfflineCliAudit.run(Path.of(args[1]));
+        if ((args.length == 2 || args.length == 3) && args[0].equals("--audit-cli")) {
+            OfflineCliAudit.run(Path.of(args[1]), args.length == 3 ? args[2] : "gpt-5.4");
             return;
         }
         check("portable prompt uses exact selection", () -> {
@@ -40,6 +40,22 @@ public final class CoreTests {
             rejects(() -> ContentPolicy.validateMessage("hello\u202eexe"), IllegalArgumentException.class);
             rejects(() -> ContentPolicy.validateMessage("```text\nmessage\n```"), IllegalArgumentException.class);
             ContentPolicy.validateMessage("Fix visible state\n\nClear stale details after selection.");
+        });
+        check("large reviewed diffs fit the request without truncation", () -> {
+            String patch = "+value = 1\n".repeat(20_000);
+            require(patch.getBytes(StandardCharsets.UTF_8).length > 120 * 1024, "Fixture must exceed the old patch cap.");
+            String prompt = PromptBuilder.build(patch);
+            require(prompt.endsWith(patch), "Large request must preserve every selected line.");
+            String largestPatch = "x".repeat(ContentPolicy.MAX_PATCH_BYTES);
+            require(PromptBuilder.build(largestPatch).endsWith(largestPatch), "Instructions must fit beside a maximum-size patch.");
+        });
+        check("patch and request caps use UTF-8 bytes at the boundary", () -> {
+            ContentPolicy.validatePatch("é".repeat(ContentPolicy.MAX_PATCH_BYTES / 2));
+            rejects(() -> ContentPolicy.validatePatch("x".repeat(ContentPolicy.MAX_PATCH_BYTES + 1)), IllegalArgumentException.class);
+            ContentPolicy.validatePrompt("é".repeat(ContentPolicy.MAX_PROMPT_BYTES / 2));
+            rejects(() -> ContentPolicy.validatePrompt("é".repeat(ContentPolicy.MAX_PROMPT_BYTES / 2) + "x"), IllegalArgumentException.class);
+            ContentPolicy.validateMessage("x".repeat(ContentPolicy.MAX_MESSAGE_BYTES));
+            rejects(() -> ContentPolicy.validateMessage("x".repeat(ContentPolicy.MAX_MESSAGE_BYTES + 1)), IllegalArgumentException.class);
         });
         check("rejects shell and relative executable paths", () -> {
             rejects(() -> CodexExecutableLocator.validateNative(Path.of("codex.cmd"), true), IOException.class);
@@ -67,15 +83,55 @@ public final class CoreTests {
             require(env.get("HOME").equals(System.getProperty("user.home")), "Saved auth uses the user's normal home");
         });
         check("audited profile closes tools and persistence", () -> {
-            List<String> command = CodexRunner.command(Path.of("/native/codex"), Path.of("/private/work"), Path.of("/private/work/models.json"));
+            List<String> command = CodexRunner.command(Path.of("/native/codex"), Path.of("/private/work"), Path.of("/private/work/models.json"), "gpt-5.4");
             for (String argument : List.of("--ignore-user-config", "--ignore-rules", "--ephemeral", "--strict-config", "read-only",
                     "features.shell_tool=false", "features.view_image=false", "features.hooks=false", "features.apps=false", "features.plugins=false",
-                    "features.skip_host_skill_discovery=true", "analytics.enabled=false", "history.persistence=\"none\"", "web_search=\"disabled\"")) {
+                    "features.skip_host_skill_discovery=true", "analytics.enabled=false", "history.persistence=\"none\"", "model_providers={}", "web_search=\"disabled\"")) {
                 require(command.contains(argument), "Missing safety argument: " + argument);
             }
             require(command.get(command.size() - 1).equals("-"), "Prompt must use stdin");
-            require(CodexRunner.MODEL_CATALOG.contains("\"apply_patch_tool_type\":null"), "Apply patch must be disabled");
-            require(CodexRunner.MODEL_CATALOG.contains("\"experimental_supported_tools\":[]"), "Model tools must be empty");
+            require(CodexRunner.modelCatalog("gpt-5.4").contains("\"apply_patch_tool_type\":null"), "Apply patch must be disabled");
+            require(CodexRunner.modelCatalog("gpt-5.4").contains("\"experimental_supported_tools\":[]"), "Model tools must be empty");
+        });
+        check("model IDs stay data and retain the restricted tool profile", () -> {
+            for (String model : List.of("gpt-5.4", "gpt-5.3-codex", "gpt-6.1-sol", "future-account-model")) {
+                Map<?, ?> catalog = Json.object(Json.parse(CodexRunner.modelCatalog(model)));
+                Map<?, ?> metadata = Json.object(((List<?>) catalog.get("models")).getFirst());
+                require(metadata.get("slug").equals(model), "Catalog must match the chosen model exactly.");
+                require(metadata.get("apply_patch_tool_type") == null && metadata.get("shell_type").equals("disabled"), "A model change enabled tools.");
+                require(metadata.get("default_reasoning_level") == null && Boolean.FALSE.equals(metadata.get("support_verbosity")), "Do not force unsupported model parameters.");
+            }
+            for (String invalid : List.of("", "--config=x", "gpt\"bad", "gpt\nother", "x".repeat(129))) {
+                rejects(() -> CodexRunner.validateModel(invalid), IllegalArgumentException.class);
+            }
+        });
+        check("automatic model selection follows the CLI setting or its default", () -> withWorkspace(folder -> {
+            Map<String, String> environment = CodexRunner.childEnvironment(System.getenv());
+            require(CodexModelResolver.resolve(helper("model-config"), folder, environment, () -> false, 5000).equals("gpt-5.4"), "Saved model not selected.");
+            require(CodexModelResolver.resolve(helper("model-default"), folder, environment, () -> false, 5000).equals("gpt-5.3-codex"), "CLI default not selected.");
+        }));
+        check("automatic model selection rejects private errors invalid IDs and oversized replies", () -> withWorkspace(folder -> {
+            for (String mode : List.of("model-error", "model-injection", "model-overflow")) {
+                try {
+                    CodexModelResolver.resolve(helper(mode), folder, CodexRunner.childEnvironment(System.getenv()), () -> false, 5000);
+                    throw new AssertionError("Invalid model response accepted.");
+                } catch (IOException expected) {
+                    require(!expected.getMessage().contains("SYNTHETIC_PRIVATE_CONFIG"), "Private CLI response was exposed.");
+                }
+            }
+        }));
+        check("automatic model selection honours timeout and cancellation", () -> withWorkspace(folder -> {
+            Map<String, String> environment = CodexRunner.childEnvironment(System.getenv());
+            rejects(() -> CodexModelResolver.resolve(helper("sleep"), folder, environment, () -> false, 300), IOException.class);
+            long start = System.nanoTime();
+            rejects(() -> CodexModelResolver.resolve(helper("sleep"), folder, environment,
+                    () -> System.nanoTime() - start > 300_000_000, 5000), InterruptedException.class);
+        }));
+        check("local model JSON rejects duplicate keys malformed input and deep nesting", () -> {
+            for (String invalid : List.of("{\"id\":1,\"id\":2}", "{\"model\":\"bad\\q\"}", "[1,]", "[true false]", "{\"a\":null,\"a\":1}", "[".repeat(34) + "]".repeat(34))) {
+                rejects(() -> Json.parse(invalid), IOException.class);
+            }
+            require(Json.object(Json.parse("{\"model\":\"gpt\\u002d5.4\",\"unused\":[null,true,1.5]}")).get("model").equals("gpt-5.4"), "Valid escaped model failed.");
         });
         check("child stdin is exact, private cwd and exit captured", () -> withWorkspace(folder -> {
             var result = child("echo", "only this synthetic selection", folder, () -> false, 5000, 4096);

@@ -36,8 +36,10 @@ public final class CodexCommitProjectService implements Disposable {
         ChangeSnapshot snapshot;
         Path executable;
         String prompt;
+        String model;
         String draft;
         String failure;
+        boolean fresh;
     }
 
     public CodexCommitProjectService(Project project) { this.project = project; }
@@ -62,34 +64,51 @@ public final class CodexCommitProjectService implements Disposable {
             String patch = job.snapshot.build(() -> cancelled(job));
             job.prompt = PromptBuilder.build(patch);
             job.executable = CodexExecutableLocator.find(CodexCommitSettings.getInstance().getExecutable());
-        }, () -> reviewRequest(job), "Could not prepare the selected changes. Check native Codex/Git paths and the whole-file selection. "
-                + "The combined before/after text must be at most 256 KiB and the patch at most 120 KiB. No request was sent.");
+            job.indicator.setIndeterminate(true);
+            job.indicator.setText2("Detect the current Codex model");
+            job.model = new CodexRunner().resolveModel(job.executable, () -> cancelled(job));
+        }, () -> whenFresh(job, () -> reviewRequest(job)), "Could not prepare the selected changes or detect the Codex model. "
+                + "Check native Codex/Git paths and select a model in Codex. "
+                + "The combined before/after text must be at most 50 MiB, "
+                + "and the patch at most 512 KiB. No request was sent.");
     }
 
     private void reviewRequest(Job job) {
         if (!current(job)) return;
-        if (!job.snapshot.isFresh()) { stale(job); return; }
-        ReviewDialog dialog = new ReviewDialog(project, job.prompt, false);
+        ReviewDialog dialog = new ReviewDialog(project, job.prompt, false, job.model);
         if (!show(job, dialog)) { finish(job); return; }
         if (!current(job)) return;
-        if (!job.snapshot.isFresh()) { stale(job); return; }
+        whenFresh(job, () -> generate(job));
+    }
+
+    private void generate(Job job) {
         task(job, "CodexCommit: generate commit message", () -> {
-            job.draft = new CodexRunner().generate(job.executable, job.prompt, () -> cancelled(job));
+            job.draft = new CodexRunner().generate(job.executable, job.prompt, job.model, () -> cancelled(job));
             ContentPolicy.validateMessage(job.draft);
-        }, () -> reviewDraft(job), "Codex could not generate a draft. This release requires native Codex CLI 0.160.1 on Windows or Linux "
+        }, () -> whenFresh(job, () -> reviewDraft(job)), "Codex could not generate a draft. This release requires native Codex CLI 0.160.1 on Windows or Linux "
                 + "and blocks managed/system Codex configuration. Check sign-in, account quota, and connection. "
                 + "The CLI may have processed the request before failing. Your commit message was not changed.");
     }
 
     private void reviewDraft(Job job) {
         if (!current(job)) return;
-        if (!job.snapshot.isFresh()) { stale(job); return; }
-        ReviewDialog dialog = new ReviewDialog(project, job.draft, true);
+        ReviewDialog dialog = new ReviewDialog(project, job.draft, true, job.model);
         if (show(job, dialog) && current(job)) {
-            if (!job.snapshot.isFresh()) { stale(job); return; }
-            job.snapshot.apply(dialog.getText());
+            whenFresh(job, () -> { job.snapshot.apply(dialog.getText()); finish(job); });
+        } else {
+            finish(job);
         }
-        finish(job);
+    }
+
+    private void whenFresh(Job job, Runnable next) {
+        if (!current(job)) return;
+        if (!job.snapshot.isFresh()) { stale(job); return; }
+        task(job, "CodexCommit: verify selected files", () -> {
+            job.fresh = job.snapshot.contentIsFresh(() -> cancelled(job));
+        }, () -> {
+            if (!job.fresh || !job.snapshot.isFresh()) { stale(job); return; }
+            next.run();
+        }, "Could not verify the selected files. Run CodexCommit again. Your commit message was preserved.");
     }
 
     private boolean show(Job job, ReviewDialog dialog) {

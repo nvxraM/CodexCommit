@@ -44,7 +44,7 @@ This glossary records project terms. It does not approve arbitrary words under t
 | hunk | A group of changed lines in a patch. |
 | IDE | Integrated development environment. Use `PyCharm` when the product name is necessary. |
 | JDK | Java development kit. The build needs JDK 25. |
-| model | The service model that produces the draft. This release requests `gpt-6.1-sol`. |
+| model | The service model that produces the draft. The plugin detects the saved Codex CLI model or uses the CLI default. |
 | native | A program that runs directly on the host operating system. |
 | patch | The text that describes the selected file changes. |
 | plugin | The CodexCommit extension for the IDE. |

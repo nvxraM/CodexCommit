@@ -3,6 +3,7 @@ package dev.codexcommit.ide;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.intellij.openapi.vcs.VcsRoot;
@@ -25,6 +26,7 @@ import git4idea.config.GitExecutableManager;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -36,14 +38,16 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HexFormat;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
+import java.util.stream.Collectors;
 
 /** Captures only checked whole-file Git changes, then verifies the same selection before applying. */
 final class ChangeSnapshot {
-    static final int MAX_FILES = 32;
+    static final int MAX_FILES = 500;
 
     /** Only fixed validation text may be shown to the user; filesystem exception text is not disclosed. */
     static final class SelectionException extends IOException {
@@ -58,8 +62,9 @@ final class ChangeSnapshot {
     private static final Set<String> SENSITIVE_DIRECTORIES = Set.of(".git", ".idea", ".ssh", ".aws", ".azure", ".kube", ".gnupg", ".codex");
 
     private record Entry(Path before, Path after, Path repository, String revision, String beforeName, String afterName,
-                         Document document, long documentStamp, String documentText, long diskSize, FileTime diskModified, Object fileKey) {}
-    private record Prepared(Entry entry, LocalGitReader.Blob blob, String diskHash) {}
+                         Document document, long documentStamp, CharSequence documentText, VirtualFile file, long fileStamp) {}
+    private record DiskState(long size, FileTime modified, Object key) {}
+    private record Prepared(Entry entry, LocalGitReader.Blob blob, String documentText, DiskState disk, String diskHash) {}
 
     private final Project project;
     private final CommitWorkflowUi ui;
@@ -89,17 +94,18 @@ final class ChangeSnapshot {
     static ChangeSnapshot capture(Project project, CommitWorkflowUi ui, Document messageDocument) throws IOException {
         if (project.getBasePath() == null) throw new SelectionException("A local project directory is required.");
         List<Change> changes = List.copyOf(ui.getIncludedChanges());
-        if (changes.isEmpty() || changes.size() > MAX_FILES) throw new SelectionException("Select between 1 and 32 tracked files.");
-        Path root = Path.of(project.getBasePath()).toRealPath();
+        if (changes.isEmpty() || changes.size() > MAX_FILES) throw new SelectionException("Select between 1 and 500 tracked files.");
+        Path root = Path.of(project.getBasePath()).toAbsolutePath().normalize();
         GitExecutable configured = GitExecutableManager.getInstance().getExecutable(project);
         if (!configured.isLocal()) throw new SelectionException("Only local native Git is supported.");
         Path git;
-        try { git = LocalGitReader.requireNativeGit(Path.of(configured.getExePath())); }
-        catch (IOException | RuntimeException ignored) {
+        try {
+            git = Path.of(configured.getExePath());
+            if (!git.isAbsolute()) throw new IllegalArgumentException();
+        } catch (RuntimeException ignored) {
             throw new SelectionException("Open Settings > Version Control > Git. Select the absolute path to a native Git executable.");
         }
         List<Entry> entries = new ArrayList<>();
-        long total = 0;
         for (Change change : changes) {
             ContentRevision beforeRevision = change.getBeforeRevision();
             ContentRevision afterRevision = change.getAfterRevision();
@@ -119,38 +125,26 @@ final class ChangeSnapshot {
             if (vcs == null || vcs.getVcs() == null || !"Git".equals(vcs.getVcs().getName())) {
                 throw new SelectionException("Only Git changes are supported.");
             }
-            Path repository = Path.of(vcs.getPath().getPath()).toRealPath();
+            Path repository = Path.of(vcs.getPath().getPath()).toAbsolutePath().normalize();
             if (!repository.startsWith(root) || (before != null && !before.startsWith(repository))
                     || (after != null && !after.startsWith(repository))) throw new SelectionException("The Git root must be inside this project.");
             checkPartial(project, change, afterFile);
             Document document = afterFile == null || afterFile.getVirtualFile() == null ? null
                     : FileDocumentManager.getInstance().getCachedDocument(afterFile.getVirtualFile());
-            String text = null;
+            CharSequence text = null;
             long stamp = -1;
-            long size = 0;
-            if (after != null) {
-                if (!Files.isRegularFile(after, LinkOption.NOFOLLOW_LINKS)) throw new SelectionException("Only regular local files are supported.");
-                size = Files.size(after);
-                if (size > LocalGitReader.MAX_FILE_BYTES) throw new SelectionException("Selected file exceeds 64 KiB.");
-                if (document != null) {
-                    if (document.getTextLength() > LocalGitReader.MAX_FILE_BYTES
-                            || FileDocumentManager.getInstance().isPartialPreviewOfALargeFile(document)) {
-                        throw new SelectionException("Selected document exceeds 64 KiB.");
-                    }
-                    text = document.getImmutableCharSequence().toString();
-                    int bytes = text.getBytes(StandardCharsets.UTF_8).length;
-                    if (bytes > LocalGitReader.MAX_FILE_BYTES) throw new SelectionException("Selected document exceeds 64 KiB.");
-                    size = Math.max(size, bytes);
-                    stamp = document.getModificationStamp();
+            if (document != null) {
+                if (document.getTextLength() > LocalGitReader.MAX_FILE_BYTES
+                        || FileDocumentManager.getInstance().isPartialPreviewOfALargeFile(document)) {
+                    throw new SelectionException("Selected document exceeds 50 MiB or is only partly loaded by the IDE.");
                 }
+                text = document.getImmutableCharSequence();
+                stamp = document.getModificationStamp();
             }
-            total += size;
-            if (total > LocalGitReader.MAX_TOTAL_BYTES) throw new SelectionException("Selected content exceeds 256 KiB.");
             String revision = beforeRevision == null ? null : beforeRevision.getRevisionNumber().asString();
-            BasicFileAttributes attributes = after == null ? null : Files.readAttributes(after, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+            VirtualFile file = afterFile == null ? null : afterFile.getVirtualFile();
             entries.add(new Entry(before, after, repository, revision, relative(root, before), relative(root, after),
-                    document, stamp, text, attributes == null ? 0 : attributes.size(),
-                    attributes == null ? null : attributes.lastModifiedTime(), attributes == null ? null : attributes.fileKey()));
+                    document, stamp, text, file, file == null ? -1 : file.getModificationStamp()));
         }
         return new ChangeSnapshot(project, ui, root, git, selectionKey(changes), ui.getCommitMessageUi().getText(), messageDocument, List.copyOf(entries));
     }
@@ -162,28 +156,46 @@ final class ChangeSnapshot {
         long total = 0;
         for (Entry entry : entries) {
             if (cancelled.getAsBoolean()) throw new InterruptedException("Cancelled.");
+            progress("Check selected files", candidates.size(), entries.size(), 0, 0.25);
+            if (entry.before() != null) validateLocation(root, entry.before());
+            if (entry.after() != null) validateLocation(root, entry.after());
+            Path repository = entry.repository().toRealPath();
+            if (!repository.startsWith(root.toRealPath())) throw new SelectionException("The Git root must be inside this project.");
+            DiskState disk = null;
+            if (entry.after() != null) {
+                BasicFileAttributes attributes = Files.readAttributes(entry.after(), BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+                if (!attributes.isRegularFile()) throw new SelectionException("Only regular local files are supported.");
+                if (attributes.size() > LocalGitReader.MAX_FILE_BYTES) throw new SelectionException("Selected file exceeds 50 MiB.");
+                disk = new DiskState(attributes.size(), attributes.lastModifiedTime(), attributes.fileKey());
+            }
+            String documentText = entry.documentText() == null ? null : entry.documentText().toString();
+            int documentBytes = documentText == null ? 0 : documentText.getBytes(StandardCharsets.UTF_8).length;
+            if (documentBytes > LocalGitReader.MAX_FILE_BYTES) throw new SelectionException("Selected document exceeds 50 MiB.");
             LocalGitReader.Blob blob = entry.before() == null ? null : reader.inspect(entry.repository(), entry.revision(),
                     relative(entry.repository(), entry.before()));
-            total += (blob == null ? 0 : blob.size()) + Math.max(entry.diskSize(),
-                    entry.documentText() == null ? 0 : entry.documentText().getBytes(StandardCharsets.UTF_8).length);
-            if (total > LocalGitReader.MAX_TOTAL_BYTES) throw new SelectionException("Selected before and after content exceeds 256 KiB.");
-            candidates.add(new Prepared(entry, blob, null));
+            total += (blob == null ? 0 : blob.size()) + Math.max(disk == null ? 0 : disk.size(), documentBytes);
+            if (total > LocalGitReader.MAX_TOTAL_BYTES) throw new SelectionException("Selected before and after content exceeds 50 MiB.");
+            candidates.add(new Prepared(entry, blob, documentText, disk, null));
         }
         StringBuilder output = new StringBuilder();
+        int patchBytes = 0;
         List<Prepared> completed = new ArrayList<>();
         for (Prepared candidate : candidates) {
             Entry entry = candidate.entry();
             if (cancelled.getAsBoolean()) throw new InterruptedException("Cancelled.");
+            progress("Compare selected files", completed.size(), candidates.size(), 0.25, 0.75);
             String before = candidate.blob() == null ? "" : reader.read(entry.repository(), candidate.blob());
-            checkDiskMetadata(entry);
-            byte[] disk = entry.after() == null ? new byte[0] : readBounded(root, entry.after());
-            checkDiskMetadata(entry);
-            String after = entry.after() == null ? "" : entry.documentText() == null ? LocalGitReader.text(disk)
-                    : entry.documentText().replace("\r\n", "\n").replace('\r', '\n');
+            checkDiskMetadata(candidate);
+            byte[] disk = entry.after() == null ? new byte[0] : readBounded(root, entry.after(), cancelled);
+            checkDiskMetadata(candidate);
+            String after = entry.after() == null ? "" : candidate.documentText() == null ? LocalGitReader.text(disk)
+                    : candidate.documentText().replace("\r\n", "\n").replace('\r', '\n');
             if (after.indexOf('\0') >= 0) throw new SelectionException("Binary changes are not supported.");
-            output.append(UnifiedPatch.build(entry.beforeName(), entry.afterName(), before, after, cancelled));
-            if (output.length() > ContentPolicy.MAX_PATCH_BYTES) throw new SelectionException("Patch exceeds 120 KiB.");
-            completed.add(new Prepared(entry, candidate.blob(), digest(disk)));
+            String patch = UnifiedPatch.build(entry.beforeName(), entry.afterName(), before, after, cancelled);
+            patchBytes += patch.getBytes(StandardCharsets.UTF_8).length;
+            if (patchBytes > ContentPolicy.MAX_PATCH_BYTES) throw new SelectionException("Patch exceeds 512 KiB. Select fewer changes.");
+            output.append(patch);
+            completed.add(new Prepared(entry, candidate.blob(), null, candidate.disk(), digest(disk)));
         }
         String result = output.toString();
         ContentPolicy.validatePatch(result);
@@ -191,24 +203,47 @@ final class ChangeSnapshot {
         return result;
     }
 
-    /** No Git or network here. At most 256 KiB of local files are rehashed on the EDT. */
+    /** EDT-only selection, tracker, and document checks. No filesystem reads or process starts. */
     boolean isFresh() {
         try {
             if (project.isDisposed() || !originalMessage.equals(ui.getCommitMessageUi().getText())
                     || messageStamp != messageDocument.getModificationStamp()
                     || !selection.equals(selectionKey(ui.getIncludedChanges())) || prepared.size() != entries.size()) return false;
+            var currentChanges = new HashMap<Path, Change>();
+            for (Change change : ui.getIncludedChanges()) {
+                ContentRevision revision = change.getAfterRevision() != null ? change.getAfterRevision() : change.getBeforeRevision();
+                if (revision != null) currentChanges.put(Path.of(revision.getFile().getPath()).toAbsolutePath().normalize(), change);
+            }
             for (Prepared candidate : prepared) {
                 Entry entry = candidate.entry();
-                checkPartial(project, findChange(ui.getIncludedChanges(), entry), entry.after() == null ? null
-                        : findChange(ui.getIncludedChanges(), entry).getAfterRevision().getFile());
+                Change change = currentChanges.get(entry.after() == null ? entry.before() : entry.after());
+                if (change == null) return false;
+                checkPartial(project, change, entry.after() == null ? null : change.getAfterRevision().getFile());
                 if (entry.document() != null && entry.document().getModificationStamp() != entry.documentStamp()) return false;
                 if (entry.after() != null) {
-                    validateLocation(root, entry.after());
-                    if (!Files.isRegularFile(entry.after(), LinkOption.NOFOLLOW_LINKS)
-                            || !candidate.diskHash().equals(digest(readBounded(root, entry.after())))) return false;
-                    VirtualFile file = findChange(ui.getIncludedChanges(), entry).getAfterRevision().getFile().getVirtualFile();
+                    VirtualFile file = change.getAfterRevision().getFile().getVirtualFile();
+                    if (file != entry.file() || (file != null && (!file.isValid() || file.getModificationStamp() != entry.fileStamp()))) return false;
                     Document current = file == null ? null : FileDocumentManager.getInstance().getCachedDocument(file);
                     if (entry.document() == null && current != null && FileDocumentManager.getInstance().isDocumentUnsaved(current)) return false;
+                }
+            }
+            return true;
+        } catch (IOException | RuntimeException ignored) { return false; }
+    }
+
+    /** Worker-only bounded content check. Does not read IDE UI or mutable document state. */
+    boolean contentIsFresh(BooleanSupplier cancelled) throws InterruptedException {
+        try {
+            if (prepared.size() != entries.size()) return false;
+            int checked = 0;
+            for (Prepared candidate : prepared) {
+                if (cancelled.getAsBoolean()) throw new InterruptedException("Cancelled.");
+                progress("Verify selected files", checked++, prepared.size(), 0, 1);
+                Entry entry = candidate.entry();
+                if (entry.after() != null) {
+                    checkDiskMetadata(candidate);
+                    if (!candidate.diskHash().equals(diskDigest(root, entry.after(), cancelled))) return false;
+                    checkDiskMetadata(candidate);
                 } else if (Files.exists(entry.before(), LinkOption.NOFOLLOW_LINKS)) return false;
             }
             return true;
@@ -216,15 +251,6 @@ final class ChangeSnapshot {
     }
 
     void apply(String message) { ui.getCommitMessageUi().setText(message); }
-
-    private static Change findChange(List<? extends Change> changes, Entry entry) throws IOException {
-        for (Change change : changes) {
-            ContentRevision revision = change.getAfterRevision() != null ? change.getAfterRevision() : change.getBeforeRevision();
-            if (revision != null && Path.of(revision.getFile().getPath()).toAbsolutePath().normalize()
-                    .equals(entry.after() == null ? entry.before() : entry.after())) return change;
-        }
-        throw new SelectionException("Selection changed.");
-    }
 
     private static void checkPartial(Project project, Change change, FilePath file) throws IOException {
         if (file == null) return;
@@ -257,7 +283,7 @@ final class ChangeSnapshot {
         VirtualFile virtual = file.getVirtualFile();
         if (virtual != null && virtual.is(VFileProperty.SYMLINK)) throw new SelectionException("Symbolic links are excluded.");
         Path path = Path.of(file.getPath()).toAbsolutePath().normalize();
-        validateLocation(root, path);
+        if (!path.startsWith(root) || path.equals(root)) throw new SelectionException("Selected files must be inside the project.");
         if (sensitive(root.relativize(path))) throw new SelectionException("A selected filename is excluded by the sensitive-content policy.");
         return path;
     }
@@ -293,34 +319,74 @@ final class ChangeSnapshot {
     private static String selectionKey(List<? extends Change> changes) {
         return changes.stream().map(change -> change.getClass().getName() + "|" + revisionKey(change.getBeforeRevision())
                         + "|" + revisionKey(change.getAfterRevision()) + "|" + (change instanceof ChangeListChange item ? item.getChangeListId() : ""))
-                .sorted(Comparator.naturalOrder()).reduce("", (a, b) -> a + "\n" + b);
+                .sorted(Comparator.naturalOrder()).collect(Collectors.joining("\n"));
     }
 
     private static String revisionKey(ContentRevision revision) {
         return revision == null ? "" : revision.getFile().getPath() + "|" + revision.getRevisionNumber().asString();
     }
 
-    private static void checkDiskMetadata(Entry entry) throws IOException {
+    private static void checkDiskMetadata(Prepared candidate) throws IOException {
+        Entry entry = candidate.entry();
         if (entry.after() == null) return;
         BasicFileAttributes attributes = Files.readAttributes(entry.after(), BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-        if (attributes.size() != entry.diskSize() || !attributes.lastModifiedTime().equals(entry.diskModified())
-                || !java.util.Objects.equals(attributes.fileKey(), entry.fileKey())) throw new SelectionException("Selected content changed during preparation.");
+        if (!attributes.isRegularFile() || attributes.size() != candidate.disk().size()
+                || !attributes.lastModifiedTime().equals(candidate.disk().modified())
+                || !java.util.Objects.equals(attributes.fileKey(), candidate.disk().key())) throw new SelectionException("Selected content changed during preparation.");
     }
 
-    static byte[] readBounded(Path root, Path path) throws IOException {
+    static byte[] readBounded(Path root, Path path) throws IOException, InterruptedException {
+        return readBounded(root, path, () -> false);
+    }
+
+    static byte[] readBounded(Path root, Path path, BooleanSupplier cancelled) throws IOException, InterruptedException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        readChunks(root, path, cancelled, output::write);
+        return output.toByteArray();
+    }
+
+    static String diskDigest(Path root, Path path, BooleanSupplier cancelled) throws IOException, InterruptedException {
+        MessageDigest digest = sha256();
+        readChunks(root, path, cancelled, digest::update);
+        return HexFormat.of().formatHex(digest.digest());
+    }
+
+    @FunctionalInterface private interface Chunk { void accept(byte[] bytes, int offset, int count); }
+
+    private static void readChunks(Path root, Path path, BooleanSupplier cancelled, Chunk chunk) throws IOException, InterruptedException {
         validateLocation(root, path);
         if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) || Files.size(path) > LocalGitReader.MAX_FILE_BYTES) {
-            throw new SelectionException("Only regular files up to 64 KiB are supported.");
+            throw new SelectionException("Only regular files up to 50 MiB are supported.");
         }
         try (InputStream stream = Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS)) {
-            byte[] bytes = stream.readNBytes(LocalGitReader.MAX_FILE_BYTES + 1);
-            if (bytes.length > LocalGitReader.MAX_FILE_BYTES) throw new SelectionException("Selected file exceeds 64 KiB.");
-            return bytes;
+            byte[] bytes = new byte[64 * 1024];
+            long total = 0;
+            while (true) {
+                if (cancelled.getAsBoolean()) throw new InterruptedException("Cancelled.");
+                int count = stream.read(bytes);
+                if (count == -1) break;
+                total += count;
+                if (total > LocalGitReader.MAX_FILE_BYTES) throw new SelectionException("Selected file exceeds 50 MiB.");
+                chunk.accept(bytes, 0, count);
+            }
         }
     }
 
     private static String digest(byte[] bytes) {
-        try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes)); }
+        return HexFormat.of().formatHex(sha256().digest(bytes));
+    }
+
+    private static MessageDigest sha256() {
+        try { return MessageDigest.getInstance("SHA-256"); }
         catch (NoSuchAlgorithmException impossible) { throw new IllegalStateException("SHA-256 is unavailable."); }
+    }
+
+    private static void progress(String text, int completed, int total, double start, double span) {
+        var indicator = ProgressManager.getInstance().getProgressIndicator();
+        if (indicator != null) {
+            indicator.setIndeterminate(false);
+            indicator.setText2(text + ": " + (completed + 1) + " of " + total);
+            indicator.setFraction(start + span * completed / Math.max(1, total));
+        }
     }
 }

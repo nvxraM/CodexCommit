@@ -84,6 +84,47 @@ public final class IdeBoundaryTests {
                 require(ChangeSnapshot.readBounded(fixture, file).length == 6, "Small current file rejected.");
                 rejects(() -> new LocalGitReader(git, () -> false).inspect(fixture, revision, "historical.txt"));
             });
+            test("large UTF-8 source survives bounded disk and Git reads", () -> {
+                String content = "# λ\n".repeat(LocalGitReader.MAX_FILE_BYTES / 5) + "#".repeat(LocalGitReader.MAX_FILE_BYTES % 5);
+                byte[] expected = content.getBytes(StandardCharsets.UTF_8);
+                require(expected.length == LocalGitReader.MAX_FILE_BYTES, "Fixture must reach the file byte cap.");
+                Path file = fixture.resolve("large.py");
+                Files.write(file, expected);
+                require(LocalGitReader.text(ChangeSnapshot.readBounded(fixture, file)).equals(content), "Large current source changed.");
+                command(fixture, "", "add", "--", "large.py");
+                command(fixture, "", "-c", "user.name=CodexCommit Tests", "-c", "user.email=tests@example.invalid",
+                        "-c", "commit.gpgsign=false", "commit", "--quiet", "--no-verify", "-m", "Large synthetic baseline");
+                String revision = command(fixture, "", "rev-parse", "HEAD").strip();
+                LocalGitReader reader = new LocalGitReader(git, () -> false);
+                LocalGitReader.Blob blob = reader.inspect(fixture, revision, "large.py");
+                require(blob.size() == expected.length && reader.read(fixture, blob).equals(content), "Large baseline changed.");
+            });
+            test("streamed file verification preserves hashes and honours cancellation", () -> {
+                Path file = fixture.resolve("streamed.txt");
+                byte[] content = "synthetic text\n".repeat(20_000).getBytes(StandardCharsets.UTF_8);
+                Files.write(file, content);
+                String expected = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(content));
+                require(ChangeSnapshot.diskDigest(fixture, file, () -> false).equals(expected), "Streamed hash mismatch.");
+                for (boolean hashing : List.of(false, true)) {
+                    var calls = new java.util.concurrent.atomic.AtomicInteger();
+                    try {
+                        if (hashing) ChangeSnapshot.diskDigest(fixture, file, () -> calls.incrementAndGet() > 2);
+                        else ChangeSnapshot.readBounded(fixture, file, () -> calls.incrementAndGet() > 2);
+                        throw new AssertionError("File cancellation ignored.");
+                    } catch (InterruptedException expectedCancellation) { }
+                }
+            });
+            test("large patch formatting stops at the cap and accepts cancellation inside a hunk", () -> {
+                String added = "new line\n".repeat(70_000);
+                rejects(() -> UnifiedPatch.format(null, "too-large.txt", "", added,
+                        List.of(new UnifiedPatch.Part(0, 0, 0, 70_000)), () -> false));
+                var calls = new java.util.concurrent.atomic.AtomicInteger();
+                try {
+                    UnifiedPatch.format(null, "cancelled.txt", "", "new\n".repeat(500),
+                            List.of(new UnifiedPatch.Part(0, 0, 0, 500)), () -> calls.incrementAndGet() > 5);
+                    throw new AssertionError("Patch cancellation ignored.");
+                } catch (InterruptedException expectedCancellation) { }
+            });
             test("unified patch applies exact modification with multiple changes", () -> {
                 String before = "one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nnine\nten\n";
                 String after = "one\nTWO\nthree\nfour\nfive\nsix\nseven\neight\nNINE\nten\n";

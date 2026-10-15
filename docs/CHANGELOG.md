@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.3 — larger selections and automatic model detection
+
+Accept up to 500 tracked files and 50 MiB of combined before and after text.
+Allow a 512 KiB patch. Read files, prepare patches, and verify content in background tasks.
+Show file progress. Check cancellation during file reads and patch formatting.
+Detect the model saved in Codex CLI settings. Use the CLI default if no model is saved.
+Show the detected model before transmission. Retain the restricted tool profile for each model.
+Increase the resolution of the example screenshots.
+Allow 520 KiB for the complete request. Keep the draft limit at 16 KiB.
+Scale the discarded diagnostic stream cap to support larger requests.
+Keep the existing content checks and complete request review.
+
 ## 1.1.2 — CodexCommit
 
 Use CodexCommit for the plugin, repository, packages, and download.

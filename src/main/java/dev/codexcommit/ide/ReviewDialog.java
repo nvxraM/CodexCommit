@@ -15,7 +15,7 @@ final class ReviewDialog extends DialogWrapper {
     private final boolean draft;
     private final JCheckBox accountAcknowledgement;
 
-    ReviewDialog(Project project, String value, boolean draft) {
+    ReviewDialog(Project project, String value, boolean draft, String model) {
         super(project, true);
         this.draft = draft;
         accountAcknowledgement = draft ? null : new JCheckBox(
@@ -29,7 +29,7 @@ final class ReviewDialog extends DialogWrapper {
         explanation = draft
                 ? "Examine this draft. You can change its text. Apply Draft changes only the commit message field. "
                   + "It does not make a commit, stage files, or push changes."
-                : "Examine each file name and changed line. Send to Codex sends this request to OpenAI through your Codex account. "
+                : "Model: " + model + ". Examine each file name and changed line. Send to Codex sends this request to OpenAI through your Codex account. "
                   + "The request can use your account quota. Use only a personal account without organization controls. "
                   + "The plugin cannot detect every account or device policy. Do not send with an organization account. "
                   + "Examine the request for private data and secrets. Cancel sends nothing.";

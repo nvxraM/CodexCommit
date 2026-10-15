@@ -7,10 +7,11 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.AbstractList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.io.IOException;
+import dev.codexcommit.core.ContentPolicy;
 
 /** Uses the public diff comparison API and emits only relative names plus ordinary unified hunks. */
 final class UnifiedPatch {
@@ -23,8 +24,8 @@ final class UnifiedPatch {
         }
         ProgressIndicator indicator = ProgressManager.getInstance().getProgressIndicator();
         List<LineFragment> fragments = ComparisonManager.getInstance().compareLines(before, after, ComparisonPolicy.DEFAULT, indicator);
-        List<String> oldLines = lines(before);
-        List<String> newLines = lines(after);
+        List<String> oldLines = lines(before, cancelled);
+        List<String> newLines = lines(after, cancelled);
         List<Part> parts = new ArrayList<>();
         for (LineFragment fragment : fragments) {
             parts.add(new Part(Math.min(oldLines.size(), fragment.getStartLine1()), Math.min(oldLines.size(), fragment.getEndLine1()),
@@ -40,13 +41,17 @@ final class UnifiedPatch {
                 parts.add(new Part(oldLines.size() - 1, oldLines.size(), newLines.size() - 1, newLines.size()));
             }
         }
-        return format(beforeName, afterName, before, after, parts, cancelled);
+        return format(beforeName, afterName, before, after, oldLines, newLines, parts, cancelled);
     }
 
     static String format(String beforeName, String afterName, String before, String after, List<Part> parts,
-                         BooleanSupplier cancelled) throws InterruptedException {
-        List<String> oldLines = lines(before);
-        List<String> newLines = lines(after);
+                         BooleanSupplier cancelled) throws InterruptedException, IOException {
+        return format(beforeName, afterName, before, after, lines(before, cancelled), lines(after, cancelled), parts, cancelled);
+    }
+
+    private static String format(String beforeName, String afterName, String before, String after,
+                                 List<String> oldLines, List<String> newLines, List<Part> parts,
+                                 BooleanSupplier cancelled) throws InterruptedException, IOException {
         StringBuilder output = new StringBuilder();
         output.append("diff --git ").append(quoted("a/" + (beforeName == null ? afterName : beforeName))).append(' ')
                 .append(quoted("b/" + (afterName == null ? beforeName : afterName))).append('\n');
@@ -78,27 +83,49 @@ final class UnifiedPatch {
             for (int partIndex = index; partIndex <= last; partIndex++) {
                 Part part = parts.get(partIndex);
                 while (cursor1 < part.start1()) {
-                    line(output, ' ', oldLines, cursor1++, before);
+                    line(output, ' ', oldLines, cursor1++, before, cancelled);
                     cursor2++;
                 }
-                while (cursor1 < part.end1()) line(output, '-', oldLines, cursor1++, before);
-                while (cursor2 < part.end2()) line(output, '+', newLines, cursor2++, after);
+                while (cursor1 < part.end1()) line(output, '-', oldLines, cursor1++, before, cancelled);
+                while (cursor2 < part.end2()) line(output, '+', newLines, cursor2++, after, cancelled);
             }
-            while (cursor1 < end1) { line(output, ' ', oldLines, cursor1++, before); cursor2++; }
+            while (cursor1 < end1) { line(output, ' ', oldLines, cursor1++, before, cancelled); cursor2++; }
             index = last + 1;
         }
         return output.toString();
     }
 
-    private static List<String> lines(String text) {
+    private static List<String> lines(String text, BooleanSupplier cancelled) throws InterruptedException {
         if (text.isEmpty()) return List.of();
-        List<String> lines = new ArrayList<>(Arrays.asList(text.split("\n", -1)));
-        if (text.endsWith("\n")) lines.removeLast();
-        return lines;
+        int count = text.endsWith("\n") ? 0 : 1;
+        for (int offset = 0; (offset = text.indexOf('\n', offset)) >= 0; offset++) {
+            if ((++count & 1023) == 0 && cancelled.getAsBoolean()) throw new InterruptedException("Cancelled.");
+        }
+        int[] starts = new int[count];
+        int index = 1;
+        for (int offset = 0; index < count && (offset = text.indexOf('\n', offset)) >= 0; offset++) {
+            if ((index & 1023) == 0 && cancelled.getAsBoolean()) throw new InterruptedException("Cancelled.");
+            starts[index++] = offset + 1;
+        }
+        return new AbstractList<>() {
+            @Override public int size() { return starts.length; }
+            @Override public String get(int index) {
+                java.util.Objects.checkIndex(index, starts.length);
+                int end = index + 1 < starts.length ? starts[index + 1] : text.length();
+                if (end > starts[index] && text.charAt(end - 1) == '\n') end--;
+                return text.substring(starts[index], end);
+            }
+        };
     }
 
-    private static void line(StringBuilder output, char prefix, List<String> lines, int index, String original) {
-        output.append(prefix).append(lines.get(index)).append('\n');
+    private static void line(StringBuilder output, char prefix, List<String> lines, int index, String original,
+                             BooleanSupplier cancelled) throws InterruptedException, IOException {
+        if (cancelled.getAsBoolean()) throw new InterruptedException("Cancelled.");
+        String line = lines.get(index);
+        if ((long) output.length() + line.length() + 2 > ContentPolicy.MAX_PATCH_BYTES) {
+            throw new ChangeSnapshot.SelectionException("Patch exceeds 512 KiB. Select fewer changes.");
+        }
+        output.append(prefix).append(line).append('\n');
         if (index == lines.size() - 1 && !original.endsWith("\n")) output.append("\\ No newline at end of file\n");
     }
 

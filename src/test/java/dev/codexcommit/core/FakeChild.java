@@ -22,6 +22,24 @@ public final class FakeChild {
                 System.out.print("Synthetic safe draft");
             }
             case "sleep" -> Thread.sleep(60000);
+            case "model-config", "model-default", "model-error", "model-injection", "model-overflow" -> {
+                var input = new java.io.BufferedReader(new java.io.InputStreamReader(System.in));
+                String line;
+                while ((line = input.readLine()) != null) {
+                    if (args[0].equals("model-overflow")) { System.out.print("x".repeat(1024 * 1024 + 1)); System.out.flush(); continue; }
+                    if (line.contains("\"initialize\"")) {
+                        System.out.println(args[0].equals("model-error")
+                                ? "{\"id\":1,\"error\":{\"message\":\"SYNTHETIC_PRIVATE_CONFIG\"}}"
+                                : "{\"id\":1,\"result\":{}}");
+                    } else if (line.contains("config/read")) {
+                        String model = args[0].equals("model-default") ? "null" : args[0].equals("model-injection") ? "\"--config=x\"" : "\"gpt-5.4\"";
+                        System.out.println("{\"id\":2,\"result\":{\"config\":{\"unrelated\":{\"model\":\"wrong-model\"},\"model\":" + model + "}}}");
+                    } else if (line.contains("model/list")) {
+                        System.out.println("{\"id\":3,\"result\":{\"data\":[{\"model\":\"wrong-model\",\"isDefault\":false},{\"model\":\"gpt-5.3-codex\",\"isDefault\":true}]}}");
+                    } else if (!line.contains("initialized")) throw new AssertionError("Model discovery sent an unexpected request.");
+                    System.out.flush();
+                }
+            }
             case "spawn" -> {
                 Path pid = Path.of(new String(System.in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
                 Process descendant = new ProcessBuilder(CoreTests.helper("sleep")).start();

@@ -1,12 +1,82 @@
 # Verification record
 
 Date: 15 October 2026.
-Version: 1.1.2.
+Version: 1.1.3.
 
 This record separates software tests from language review.
 It does not prove that the plugin has no risk.
 
 ## Current candidate
+
+Version 1.1.3 accepts up to 500 tracked files and 50 MiB of combined before and after text.
+The patch limit is 512 KiB. The complete request limit is 520 KiB.
+The draft limit remains 16 KiB and 100 lines.
+The plugin detects the saved local Codex CLI model or uses the CLI default.
+It prepares files and verifies content in background tasks with progress and cancellation.
+
+The Linux Gradle check, plugin build, plugin structure check, and project configuration check passed.
+The supported-build warning remains. Future IDE versions have no acceptance result.
+The checked ZIP has SHA-256:
+
+`a401503b0a5e0d5550fa223ff2e1735c5010c93c82b1b50e869be80d130b7fdc`
+
+| Suite | Passed | Failed | Skipped |
+| --- | --- | --- | --- |
+| Core and credential boundaries | 31 | 0 | 0 |
+| Git, patch, path, and selection boundaries | 15 | 0 | 0 |
+| Source archive guard | 20 | 0 | 0 |
+| Plugin archive guard | 9 | 0 | 0 |
+| Total | 75 | 0 | 0 |
+
+The ordinary JUnit and searchable settings tasks remain disabled by design.
+They are not counted as passed tests.
+The tests cover exact UTF-8 byte caps, oversized historical files, streamed hashes, cancellation,
+model response bounds, invalid model IDs, default selection, and malformed local protocol replies.
+
+### Native file and UI checks
+
+An isolated PyCharm 2026.2.3 profile loaded the candidate on Linux.
+These checks used tracked synthetic files and the actual snapshot and patch code.
+
+| Check | Result |
+| --- | --- |
+| 500 selected files | Patch of 76,280 bytes and both freshness checks passed. |
+| 501 selected files | Rejected at selection capture. |
+| 25 MiB baseline plus 25 MiB current file | Exact 50 MiB budget passed. Patch of 8,313 bytes passed. |
+| 50 MiB plus additional selected content | Rejected before file body preparation. |
+| Same-size content change with the original timestamp restored | Background hash verification rejected the old snapshot. |
+| Commit message edited after capture | UI freshness verification rejected the old snapshot. |
+
+The 500-file preparation took about 6.3 seconds in this isolated cloud session.
+Selection capture took about 6 milliseconds. An EDT test event returned in about 0.15 seconds during preparation.
+The exact 50 MiB preparation took about 1.2 seconds. Capture took less than 1 millisecond.
+These observations are not performance guarantees for other computers or storage.
+
+The cloud host has system Codex configuration. The existing managed-configuration guard blocked full generation on this host.
+No real account or external model request was used. Native real-account generation and active-job unload remain untested.
+
+### Native model and request checks
+
+Native Codex CLI 0.160.1 passed local loopback audits for `gpt-5.4` and `gpt-5.3-codex`.
+Each audit detected the saved CLI model and sent a synthetic patch larger than 400 KiB to a local test server.
+The received user text matched the reviewed prompt exactly. No truncation occurred.
+The request used the detected model and an empty tool array.
+Unselected file, instruction, configuration, environment, home-path, and authentication markers were absent from the model body.
+The fake test credential appeared only in its expected authentication header.
+CLI default model discovery also passed with an isolated local catalog.
+These checks do not establish access to every model or test a real model response.
+
+The large request test found an old 256 KiB diagnostic stream cap.
+Native CLI prompt echo exceeded that cap. The new cap follows the bounded request size.
+Diagnostic text remains discarded. The oversized-output, timeout, and cancellation tests still pass.
+
+### Documentation images
+
+The three examples were recaptured at twice the original pixel density.
+Each review image appears below its instruction and links to the full image.
+Both review dialogs use supplied sample text. Read [screenshot details](images/README.md).
+
+## Previous 1.1.2 candidate
 
 The 1.1.2 candidate uses CodexCommit for the plugin, packages, UI, and download.
 It retains the 1.1.1 fix for whole-file selection when an editor tab is closed.
@@ -123,7 +193,7 @@ Use JDK 25 for the build.
 .\tools\build-local.ps1 -IdeHome 'PATH_TO_YOUR_IDE'
 java tools/SourceArchive.java --self-test
 java tools/ReleaseAudit.java --self-test
-java tools/ReleaseAudit.java build/distributions/CodexCommit-1.1.2.zip
+java tools/ReleaseAudit.java build/distributions/CodexCommit-1.1.3.zip
 ```
 
 The `check` task uses the `coreTest` and `ideBoundaryTest` programs.

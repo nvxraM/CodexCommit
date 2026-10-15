@@ -7,7 +7,12 @@
 - Use the CLI's default saved login for a personal, unmanaged account. Enterprise and managed account configurations are not supported.
 - Configure an absolute path to native Git in the IDE. WSL and script wrappers are not supported.
 
-The plugin requests the `gpt-6.1-sol` model. Your account must have access to this model.
+The plugin detects the model saved in your normal Codex CLI home settings before each request.
+Project-specific CLI settings and another process's `--profile` selection are excluded.
+If no model is saved, it uses the CLI default. Use `/model` in Codex to change your selection.
+The model must be available to your account and supported by the installed CLI.
+The request review shows the detected model. No separate plugin model setting is necessary.
+The plugin cannot detect an unsaved model selection in another running session.
 The plugin does not include a CLI, a model, credentials, or an account.
 
 The audited execution profile is for Windows and Linux. Linux execution still needs native acceptance tests.
@@ -17,9 +22,9 @@ The plugin rejects known system or managed Codex configurations. This detection 
 Open Settings > Tools > CodexCommit to set the Codex executable path.
 Leave the field empty to use automatic discovery. Use trusted native Codex and Git executables.
 
-The plugin does not pass these settings to the CLI process:
+During generation, the plugin does not pass these settings to the CLI process:
 
-- A custom `CODEX_HOME` directory.
+- A custom `CODEX_HOME` directory. Model detection uses the CLI's normal saved settings.
 - API keys from environment variables.
 - Custom model providers.
 - Proxy settings from environment variables.
@@ -63,13 +68,24 @@ You decide when to make a commit.
 
 | Item | Limit |
 | --- | --- |
-| Selected tracked files | 32 |
-| Each file version | 64 KiB |
-| Combined before and after text | 256 KiB |
-| Selected patch | 120 KiB |
-| Complete request | 128 KiB |
-| Draft message | 16 KiB |
+| Selected tracked files | 500 |
+| Each file version | 50 MiB, within the combined limit |
+| Combined before and after text | 50 MiB |
+| Selected patch | 512 KiB |
+| Complete request | 520 KiB |
+| Draft message | 16 KiB and 100 lines |
 | CLI generation time | 120 seconds |
+
+The file size limit applies to each complete file version, even when you change only one line.
+Count both the Git baseline and the current file when you calculate the combined limit.
+For example, a 20 MiB baseline and a 20 MiB current file use 40 MiB of that limit.
+Only the patch and fixed instructions go into the request. The plugin does not truncate an oversized patch.
+Select fewer changes if the patch exceeds its limit.
+The model can impose a smaller context limit. A 50 MiB file allowance does not permit a 50 MiB request.
+Content verification runs in the background. It remains subject to the combined limit.
+
+Add unversioned source files to Git before generation. Leave `.idea/workspace.xml` unchecked.
+The plugin excludes IDE settings files.
 
 These limits reduce resource use and data exposure. They do not remove all risk.
 Filename and content checks cannot find every secret or private record.
@@ -85,10 +101,10 @@ Read [PRIVACY.md](PRIVACY.md) and [security boundaries](../SECURITY.md) for the 
 ## Install
 
 After the update, check the Codex path in **Settings > Tools > CodexCommit**.
-This release uses a new settings file. Set a custom executable path again if needed.
+Version 1.1.2 introduced a new settings file. Set a custom executable path again if you update from an older version.
 
-The checked [candidate ZIP](../releases/CodexCommit-1.1.2.zip?raw=true) is in the source repository.
-The same directory contains its SHA-256 value.
+Download the [version 1.1.3 ZIP](https://github.com/nvxraM/CodexCommit/releases/download/v1.1.3/CodexCommit-1.1.3.zip).
+The release and the source repository contain its [SHA-256 value](../releases/SHA256SUMS).
 You can also build the ZIP from the source code.
 
 1. Obtain the plugin ZIP.

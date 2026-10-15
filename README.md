@@ -5,9 +5,10 @@ This plugin uses Codex in PyCharm to prepare commit messages from selected Git c
 ## Install
 
 Use **PyCharm 2026.2.3**, native **Codex CLI 0.160.1**, and native **Git** on Windows or Linux.
-Sign in to Codex with a personal, unmanaged account that can use `gpt-6.1-sol`.
+Sign in to Codex with a personal, unmanaged account.
+The plugin detects your saved Codex CLI model. If none is saved, it uses the CLI default.
 
-1. [Download version 1.1.2](releases/CodexCommit-1.1.2.zip?raw=true).
+1. [Download version 1.1.3](https://github.com/nvxraM/CodexCommit/releases/download/v1.1.3/CodexCommit-1.1.3.zip).
 2. In PyCharm, open **Settings → Plugins → ⚙ → Install Plugin from Disk**.
 3. Select the ZIP. Restart the IDE if requested.
 
@@ -21,11 +22,12 @@ The plugin appears as **CodexCommit** in PyCharm. [Full requirements](docs/USAGE
 ![The Codex button in the Commit tool window](docs/images/generate-button.png)
 
 3. Examine the request. Confirm your personal account. Select **Send to Codex**.
+
+[![Request review and Send to Codex button](docs/images/review-request.png)](docs/images/review-request.png)
+
 4. Examine or edit the draft. Select **Apply Draft**. Make the commit yourself.
 
-| Examine the request | Examine the draft |
-| --- | --- |
-| [![Request review and Send to Codex button](docs/images/review-request.png)](docs/images/review-request.png) | [![Draft review and Apply Draft button](docs/images/review-draft.png)](docs/images/review-draft.png) |
+[![Draft review and Apply Draft button](docs/images/review-draft.png)](docs/images/review-draft.png)
 
 Select an image to enlarge it. Screens use sample data.
 Only send code that you can disclose. Check for secrets. Requests can use quota or incur charges.

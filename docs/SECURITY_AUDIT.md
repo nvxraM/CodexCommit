@@ -5,7 +5,7 @@ Date: 15 October 2026.
 This audit covers CodexCommit 1.1.0. It covers the source, build tools, release files, and the Codex CLI 0.160.1 interface. It does not certify that the software has no risk. It does not certify compliance with the ASD-STE100 dictionary.
 
 
-For the 1.1.1 selection fix, read the [current verification record](VERIFICATION.md#current-candidate).
+For the 1.1.3 selection limits, background processing, and automatic model detection, read the [current verification record](VERIFICATION.md#current-candidate).
 The audit below records the earlier 1.1.0 candidate.
 ## Audit limits
 

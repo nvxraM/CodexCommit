@@ -18,25 +18,28 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /** One bounded native CLI process; never runs from the repository or through a shell. */
 public final class CodexRunner {
     public static final String AUDITED_CLI_VERSION = "0.160.1";
-    public static final String MODEL = "gpt-6.1-sol";
+    private static final Pattern MODEL_ID = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}");
     private static final long GENERATION_TIMEOUT_MILLIS = 120_000;
-    private static final int STDERR_LIMIT = 256 * 1024;
+    // Native exec echoes the reviewed prompt to stderr. Discard it, but allow the
+    // complete bounded prompt plus CLI diagnostics before enforcing the stream cap.
+    private static final int STDERR_LIMIT = 2 * ContentPolicy.MAX_PROMPT_BYTES + 64 * 1024;
 
     // Derived from the authoritative rust-v0.160.1 ModelInfo schema. Null apply_patch is
     // essential: disabling shell_tool does not disable apply_patch for the default catalog.
-    static final String MODEL_CATALOG = """
+    private static final String MODEL_CATALOG_TEMPLATE = """
             {"models":[{
-              "slug":"gpt-6.1-sol","display_name":"GPT-6.1-Sol","description":"Commit message drafting",
-              "default_reasoning_level":"low","supported_reasoning_levels":[{"effort":"low","description":"Low"}],
+              "slug":"__MODEL_ID__","display_name":"__MODEL_ID__","description":"Commit message drafting",
+              "default_reasoning_level":null,"supported_reasoning_levels":[],
               "shell_type":"disabled","visibility":"list","supported_in_api":true,"priority":1,
-              "availability_nux":null,"upgrade":null,"support_verbosity":true,"default_verbosity":"low",
+              "availability_nux":null,"upgrade":null,"support_verbosity":false,"default_verbosity":null,
               "apply_patch_tool_type":null,"truncation_policy":{"mode":"tokens","limit":10000},
-              "context_window":272000,"experimental_supported_tools":[],"input_modalities":["text"],
+              "context_window":null,"experimental_supported_tools":[],"input_modalities":["text"],
               "supports_search_tool":false,"supports_experimental_context":false,"node_repl_disabled":true,
               "include_skills_usage_instructions":false,"include_apps_usage_instructions":false,
               "include_plugin_usage_instructions":false,"tool_mode":"direct","multi_agent_version":"disabled",
@@ -44,8 +47,19 @@ public final class CodexRunner {
             }]}
             """;
 
-    public String generate(Path executable, String prompt, BooleanSupplier cancelled) throws IOException, InterruptedException {
+    public static String validateModel(String value) {
+        String model = value == null ? "" : value.strip();
+        if (!MODEL_ID.matcher(model).matches()) throw new IllegalArgumentException("Enter a Codex model ID of at most 128 characters. Use letters, digits, dots, underscores, colons, slashes, or hyphens.");
+        return model;
+    }
+
+    static String modelCatalog(String model) {
+        return MODEL_CATALOG_TEMPLATE.replace("__MODEL_ID__", validateModel(model));
+    }
+
+    public String generate(Path executable, String prompt, String model, BooleanSupplier cancelled) throws IOException, InterruptedException {
         ContentPolicy.validatePrompt(prompt);
+        model = validateModel(model);
         if (cancelled == null) throw new IllegalArgumentException("A cancellation check is required.");
         checkCancelled(cancelled);
         Path nativeBinary = CodexExecutableLocator.validateNative(executable);
@@ -61,8 +75,8 @@ public final class CodexRunner {
                         + ". Other CLI versions are blocked until their safety profile is verified.");
             }
             Path catalog = workspace.resolve("models.json");
-            Files.writeString(catalog, MODEL_CATALOG, StandardCharsets.UTF_8);
-            ProcessResult result = run(command(nativeBinary, workspace, catalog), prompt, workspace,
+            Files.writeString(catalog, modelCatalog(model), StandardCharsets.UTF_8);
+            ProcessResult result = run(command(nativeBinary, workspace, catalog, model), prompt, workspace,
                     environment, cancelled, GENERATION_TIMEOUT_MILLIS, ContentPolicy.MAX_MESSAGE_BYTES);
             if (result.exitCode != 0) {
                 // CLI stderr can contain the entire prompt and identifiers: never surface or log it.
@@ -76,16 +90,47 @@ public final class CodexRunner {
         }
     }
 
-    static List<String> command(Path executable, Path workspace, Path catalog) {
+    static List<String> command(Path executable, Path workspace, Path catalog, String model) {
         List<String> args = new ArrayList<>(List.of(executable.toString(), "exec", "--ignore-user-config", "--ignore-rules",
                 "--ephemeral", "--strict-config", "--skip-git-repo-check", "--sandbox", "read-only", "--color", "never",
-                "--cd", workspace.toString(), "--model", MODEL));
+                "--cd", workspace.toString(), "--model", validateModel(model)));
+        restrictedSettings(args, workspace);
+        config(args, "model_catalog_json=" + catalog);
+        args.add("-");
+        return List.copyOf(args);
+    }
+
+    static List<String> modelDiscoveryCommand(Path executable, Path workspace) {
+        List<String> args = new ArrayList<>(List.of(executable.toString(), "app-server", "--stdio", "--strict-config"));
+        restrictedSettings(args, workspace);
+        return List.copyOf(args);
+    }
+
+    public String resolveModel(Path executable, BooleanSupplier cancelled) throws IOException, InterruptedException {
+        if (cancelled == null) throw new IllegalArgumentException("A cancellation check is required.");
+        checkCancelled(cancelled);
+        Path nativeBinary = CodexExecutableLocator.validateNative(executable);
+        Map<String, String> environment = childEnvironment(System.getenv());
+        rejectManagedConfiguration(environment);
+        Path workspace = createPrivateWorkspace();
+        try {
+            rejectAncestorConfiguration(workspace);
+            ProcessResult version = run(List.of(nativeBinary.toString(), "--version"), "", workspace,
+                    environment, cancelled, 5_000, 4096);
+            if (version.exitCode != 0 || !version.stdout.strip().equals("codex-cli " + AUDITED_CLI_VERSION)) {
+                throw new IOException("Use native Codex CLI " + AUDITED_CLI_VERSION + " for automatic model selection.");
+            }
+            return CodexModelResolver.resolve(modelDiscoveryCommand(nativeBinary, workspace), workspace, environment, cancelled, 20_000);
+        } finally { deleteWorkspace(workspace); }
+    }
+
+    private static void restrictedSettings(List<String> args, Path workspace) {
         for (String setting : List.of(
-                "approval_policy=\"never\"", "model_provider=\"openai\"", "web_search=\"disabled\"",
+                "approval_policy=\"never\"", "model_provider=\"openai\"", "model_providers={}", "web_search=\"disabled\"",
                 // Empty resets lower-layer overrides and preserves the official auth-specific
                 // API-key/ChatGPT inference endpoint defaults in audited CLI 0.160.1.
                 "openai_base_url=''", "chatgpt_base_url='https://chatgpt.com/backend-api/'",
-                "model_reasoning_effort=\"low\"", "model_verbosity=\"low\"", "agents.enabled=false",
+                "agents.enabled=false",
                 "analytics.enabled=false", "feedback.enabled=false", "history.persistence=\"none\"",
                 "otel.exporter=\"none\"", "otel.trace_exporter=\"none\"", "otel.metrics_exporter=\"none\"",
                 "otel.log_user_prompt=false", "otel.log_agent_responses=false", "notify=[]", "mcp_servers={}",
@@ -111,11 +156,8 @@ public final class CodexRunner {
         config(args, "features.skip_host_skill_discovery=true");
         // Absolute paths cannot be TOML scalar literals, so Codex's documented raw-string
         // fallback preserves them. Avoid nested Windows argv/TOML double-quote parsing.
-        config(args, "model_catalog_json=" + catalog);
         config(args, "log_dir=" + workspace.resolve("logs"));
         config(args, "sqlite_home=" + workspace.resolve("state"));
-        args.add("-");
-        return List.copyOf(args);
     }
 
     private static void config(List<String> args, String value) { args.add("--config"); args.add(value); }
@@ -244,7 +286,7 @@ public final class CodexRunner {
         return thread;
     }
 
-    private static void terminate(Process process, List<ProcessHandle> remembered, long deadline) {
+    static void terminate(Process process, List<ProcessHandle> remembered, long deadline) {
         List<ProcessHandle> all = new ArrayList<>(remembered);
         process.descendants().forEach(all::add);
         all.stream().distinct().forEach(ProcessHandle::destroyForcibly);

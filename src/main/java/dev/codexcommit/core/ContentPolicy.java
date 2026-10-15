@@ -6,8 +6,8 @@ import java.util.regex.Pattern;
 
 /** Conservative local checks; these patterns cannot establish that a diff contains no secrets. */
 public final class ContentPolicy {
-    public static final int MAX_PATCH_BYTES = 120 * 1024;
-    public static final int MAX_PROMPT_BYTES = 128 * 1024;
+    public static final int MAX_PATCH_BYTES = 512 * 1024;
+    public static final int MAX_PROMPT_BYTES = MAX_PATCH_BYTES + 8 * 1024;
     public static final int MAX_MESSAGE_BYTES = 16 * 1024;
 
     private static final Pattern SENSITIVE_PATH = Pattern.compile(
@@ -28,7 +28,7 @@ public final class ContentPolicy {
     private ContentPolicy() { }
 
     public static void validatePatch(String patch) {
-        requireText(patch, MAX_PATCH_BYTES, "The selected diff is empty or exceeds the 120 KiB limit. Select fewer changes.");
+        requireText(patch, MAX_PATCH_BYTES, "The selected diff is empty or exceeds the 512 KiB limit. Select fewer changes.");
         rejectControls(patch);
         if (SENSITIVE_PATH.matcher(patch).find()) {
             throw new IllegalArgumentException("A selected path appears to contain credentials or key material. Exclude it before generating.");
@@ -46,7 +46,7 @@ public final class ContentPolicy {
     }
 
     static void validatePrompt(String prompt) {
-        requireText(prompt, MAX_PROMPT_BYTES, "The generation prompt exceeds the 128 KiB limit.");
+        requireText(prompt, MAX_PROMPT_BYTES, "The generation prompt exceeds the 520 KiB limit.");
         rejectControls(prompt);
         rejectSecrets(prompt);
     }

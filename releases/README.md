@@ -1,7 +1,10 @@
 # Candidate ZIP
 
-This directory contains the CodexCommit 1.1.2 candidate ZIP.
-It fixes whole-file selection when an editor tab is closed.
+This directory contains the CodexCommit 1.1.3 candidate ZIP.
+It accepts up to 500 tracked files and 50 MiB of combined before and after content.
+It detects the saved Codex CLI model or uses the CLI default.
+The selected patch can be up to 512 KiB.
+It retains the fix for whole-file selection when an editor tab is closed.
 It includes the coloured icon and ASD-STE100 prompt rules.
 Use PyCharm 2026.2.3.
 Read the [verification record](../docs/VERIFICATION.md) and [security audit](../docs/SECURITY_AUDIT.md) for passed checks and incomplete tests.

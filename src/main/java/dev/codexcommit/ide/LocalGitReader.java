@@ -21,8 +21,8 @@ import java.util.regex.Pattern;
 
 /** Read-only object access. No shell, diff driver, checkout, index, hooks, or Git network transport. */
 final class LocalGitReader {
-    static final int MAX_FILE_BYTES = 64 * 1024;
-    static final int MAX_TOTAL_BYTES = 256 * 1024;
+    static final int MAX_FILE_BYTES = 50 * 1024 * 1024;
+    static final int MAX_TOTAL_BYTES = 50 * 1024 * 1024;
     private static final long TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(10);
     private static final Pattern OBJECT = Pattern.compile("[0-9a-fA-F]{40}|[0-9a-fA-F]{64}");
     private static final Pattern TREE_ENTRY = Pattern.compile("(100644|100755) blob ([0-9a-fA-F]{40}|[0-9a-fA-F]{64}) +([0-9]+)\\t([^\\x00]+)\\x00");
