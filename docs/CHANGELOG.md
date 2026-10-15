@@ -9,6 +9,7 @@ Use a fixed local draft for workspace-only selections without Codex or account c
 Retain selection, revision, path, symbolic-link, and regular-file checks.
 Allow routine workspace autosaves while the source draft runs. Keep other IDE and credential paths blocked.
 Preserve the short installation prompt with the repository link.
+Cache Gradle dependencies in CI. Allow 45 minutes for cold builds after a Windows runner timeout.
 
 ## 1.1.4 — one-click generation
 

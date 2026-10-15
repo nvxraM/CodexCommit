@@ -66,6 +66,9 @@ Gitleaks 8.30.1 found no leaks in the reviewed source snapshot, release director
 Read the [hosted workflow results](https://github.com/nvxraM/CodexCommit/actions/workflows/check.yml) for each exact commit.
 The Ubuntu, Windows, and macOS jobs test source boundaries without account credentials.
 They do not prove native macOS generation support; macOS execution remains blocked.
+The first 1.1.5 run passed Ubuntu and macOS. Windows exceeded its 30-minute job limit.
+GitHub did not provide an archived Windows build log. No specific Gradle task failure could be established.
+The workflow now caches Gradle dependencies and allows 45 minutes for a cold build.
 
 ## Previous 1.1.4 candidate
 
