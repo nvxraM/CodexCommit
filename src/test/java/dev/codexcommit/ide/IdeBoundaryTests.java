@@ -44,7 +44,7 @@ public final class IdeBoundaryTests {
                 require(!ChangeSnapshot.sensitive(Path.of("src/Feature.java")), "Ordinary source rejected.");
             });
             test("excluded IDE paths identify the file and the recovery action", () -> {
-                for (String path : List.of(".idea/workspace.xml", "nested/.IDEA/workspace.xml")) {
+                for (String path : List.of(".idea/misc.xml", "nested/.IDEA/modules.xml")) {
                     String message = filenameFailure(Path.of(path));
                     require(message.contains(path) && message.startsWith("Uncheck ") && message.contains("Commit window"),
                             "Blocked file or recovery action missing.");
@@ -52,6 +52,74 @@ public final class IdeBoundaryTests {
                 }
                 ChangeSnapshot.checkSensitivePath(Path.of("src/feature.py"));
                 ChangeSnapshot.checkSensitivePath(Path.of("tests/test_feature.py"));
+            });
+            test("workspace settings use metadata only at root and nested project paths", () -> {
+                for (String path : List.of(".idea/workspace.xml", "nested/.idea/workspace.xml", "nested/.IDEA/WORKSPACE.XML")) {
+                    require(ChangeSnapshot.workspaceSettings(Path.of(path)), "Workspace path was not recognised.");
+                    ChangeSnapshot.checkSensitivePath(Path.of(path));
+                }
+                for (String path : List.of("workspace.xml", "src/workspace.xml", ".idea/misc.xml", ".idea/modules.xml",
+                        ".idea/workspace.xml/child.py", ".aws/.idea/workspace.xml", "secrets/.idea/workspace.xml",
+                        "nested/.git/.idea/workspace.xml", "../.idea/workspace.xml", "nested/../.idea/workspace.xml",
+                        ".idea/./workspace.xml")) {
+                    require(!ChangeSnapshot.workspaceSettings(Path.of(path)), "Unrelated or unsafe workspace path accepted.");
+                }
+                require(!ChangeSnapshot.workspaceSettings(fixture.resolve(".idea/workspace.xml")), "Absolute workspace path accepted.");
+                rejects(() -> ChangeSnapshot.checkSensitivePath(Path.of(".aws/.idea/workspace.xml")));
+                rejects(() -> ChangeSnapshot.checkSensitivePath(Path.of("secrets/.idea/workspace.xml")));
+            });
+            test("workspace additions deletions and renames cannot conceal source changes", () -> {
+                Path workspace = Path.of(".idea/workspace.xml");
+                Path renamed = Path.of("nested/.idea/workspace.xml");
+                Path source = Path.of("src/feature.py");
+                require(ChangeSnapshot.workspaceChange(null, workspace), "Workspace addition was not classified.");
+                require(ChangeSnapshot.workspaceChange(workspace, null), "Workspace deletion was not classified.");
+                require(ChangeSnapshot.workspaceChange(workspace, workspace), "Workspace modification was not classified.");
+                require(ChangeSnapshot.workspaceChange(workspace, renamed), "Workspace rename was not classified.");
+                require(!ChangeSnapshot.workspaceChange(null, source) && !ChangeSnapshot.workspaceChange(source, null)
+                        && !ChangeSnapshot.workspaceChange(source, source), "Source was classified as workspace metadata.");
+                rejects(() -> ChangeSnapshot.workspaceChange(source, workspace));
+                rejects(() -> ChangeSnapshot.workspaceChange(workspace, source));
+            });
+            test("workspace metadata validation permits autosave and atomic replacement without body inspection", () -> {
+                Path directory = Files.createDirectories(fixture.resolve("workspace-metadata/.idea"));
+                Path workspace = directory.resolve("workspace.xml");
+                byte[] canary = "SYNTHETIC_SECRET_CANARY_NOT_A_CREDENTIAL\0".getBytes(StandardCharsets.UTF_8);
+                Files.write(workspace, canary);
+                try (var channel = java.nio.channels.FileChannel.open(workspace, java.nio.file.StandardOpenOption.WRITE)) {
+                    channel.position((long) LocalGitReader.MAX_FILE_BYTES + 1);
+                    channel.write(java.nio.ByteBuffer.wrap(new byte[]{(byte) 0xff}));
+                }
+                ChangeSnapshot.validateWorkspaceLocation(fixture, null, workspace);
+                ChangeSnapshot.validateWorkspaceLocation(fixture, workspace, workspace);
+                Files.write(workspace, new byte[]{0, (byte) 0xc3, 0x28});
+                ChangeSnapshot.validateWorkspaceLocation(fixture, workspace, workspace);
+                Path replacement = directory.resolve("autosave.tmp");
+                Files.write(replacement, canary);
+                try {
+                    Files.move(replacement, workspace, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                } catch (java.nio.file.AtomicMoveNotSupportedException unavailable) {
+                    Files.move(replacement, workspace, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
+                ChangeSnapshot.validateWorkspaceLocation(fixture, workspace, workspace);
+            });
+            test("workspace metadata validation rejects missing additions directories and project escapes", () -> {
+                Path directory = Files.createDirectories(fixture.resolve("workspace-locations/.idea"));
+                Path workspace = directory.resolve("workspace.xml");
+                rejects(() -> ChangeSnapshot.validateWorkspaceLocation(fixture, null, workspace));
+                ChangeSnapshot.validateWorkspaceLocation(fixture, workspace, null);
+                Files.writeString(workspace, "synthetic workspace\n");
+                rejects(() -> ChangeSnapshot.validateWorkspaceLocation(fixture, workspace, null));
+                Files.delete(workspace);
+                Files.createDirectory(workspace);
+                rejects(() -> ChangeSnapshot.validateWorkspaceLocation(fixture, null, workspace));
+                rejects(() -> ChangeSnapshot.validateWorkspaceLocation(fixture, workspace, null));
+                Files.delete(workspace);
+                Path outside = fixture.getParent().resolve("outside-workspace/.idea/workspace.xml");
+                rejects(() -> ChangeSnapshot.validateWorkspaceLocation(fixture, null, outside));
+                rejects(() -> ChangeSnapshot.validateWorkspaceLocation(fixture, outside, null));
+                rejects(() -> ChangeSnapshot.validateWorkspaceLocation(fixture, null, fixture));
             });
             test("credential filename errors retain the policy and omit absolute paths", () -> {
                 require(filenameFailure(Path.of("config/.env.production")).contains("sensitive-content policy"), "Policy reason missing.");
@@ -228,6 +296,19 @@ public final class IdeBoundaryTests {
         test("symlink path and leaf reads are rejected", () -> {
             rejects(() -> ChangeSnapshot.validateLocation(fixture, link));
             rejects(() -> ChangeSnapshot.readBounded(fixture, link));
+        });
+        test("workspace metadata rejects symlink leaves and linked project ancestors", () -> {
+            Path targetDirectory = Files.createDirectories(fixture.resolve("workspace-link-target/.idea"));
+            Path workspaceTarget = targetDirectory.resolve("workspace.xml");
+            Files.writeString(workspaceTarget, "synthetic workspace\n");
+            Path leafDirectory = Files.createDirectories(fixture.resolve("workspace-link-leaf/.idea"));
+            Path workspaceLink = leafDirectory.resolve("workspace.xml");
+            Files.createSymbolicLink(workspaceLink, workspaceTarget);
+            rejects(() -> ChangeSnapshot.validateWorkspaceLocation(fixture, null, workspaceLink));
+            rejects(() -> ChangeSnapshot.validateWorkspaceLocation(fixture, workspaceLink, null));
+            Path parent = Files.createDirectories(fixture.resolve("workspace-link-parent"));
+            Files.createSymbolicLink(parent.resolve(".idea"), targetDirectory);
+            rejects(() -> ChangeSnapshot.validateWorkspaceLocation(fixture, null, parent.resolve(".idea/workspace.xml")));
         });
     }
 

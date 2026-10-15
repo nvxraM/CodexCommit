@@ -1,12 +1,73 @@
 # Verification record
 
 Date: 15 October 2026.
-Version: 1.1.4.
+Version: 1.1.5.
 
 This record separates software tests from language review.
 It does not prove that the plugin has no risk.
 
 ## Current candidate
+
+Version 1.1.5 accepts selected `.idea/workspace.xml` as workspace metadata.
+The file stays checked for the user's Git commit. Generation never reads its XML body or Git baseline.
+It does not capture unsaved workspace text, hash workspace content, or count it toward the source byte budget.
+A mixed selection sends the source patch and one fixed generic note about workspace changes.
+A workspace-only selection uses a fixed local draft without Codex, model detection, or account calls.
+Workspace autosaves do not invalidate a source draft. Source and message freshness checks remain active.
+Other sensitive paths, partial selections, links, invalid locations, and source/workspace renames remain blocked.
+The README keeps the user's short installation prompt and repository link.
+
+The Linux Gradle check, plugin build, plugin structure check, and project configuration check passed.
+The supported-build warning remains. Future IDE versions have no acceptance result.
+The checked ZIP has SHA-256:
+
+`9d2f774ab6d05925c2e5c74d29070cec064f51f61d5f32550878bc1381a2fc29`
+
+| Suite | Passed | Failed | Skipped |
+| --- | --- | --- | --- |
+| Core and credential boundaries | 32 | 0 | 0 |
+| Git, patch, path, and selection boundaries | 23 | 0 | 0 |
+| Source archive guard | 20 | 0 | 0 |
+| Plugin archive guard | 9 | 0 | 0 |
+| Total | 84 | 0 | 0 |
+
+The regressions cover the fixed prompt note, safe nested workspace paths, sensitive ancestors,
+workspace status and rename boundaries, autosaves, atomic replacement, malformed and oversized omitted content,
+missing files, directories, project escapes, and symbolic links.
+The ordinary JUnit and searchable settings tasks remain disabled by design.
+They are not counted as passed tests.
+The official Plugin Verifier 1.410 reports Compatible with `PY-262.10968.92`, offline with no dependency downloads.
+The native Codex CLI 0.160.1 loopback audit passed for `gpt-5.4` with the current prompt.
+It used synthetic data and a fake credential. The tool array was empty. A real account remains untested.
+The current button and draft screenshots remain accurate and retain twice the original pixel density.
+
+### Native workspace checks
+
+An isolated PyCharm 2026.2.3 profile loaded the exact candidate JAR from the checked ZIP.
+These tests used real project Git changes and a controlled Commit selection.
+A test backend supplied the model and draft. No real account or external model request was used.
+
+| Check | Result |
+| --- | --- |
+| Workspace-only with a nonexistent Codex path | Applied the fixed local draft. No model detection or generation call. |
+| Source plus root and nested workspace files | Sent the exact source diff and fixed note. Workspace paths and canaries were absent. |
+| Open unsaved workspace document | Its contents stayed outside the prompt. |
+| Workspace autosave and atomic file replacement | Accepted the source draft and preserved the checked selection. |
+| Source edit during generation | Refused the stale draft. |
+| Message typed during generation | Preserved the typed message. |
+
+The four grouped checks took 406–599 milliseconds with the supplied backend and control polling.
+These times do not measure a real model response or guarantee performance.
+Each recorded final state had no visible dialog. A later deliberate document/disk conflict opened an IDE-owned cache dialog.
+This does not prove that PyCharm never opens its own dialogs.
+The candidate toolbar invocation was not completed; the earlier 1.1.4 action result below remains historical.
+Gitleaks 8.30.1 found no leaks in the reviewed source snapshot, release directory, or reachable history, with full redaction.
+
+Read the [hosted workflow results](https://github.com/nvxraM/CodexCommit/actions/workflows/check.yml) for each exact commit.
+The Ubuntu, Windows, and macOS jobs test source boundaries without account credentials.
+They do not prove native macOS generation support; macOS execution remains blocked.
+
+## Previous 1.1.4 candidate
 
 Version 1.1.4 names an excluded file and tells the user to uncheck it in the Commit window.
 The warning identifies IDE settings files. The filename exclusions remain unchanged.
@@ -255,7 +316,7 @@ Use JDK 25 for the build.
 .\tools\build-local.ps1 -IdeHome 'PATH_TO_YOUR_IDE'
 java tools/SourceArchive.java --self-test
 java tools/ReleaseAudit.java --self-test
-java tools/ReleaseAudit.java build/distributions/CodexCommit-1.1.4.zip
+java tools/ReleaseAudit.java build/distributions/CodexCommit-1.1.5.zip
 ```
 
 The `check` task uses the `coreTest` and `ideBoundaryTest` programs.

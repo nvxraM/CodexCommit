@@ -2,7 +2,15 @@
 
 No plugin can be guaranteed risk-free. JetBrains plugins run with the IDE user's access; this plugin is not protected by a separate IDE permission sandbox. A malicious binary, compromised update, compromised Codex/Git executable, or compromised build tool can bypass source-level controls. Install trusted programs, inspect the source, and review release provenance.
 
-The Generate button sends selected tracked Git changes through Codex and fills the commit message field. No additional confirmation dialog opens. Check the selected changes before using the button. Controls include limits before loading Git objects, rejection of unsupported partial selections, obvious-secret checks, fixed arguments without a command shell, an empty private CLI working directory, a restricted tool profile, bounded time/output, owned-process cancellation, stale-result checks, and disposal cleanup. Actual verified controls and gaps are listed in [the verification record](docs/VERIFICATION.md). A read-only CLI sandbox alone is not a prohibition on reading unrelated files; CLI tool exposure is separately constrained and audited.
+The Generate button sends selected tracked source changes through Codex and fills the commit message field. No additional confirmation dialog opens. Check the selected changes before using the button. Controls include limits before loading Git objects, rejection of unsupported partial selections, obvious-secret checks, fixed arguments without a command shell, an empty private CLI working directory, a restricted tool profile, bounded time/output, owned-process cancellation, stale-result checks, and disposal cleanup. Actual verified controls and gaps are listed in [the verification record](docs/VERIFICATION.md). A read-only CLI sandbox alone is not a prohibition on reading unrelated files; CLI tool exposure is separately constrained and audited.
+
+Selected `.idea/workspace.xml` files remain checked for the user's Git commit.
+Generation omits their old, current, and unsaved XML contents, hashes, and sizes.
+A mixed source selection sends only the fixed note "IDE workspace settings also changed. Their contents are excluded."
+The note contains no workspace paths or values. A workspace-only selection produces a fixed local draft without CLI or account calls.
+This exception retains selection, revision, path, symbolic-link, and regular-file checks.
+It does not permit other IDE settings or credential paths. Workspace autosaves do not invalidate a source draft.
+Git commits can still publish private workspace settings. Examine those files before committing; the plugin does not inspect their contents.
 
 The patch is untrusted task data and may contain prompt injection. Fixed instructions and tool restrictions reduce its influence, but generated text can still be wrong or manipulated. Read the draft in the commit message field before committing it. The action cannot establish whether a change is safe, legally publishable, or accurately described.
 

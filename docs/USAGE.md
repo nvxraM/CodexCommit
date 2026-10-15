@@ -7,6 +7,9 @@
 - Use the CLI's default saved login for a personal, unmanaged account. Enterprise and managed account configurations are not supported.
 - Configure an absolute path to native Git in the IDE. WSL and script wrappers are not supported.
 
+These CLI and account requirements apply to source generation.
+A selection containing only IDE workspace settings produces a fixed local draft without Codex or account calls.
+
 The plugin detects the model saved in your normal Codex CLI home settings before each request.
 Project-specific CLI settings and another process's `--profile` selection are excluded.
 If no model is saved, it uses the CLI default. Use `/model` in Codex to change your selection.
@@ -42,7 +45,7 @@ Use a different integration if your account needs these settings.
 6. Examine or edit the draft. Make the commit yourself.
 
 The request runs in the background. No request or draft dialog opens.
-The button sends the selected patch and fixed instructions to OpenAI through your Codex CLI account.
+The button sends the selected source patch and fixed instructions to OpenAI through your Codex CLI account.
 The request includes filenames, code, and comments. It can include secrets that the automatic checks do not find.
 Send only data that you have permission to disclose to OpenAI.
 Cancel generation from the IDE background task control.
@@ -57,12 +60,12 @@ A request can use account quota or incur charges. The service controls data proc
 This plugin does not provide an offline model. Cancellation cannot retract data that the service has received.
 
 The plugin stops if it cannot represent the selected changes safely.
-It excludes unversioned files, staged or custom revisions, partial file selections, sensitive filenames, binary files, and symbolic links.
+It excludes unversioned files, staged or custom revisions, partial file selections, other sensitive filenames, binary files, and symbolic links.
 The files and their Git root must be inside the project directory.
 Changes with no text difference are not supported.
 
 The plugin preserves your message if you type during generation.
-It also prevents draft application if the selected changes or file content change.
+It also prevents draft application if the selection or included source content changes.
 It does not stage files, make commits, push changes, or edit source files.
 You decide when to make a commit.
 
@@ -78,7 +81,7 @@ You decide when to make a commit.
 | Draft message | 16 KiB and 100 lines |
 | CLI generation time | 120 seconds |
 
-The file size limit applies to each complete file version, even when you change only one line.
+The file size limit applies to each complete source file version, even when you change only one line.
 Count both the Git baseline and the current file when you calculate the combined limit.
 For example, a 20 MiB baseline and a 20 MiB current file use 40 MiB of that limit.
 Only the patch and fixed instructions go into the request. The plugin does not truncate an oversized patch.
@@ -86,11 +89,22 @@ Select fewer changes if the patch exceeds its limit.
 The model can impose a smaller context limit. A 50 MiB file allowance does not permit a 50 MiB request.
 Content verification runs in the background. It remains subject to the combined limit.
 
-Add unversioned source files to Git before generation. Leave `.idea/workspace.xml` unchecked.
-The plugin excludes IDE settings files. One excluded file stops the complete request.
-The warning names the file and tells you to uncheck it in the Commit window.
-Uncheck that file. Select Generate Commit Message with CodexCommit again.
-The plugin does not change your checked files.
+Add unversioned source files to Git before generation.
+You can keep tracked `.idea/workspace.xml` checked for your Git commit.
+The same rule applies to nested `.idea/workspace.xml` files outside other sensitive directories.
+The plugin does not read their old, current, or unsaved XML contents for generation.
+It excludes those contents from hashes, size limits, and the request.
+With source changes, the request includes only this fixed note about workspace settings:
+
+> IDE workspace settings also changed. Their contents are excluded.
+
+The note includes no workspace paths or values.
+A workspace-only selection fills the commit message field with a fixed local draft. It makes no Codex or account calls.
+Workspace autosaves do not discard a source draft. Selection, revision, path, symbolic link, and regular-file checks still apply.
+Other IDE settings and credential files remain blocked. One blocked file stops the complete request.
+The warning names that file and tells you to uncheck it in the Commit window.
+The plugin does not change your checked files or commit their contents.
+Check workspace settings for private data before you make your Git commit.
 
 These limits reduce resource use and data exposure. They do not remove all risk.
 Filename and content checks cannot find every secret or private record.
@@ -107,7 +121,7 @@ Read [PRIVACY.md](PRIVACY.md) and [security boundaries](../SECURITY.md) for the 
 
 1. Connect GitHub to Codex.
 2. Select [CodexCommit](https://github.com/nvxraM/CodexCommit).
-3. Ask: "Help me install CodexCommit in PyCharm. Check README.md and guide me through setup on my computer."
+3. Ask: "Help me install CodexCommit in PyCharm from github.com/nvxraM/CodexCommit."
 4. Complete the local PyCharm steps that Codex gives you.
 
 Connecting the repository gives Codex access to the setup instructions.
@@ -118,7 +132,7 @@ It does not install the local plugin or sign in to your local Codex CLI.
 After the update, check the Codex path in **Settings > Tools > CodexCommit**.
 Version 1.1.2 introduced a new settings file. Set a custom executable path again if you update from an older version.
 
-Download the [version 1.1.4 ZIP](https://github.com/nvxraM/CodexCommit/blob/v1.1.4/releases/CodexCommit-1.1.4.zip?raw=true).
+Download the [version 1.1.5 ZIP](https://github.com/nvxraM/CodexCommit/blob/v1.1.5/releases/CodexCommit-1.1.5.zip?raw=true).
 The release and the source repository contain its [SHA-256 value](../releases/SHA256SUMS).
 You can also build the ZIP from the source code.
 

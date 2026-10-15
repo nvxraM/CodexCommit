@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.5 — workspace settings selection
+
+Keep selected `.idea/workspace.xml` checked for the user's Git commit.
+Exclude its old, current, and unsaved XML contents from generation, hashes, and size limits.
+Send a fixed generic note with source changes. Do not send workspace paths or values.
+Use a fixed local draft for workspace-only selections without Codex or account calls.
+Retain selection, revision, path, symbolic-link, and regular-file checks.
+Allow routine workspace autosaves while the source draft runs. Keep other IDE and credential paths blocked.
+Preserve the short installation prompt with the repository link.
+
 ## 1.1.4 — one-click generation
 
 Run the request in the background after one button click.

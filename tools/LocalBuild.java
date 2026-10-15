@@ -49,7 +49,7 @@ public final class LocalBuild {
             Path license = root.resolve("LICENSE");
             if (Files.isRegularFile(license)) add(zip, license, "META-INF/LICENSE");
         }
-        Path distribution = output.resolve("CodexCommit-1.1.4.zip");
+        Path distribution = output.resolve("CodexCommit-1.1.5.zip");
         try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(distribution))) {
             add(zip, jar, "CodexCommit/lib/codexcommit.jar");
         }

@@ -79,12 +79,19 @@ public final class CodexCommitProjectService implements Disposable {
         }
         task(job, "CodexCommit: prepare selected changes", () -> {
             String patch = job.snapshot.build(() -> cancelled(job));
-            job.prompt = PromptBuilder.build(patch);
+            if (job.snapshot.workspaceOnly()) {
+                job.draft = "Update IDE workspace settings\n\n- Update the saved workspace state.";
+                return;
+            }
+            job.prompt = PromptBuilder.build(patch, job.snapshot.hasWorkspaceSettings());
             job.executable = CodexExecutableLocator.find(CodexCommitSettings.getInstance().getExecutable());
             job.indicator.setIndeterminate(true);
             job.indicator.setText2("Detect the current Codex model");
             job.model = backend.resolveModel(job.executable, () -> cancelled(job));
-        }, () -> whenFresh(job, () -> generate(job)), "Could not prepare the selected changes or detect the Codex model. "
+        }, () -> whenFresh(job, () -> {
+            if (job.snapshot.workspaceOnly()) { job.snapshot.apply(job.draft); finish(job); }
+            else generate(job);
+        }), "Could not prepare the selected changes or detect the Codex model. "
                 + "Check native Codex/Git paths and select a model in Codex. "
                 + "The combined before/after text must be at most 50 MiB, "
                 + "and the patch at most 512 KiB. No request was sent.");

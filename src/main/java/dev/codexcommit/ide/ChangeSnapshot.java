@@ -62,7 +62,7 @@ final class ChangeSnapshot {
     private static final Set<String> SENSITIVE_DIRECTORIES = Set.of(".git", ".idea", ".ssh", ".aws", ".azure", ".kube", ".gnupg", ".codex");
 
     private record Entry(Path before, Path after, Path repository, String revision, String beforeName, String afterName,
-                         Document document, long documentStamp, CharSequence documentText, VirtualFile file, long fileStamp) {}
+                         boolean workspace, Document document, long documentStamp, CharSequence documentText, VirtualFile file, long fileStamp) {}
     private record DiskState(long size, FileTime modified, Object key) {}
     private record Prepared(Entry entry, LocalGitReader.Blob blob, String documentText, DiskState disk, String diskHash) {}
 
@@ -119,6 +119,8 @@ final class ChangeSnapshot {
             FilePath afterFile = afterRevision == null ? null : afterRevision.getFile();
             Path before = checkedPath(root, beforeFile);
             Path after = checkedPath(root, afterFile);
+            boolean workspace = workspaceChange(before == null ? null : root.relativize(before),
+                    after == null ? null : root.relativize(after));
             FilePath active = afterFile != null ? afterFile : beforeFile;
             if (active == null) throw new SelectionException("Selected change is unavailable.");
             VcsRoot vcs = ProjectLevelVcsManager.getInstance(project).getVcsRootObjectFor(active);
@@ -129,7 +131,7 @@ final class ChangeSnapshot {
             if (!repository.startsWith(root) || (before != null && !before.startsWith(repository))
                     || (after != null && !after.startsWith(repository))) throw new SelectionException("The Git root must be inside this project.");
             checkPartial(project, change, afterFile);
-            Document document = afterFile == null || afterFile.getVirtualFile() == null ? null
+            Document document = workspace || afterFile == null || afterFile.getVirtualFile() == null ? null
                     : FileDocumentManager.getInstance().getCachedDocument(afterFile.getVirtualFile());
             CharSequence text = null;
             long stamp = -1;
@@ -142,9 +144,9 @@ final class ChangeSnapshot {
                 stamp = document.getModificationStamp();
             }
             String revision = beforeRevision == null ? null : beforeRevision.getRevisionNumber().asString();
-            VirtualFile file = afterFile == null ? null : afterFile.getVirtualFile();
+            VirtualFile file = workspace || afterFile == null ? null : afterFile.getVirtualFile();
             entries.add(new Entry(before, after, repository, revision, relative(root, before), relative(root, after),
-                    document, stamp, text, file, file == null ? -1 : file.getModificationStamp()));
+                    workspace, document, stamp, text, file, file == null ? -1 : file.getModificationStamp()));
         }
         return new ChangeSnapshot(project, ui, root, git, selectionKey(changes), ui.getCommitMessageUi().getText(), messageDocument, List.copyOf(entries));
     }
@@ -161,6 +163,11 @@ final class ChangeSnapshot {
             if (entry.after() != null) validateLocation(root, entry.after());
             Path repository = entry.repository().toRealPath();
             if (!repository.startsWith(root.toRealPath())) throw new SelectionException("The Git root must be inside this project.");
+            if (entry.workspace()) {
+                validateWorkspaceLocation(root, entry.before(), entry.after());
+                candidates.add(new Prepared(entry, null, null, null, null));
+                continue;
+            }
             DiskState disk = null;
             if (entry.after() != null) {
                 BasicFileAttributes attributes = Files.readAttributes(entry.after(), BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
@@ -184,6 +191,11 @@ final class ChangeSnapshot {
             Entry entry = candidate.entry();
             if (cancelled.getAsBoolean()) throw new InterruptedException("Cancelled.");
             progress("Compare selected files", completed.size(), candidates.size(), 0.25, 0.75);
+            if (entry.workspace()) {
+                validateWorkspaceLocation(root, entry.before(), entry.after());
+                completed.add(candidate);
+                continue;
+            }
             String before = candidate.blob() == null ? "" : reader.read(entry.repository(), candidate.blob());
             checkDiskMetadata(candidate);
             byte[] disk = entry.after() == null ? new byte[0] : readBounded(root, entry.after(), cancelled);
@@ -198,10 +210,14 @@ final class ChangeSnapshot {
             completed.add(new Prepared(entry, candidate.blob(), null, candidate.disk(), digest(disk)));
         }
         String result = output.toString();
-        ContentPolicy.validatePatch(result);
+        if (!result.isEmpty() || !workspaceOnly()) ContentPolicy.validatePatch(result);
         prepared = List.copyOf(completed);
         return result;
     }
+
+    boolean workspaceOnly() { return !entries.isEmpty() && entries.stream().allMatch(Entry::workspace); }
+
+    boolean hasWorkspaceSettings() { return entries.stream().anyMatch(Entry::workspace); }
 
     /** EDT-only selection, tracker, and document checks. No filesystem reads or process starts. */
     boolean isFresh() {
@@ -219,6 +235,8 @@ final class ChangeSnapshot {
                 Change change = currentChanges.get(entry.after() == null ? entry.before() : entry.after());
                 if (change == null) return false;
                 checkPartial(project, change, entry.after() == null ? null : change.getAfterRevision().getFile());
+                // Workspace contents never enter the request. Ignore routine IDE autosaves.
+                if (entry.workspace()) continue;
                 if (entry.document() != null && entry.document().getModificationStamp() != entry.documentStamp()) return false;
                 if (entry.after() != null) {
                     VirtualFile file = change.getAfterRevision().getFile().getVirtualFile();
@@ -240,6 +258,10 @@ final class ChangeSnapshot {
                 if (cancelled.getAsBoolean()) throw new InterruptedException("Cancelled.");
                 progress("Verify selected files", checked++, prepared.size(), 0, 1);
                 Entry entry = candidate.entry();
+                if (entry.workspace()) {
+                    validateWorkspaceLocation(root, entry.before(), entry.after());
+                    continue;
+                }
                 if (entry.after() != null) {
                     checkDiskMetadata(candidate);
                     if (!candidate.diskHash().equals(diskDigest(root, entry.after(), cancelled))) return false;
@@ -289,9 +311,10 @@ final class ChangeSnapshot {
     }
 
     static void checkSensitivePath(Path relative) throws SelectionException {
-        if (relative.isAbsolute() || relative.normalize().startsWith("..")) {
+        if (relative.isAbsolute() || !relative.equals(relative.normalize()) || relative.normalize().startsWith("..")) {
             throw new SelectionException("Selected files must be inside the project.");
         }
+        if (workspaceSettings(relative)) return;
         if (!sensitive(relative)) return;
         boolean ideSettings = false;
         for (Path part : relative) if (part.toString().equalsIgnoreCase(".idea")) ideSettings = true;
@@ -305,6 +328,37 @@ final class ChangeSnapshot {
                 .replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
         throw new SelectionException("Uncheck &quot;" + escaped + "&quot; in the Commit window. "
                 + (ideSettings ? "IDE settings files are excluded." : "This filename is excluded by the sensitive-content policy."));
+    }
+
+    /** Only this IDE file has a metadata-only path through selection preparation. */
+    static boolean workspaceSettings(Path relative) {
+        int count = relative.getNameCount();
+        if (relative.isAbsolute() || !relative.equals(relative.normalize()) || relative.startsWith("..") || count < 2
+                || !relative.getName(count - 2).toString().equalsIgnoreCase(".idea")
+                || !relative.getName(count - 1).toString().equalsIgnoreCase("workspace.xml")) return false;
+        return count == 2 || !sensitive(relative.subpath(0, count - 2));
+    }
+
+    static boolean workspaceChange(Path beforeRelative, Path afterRelative) throws SelectionException {
+        boolean before = beforeRelative != null && workspaceSettings(beforeRelative);
+        boolean after = afterRelative != null && workspaceSettings(afterRelative);
+        if ((before && afterRelative != null && !after) || (after && beforeRelative != null && !before)) {
+            throw new SelectionException("Select workspace settings separately from renames to or from source files.");
+        }
+        return before || after;
+    }
+
+    /** Checks location and existence only. Never opens workspace XML or inspects its saved values. */
+    static void validateWorkspaceLocation(Path root, Path before, Path after) throws IOException {
+        if (before != null) validateLocation(root, before);
+        if (after != null) {
+            validateLocation(root, after);
+            if (!Files.readAttributes(after, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS).isRegularFile()) {
+                throw new SelectionException("Only regular local files are supported.");
+            }
+        } else if (before == null || Files.exists(before, LinkOption.NOFOLLOW_LINKS)) {
+            throw new SelectionException("Selected workspace settings changed. Run CodexCommit again.");
+        }
     }
 
     static void validateLocation(Path root, Path path) throws IOException {

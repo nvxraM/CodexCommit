@@ -27,6 +27,17 @@ public final class CoreTests {
             require(prompt.endsWith(patch), "Prompt must preserve the reviewed selection byte for byte");
             require(prompt.contains("untrusted data"), "Prompt must classify diff text as data");
         });
+        check("workspace metadata adds only a fixed note before the unchanged source patch", () -> {
+            String patch = "diff --git a/hello.py b/hello.py\n-old\n+new\n";
+            String note = "IDE workspace settings also changed. Their contents are excluded.\n";
+            String ordinary = PromptBuilder.build(patch);
+            String mixed = PromptBuilder.build(patch, true);
+            require(!ordinary.contains(note), "Ordinary source must not claim workspace changes.");
+            require(mixed.equals(ordinary.replace("SELECTED DIFF", note + "SELECTED DIFF")), "Workspace note must be fixed.");
+            require(mixed.endsWith(patch) && !mixed.contains("workspace.xml"), "Workspace metadata must not alter or expose paths in the patch.");
+            String largestPatch = "x".repeat(ContentPolicy.MAX_PATCH_BYTES);
+            require(PromptBuilder.build(largestPatch, true).endsWith(largestPatch), "Workspace note must fit beside the maximum patch.");
+        });
         check("blocks sensitive paths and key material", () -> {
             rejects(() -> ContentPolicy.validatePatch("diff --git a/.env b/.env\n+VALUE=demo"), IllegalArgumentException.class);
             rejects(() -> ContentPolicy.validatePatch("+++ b/path/id_rsa\n+data"), IllegalArgumentException.class);

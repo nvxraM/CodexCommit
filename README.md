@@ -17,7 +17,7 @@ Or use [manual installation](#manual-install) below. [Requirements](docs/USAGE.m
 
 ## Use
 
-1. Open **Commit**. Select complete tracked file changes in one changelist. Leave `.idea` files unchecked.
+1. Open **Commit**. Select complete tracked file changes in one changelist.
 2. Select the coloured **Generate Commit Message with CodexCommit** button.
 
 ![The Codex button in the Commit tool window](docs/images/generate-button.png)
@@ -27,6 +27,7 @@ Or use [manual installation](#manual-install) below. [Requirements](docs/USAGE.m
 [![Short draft in the Commit message box](docs/images/commit-message.png)](docs/images/commit-message.png)
 
 One click. No review windows. The prompt requests a short subject and 1–3 brief bullet points.
+Keep `.idea/workspace.xml` checked if needed. Its contents stay out of generation.
 
 Screens use sample data. Select the draft image to enlarge it.
 The button sends selected code to OpenAI. Check for private data and secrets first.
@@ -34,7 +35,7 @@ Requests can use quota or incur charges. Cancel from the IDE background task con
 
 ## Manual install
 
-1. [Download version 1.1.4](https://github.com/nvxraM/CodexCommit/blob/v1.1.4/releases/CodexCommit-1.1.4.zip?raw=true).
+1. [Download version 1.1.5](https://github.com/nvxraM/CodexCommit/blob/v1.1.5/releases/CodexCommit-1.1.5.zip?raw=true).
 2. In PyCharm, open **Settings → Plugins → ⚙ → Install Plugin from Disk**.
 3. Select the ZIP. Restart the IDE if requested.
 
