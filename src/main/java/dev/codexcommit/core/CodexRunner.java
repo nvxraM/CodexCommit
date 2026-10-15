@@ -1,4 +1,4 @@
-package dev.diffquill.core;
+package dev.codexcommit.core;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -185,13 +185,13 @@ public final class CodexRunner {
         Process process = builder.start();
         AtomicReference<IOException> streamError = new AtomicReference<>();
         ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-        Thread outputReader = reader(process.getInputStream(), stdout, stdoutLimit, streamError, "DiffQuill-output");
-        Thread errorReader = reader(process.getErrorStream(), null, STDERR_LIMIT, streamError, "DiffQuill-error");
+        Thread outputReader = reader(process.getInputStream(), stdout, stdoutLimit, streamError, "CodexCommit-output");
+        Thread errorReader = reader(process.getErrorStream(), null, STDERR_LIMIT, streamError, "CodexCommit-error");
         AtomicReference<IOException> inputError = new AtomicReference<>();
         Thread writer = new Thread(() -> {
             try (var output = process.getOutputStream()) { output.write(stdin.getBytes(StandardCharsets.UTF_8)); }
             catch (IOException ex) { inputError.set(new IOException("Codex could not receive the prompt.")); }
-        }, "DiffQuill-input");
+        }, "CodexCommit-input");
         writer.setDaemon(true);
         writer.start();
         long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
@@ -275,8 +275,8 @@ public final class CodexRunner {
 
     private static Path createPrivateWorkspace() throws IOException {
         Path directory;
-        try { directory = Files.createTempDirectory("diffquill-", PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"))); }
-        catch (UnsupportedOperationException ex) { directory = Files.createTempDirectory("diffquill-"); }
+        try { directory = Files.createTempDirectory("codexcommit-", PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"))); }
+        catch (UnsupportedOperationException ex) { directory = Files.createTempDirectory("codexcommit-"); }
         return directory.toRealPath();
     }
 

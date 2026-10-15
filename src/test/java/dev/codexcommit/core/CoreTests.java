@@ -1,4 +1,4 @@
-package dev.diffquill.core;
+package dev.codexcommit.core;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -44,7 +44,7 @@ public final class CoreTests {
         check("rejects shell and relative executable paths", () -> {
             rejects(() -> CodexExecutableLocator.validateNative(Path.of("codex.cmd"), true), IOException.class);
             rejects(() -> CodexExecutableLocator.validateNative(Path.of("codex"), false), IOException.class);
-            Path folder = Files.createTempDirectory("diffquill-locator-");
+            Path folder = Files.createTempDirectory("codexcommit-locator-");
             try {
                 Path wrapper = folder.resolve(CodexExecutableLocator.isWindows() ? "codex.exe" : "codex");
                 Files.writeString(wrapper, "#!/bin/sh\necho fake\n");
@@ -53,7 +53,7 @@ public final class CoreTests {
             } finally { delete(folder); }
         });
         check("PATH entries exclude current and relative directories", () -> {
-            Path folder = Files.createTempDirectory("diffquill-path-");
+            Path folder = Files.createTempDirectory("codexcommit-path-");
             try {
                 Map<String, String> env = Map.of("PATH", ".;relative;" + folder);
                 rejects(() -> CodexExecutableLocator.find("", env, folder, true), IOException.class);
@@ -126,7 +126,7 @@ public final class CoreTests {
         String javaExecutable = Path.of(System.getProperty("java.home"), "bin", CodexExecutableLocator.isWindows() ? "java.exe" : "java").toString();
         String classpath = java.util.Arrays.stream(System.getProperty("java.class.path").split(Pattern.quote(System.getProperty("path.separator"))))
                 .map(p -> Path.of(p).toAbsolutePath().toString()).collect(java.util.stream.Collectors.joining(System.getProperty("path.separator")));
-        return List.of(javaExecutable, "-cp", classpath, "dev.diffquill.core.FakeChild", mode);
+        return List.of(javaExecutable, "-cp", classpath, "dev.codexcommit.core.FakeChild", mode);
     }
 
     private static void check(String name, CheckedRunnable test) throws Exception { test.run(); passed++; System.out.println("PASS " + name); }
@@ -136,7 +136,7 @@ public final class CoreTests {
         throw new AssertionError("Expected " + expected.getSimpleName());
     }
     private static void withWorkspace(WorkspaceTask task) throws Exception {
-        Path folder = Files.createTempDirectory("diffquill-test-");
+        Path folder = Files.createTempDirectory("codexcommit-test-");
         try { task.run(folder); } finally { delete(folder); }
     }
     static void delete(Path folder) throws IOException {

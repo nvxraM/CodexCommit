@@ -3,7 +3,7 @@ plugins {
     id("org.jetbrains.intellij.platform") version "2.19.0"
 }
 
-group = "dev.diffquill"
+group = "dev.codexcommit"
 version = providers.gradleProperty("pluginVersion").get()
 
 repositories {
@@ -13,7 +13,7 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        val localIde = providers.environmentVariable("DIFFQUILL_IDE_HOME").orNull
+        val localIde = providers.environmentVariable("CODEXCOMMIT_IDE_HOME").orNull
         if (localIde != null) local(localIde) else pycharm(providers.gradleProperty("platformVersion").get())
         bundledPlugin("Git4Idea")
         bundledModule("intellij.platform.vcs.impl")
@@ -33,7 +33,7 @@ tasks.withType<AbstractArchiveTask>().configureEach {
 intellijPlatform {
     buildSearchableOptions = false
     pluginConfiguration {
-        name = "DiffQuill"
+        name = "CodexCommit"
         version = project.version.toString()
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
@@ -48,7 +48,7 @@ val coreTest by tasks.registering(JavaExec::class) {
     description = "Runs bounded subprocess, privacy, and executable discovery regression tests without an account."
     dependsOn(tasks.testClasses)
     classpath = sourceSets.test.get().runtimeClasspath
-    mainClass.set("dev.diffquill.core.CoreTests")
+    mainClass.set("dev.codexcommit.core.CoreTests")
 }
 tasks.check { dependsOn(coreTest) }
 val ideBoundaryTest by tasks.registering(JavaExec::class) {
@@ -56,7 +56,7 @@ val ideBoundaryTest by tasks.registering(JavaExec::class) {
     description = "Runs local Git-object, path, binary, and unified-patch boundary regressions on synthetic fixtures."
     dependsOn(tasks.testClasses)
     classpath = sourceSets.test.get().runtimeClasspath + sourceSets.test.get().compileClasspath
-    mainClass.set("dev.diffquill.ide.IdeBoundaryTests")
+    mainClass.set("dev.codexcommit.ide.IdeBoundaryTests")
 }
 tasks.check { dependsOn(ideBoundaryTest) }
 // Tests deliberately use account-free standard-library main harnesses instead of JUnit.
@@ -74,7 +74,7 @@ val releaseGuardTest by tasks.registering(Exec::class) {
 val auditRelease by tasks.registering(Exec::class) {
     group = "verification"
     dependsOn("buildPlugin", archiveGuardTest, releaseGuardTest)
-    commandLine(javaExecutable, "tools/ReleaseAudit.java", "build/distributions/DiffQuill-${project.version}.zip")
+    commandLine(javaExecutable, "tools/ReleaseAudit.java", "build/distributions/CodexCommit-${project.version}.zip")
 }
 tasks.check { dependsOn(auditRelease) }
 

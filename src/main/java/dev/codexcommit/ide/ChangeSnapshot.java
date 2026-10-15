@@ -1,4 +1,4 @@
-package dev.diffquill.ide;
+package dev.codexcommit.ide;
 
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -19,7 +19,7 @@ import com.intellij.openapi.vcs.impl.LineStatusTrackerManagerI;
 import com.intellij.openapi.vfs.VFileProperty;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.vcs.commit.CommitWorkflowUi;
-import dev.diffquill.core.ContentPolicy;
+import dev.codexcommit.core.ContentPolicy;
 import git4idea.config.GitExecutable;
 import git4idea.config.GitExecutableManager;
 

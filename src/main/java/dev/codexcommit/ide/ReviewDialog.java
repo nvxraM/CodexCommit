@@ -1,8 +1,8 @@
-package dev.diffquill.ide;
+package dev.codexcommit.ide;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
-import dev.diffquill.core.ContentPolicy;
+import dev.codexcommit.core.ContentPolicy;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -33,7 +33,7 @@ final class ReviewDialog extends DialogWrapper {
                   + "The request can use your account quota. Use only a personal account without organization controls. "
                   + "The plugin cannot detect every account or device policy. Do not send with an organization account. "
                   + "Examine the request for private data and secrets. Cancel sends nothing.";
-        setTitle(draft ? "DiffQuill — Review Draft" : "DiffQuill — Review Request Before Sending");
+        setTitle(draft ? "CodexCommit — Review Draft" : "CodexCommit — Review Request Before Sending");
         setOKButtonText(draft ? "Apply Draft" : "Send to Codex");
         setCancelButtonText("Cancel");
         init();

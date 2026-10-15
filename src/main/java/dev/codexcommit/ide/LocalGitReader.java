@@ -1,4 +1,4 @@
-package dev.diffquill.ide;
+package dev.codexcommit.ide;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -115,7 +115,7 @@ final class LocalGitReader {
         ByteArrayOutputStream output = new ByteArrayOutputStream(Math.min(maximum, 8192));
         AtomicBoolean oversized = new AtomicBoolean();
         AtomicReference<IOException> failure = new AtomicReference<>();
-        Thread reader = Thread.ofVirtual().name("DiffQuill Git output").unstarted(() -> {
+        Thread reader = Thread.ofVirtual().name("CodexCommit Git output").unstarted(() -> {
             try (InputStream stream = process.getInputStream()) {
                 byte[] buffer = new byte[4096];
                 int count;

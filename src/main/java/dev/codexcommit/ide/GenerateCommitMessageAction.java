@@ -1,4 +1,4 @@
-package dev.diffquill.ide;
+package dev.codexcommit.ide;
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -18,7 +18,7 @@ public final class GenerateCommitMessageAction extends DumbAwareAction {
         event.getPresentation().setEnabled(project != null && !project.isDisposed() && ui != null
                 && event.getData(VcsDataKeys.COMMIT_MESSAGE_DOCUMENT) != null
                 && !ui.getIncludedChanges().isEmpty()
-                && !project.getService(DiffQuillProjectService.class).isBusy());
+                && !project.getService(CodexCommitProjectService.class).isBusy());
     }
 
     @Override public void actionPerformed(@NotNull AnActionEvent event) {
@@ -26,7 +26,7 @@ public final class GenerateCommitMessageAction extends DumbAwareAction {
         CommitWorkflowUi ui = event.getData(VcsDataKeys.COMMIT_WORKFLOW_UI);
         if (project != null && !project.isDisposed() && ui != null) {
             var document = event.getData(VcsDataKeys.COMMIT_MESSAGE_DOCUMENT);
-            if (document != null) project.getService(DiffQuillProjectService.class).start(ui, document);
+            if (document != null) project.getService(CodexCommitProjectService.class).start(ui, document);
         }
     }
 }

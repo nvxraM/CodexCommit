@@ -16,10 +16,10 @@ public final class SourceArchive {
     static boolean allowed(String name) {
         if (name.contains("..") || name.contains("\\") || name.startsWith("/")) return false;
         if (ROOT_FILES.contains(name) || DOCUMENT_FILES.contains(name)) return true;
-        if (name.matches("src/(main|test)/java/dev/diffquill/[A-Za-z0-9_/]+\\.java")) return true;
+        if (name.matches("src/(main|test)/java/dev/codexcommit/[A-Za-z0-9_/]+\\.java")) return true;
         return Set.of("tools/LocalBuild.java", "tools/ReleaseAudit.java", "tools/SourceArchive.java", "tools/build-local.sh", "tools/build-local.ps1",
                 "gradle/wrapper/gradle-wrapper.jar", "gradle/wrapper/gradle-wrapper.properties", ".github/workflows/check.yml",
-                "src/main/resources/META-INF/plugin.xml", "src/main/resources/META-INF/pluginIcon.svg", "src/main/resources/icons/diffquill.svg").contains(name);
+                "src/main/resources/META-INF/plugin.xml", "src/main/resources/META-INF/pluginIcon.svg", "src/main/resources/icons/codexcommit.svg").contains(name);
     }
     public static void main(String[] args) throws Exception {
         if (args.length == 1 && args[0].equals("--self-test")) {
@@ -29,7 +29,7 @@ public final class SourceArchive {
             for (String path : unsafe) {
                 if (allowed(path)) throw new AssertionError("Unsafe source path accepted.");
             }
-            List<String> expected = List.of("README.md", "src/main/java/dev/diffquill/core/CodexRunner.java", "gradle/wrapper/gradle-wrapper.jar",
+            List<String> expected = List.of("README.md", "src/main/java/dev/codexcommit/core/CodexRunner.java", "gradle/wrapper/gradle-wrapper.jar",
                     "docs/USAGE.md", "docs/images/README.md", "docs/images/generate-button.png", "tools/build-local.sh", "tools/build-local.ps1");
             for (String path : expected) {
                 if (!allowed(path)) throw new AssertionError("Expected source path rejected.");
@@ -40,7 +40,7 @@ public final class SourceArchive {
         boolean listOnly = args.length == 2 && args[0].equals("--list");
         if (args.length != 1 && !listOnly) throw new IllegalArgumentException("Usage: java tools/SourceArchive.java [--list] <project-root>");
         Path root = Path.of(args[listOnly ? 1 : 0]).toRealPath();
-        Path destination = root.resolve("dist/DiffQuill-source-1.1.1.zip");
+        Path destination = root.resolve("dist/CodexCommit-source-1.1.2.zip");
         List<String> fileNames = ROOT_FILES.stream().sorted().toList();
         List<Path> files = new ArrayList<>();
         for (String name : fileNames) {
@@ -76,7 +76,7 @@ public final class SourceArchive {
                 String name = root.relativize(file).toString().replace('\\', '/');
                 if (name.endsWith(".class") || name.endsWith(".exe") || name.endsWith(".zip") || name.endsWith("auth.json")
                         || (name.endsWith(".jar") && !name.equals("gradle/wrapper/gradle-wrapper.jar"))) throw new IOException("Unexpected source artifact.");
-                ZipEntry entry = new ZipEntry("DiffQuill/" + name);
+                ZipEntry entry = new ZipEntry("CodexCommit/" + name);
                 entry.setTimeLocal(LocalDateTime.of(1980, 1, 1, 0, 0));
                 zip.putNextEntry(entry);
                 Files.copy(file, zip);

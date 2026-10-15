@@ -1,4 +1,4 @@
-# Use DiffQuill
+# Use CodexCommit
 
 ## Requirements
 
@@ -14,7 +14,7 @@ The audited execution profile is for Windows and Linux. Linux execution still ne
 This release blocks macOS execution. Its managed device policy controls have not been audited.
 The plugin rejects known system or managed Codex configurations. This detection cannot prove that every account or computer is unmanaged.
 
-Open Settings > Tools > DiffQuill to set the Codex executable path.
+Open Settings > Tools > CodexCommit to set the Codex executable path.
 Leave the field empty to use automatic discovery. Use trusted native Codex and Git executables.
 
 The plugin does not pass these settings to the CLI process:
@@ -33,7 +33,7 @@ Use a different integration if your account needs these settings.
 2. Select the tracked Git files that you want to describe.
 3. Select each complete file change in one changelist.
 4. Include all hunks for those files.
-5. Select Generate Commit Message with Codex.
+5. Select Generate Commit Message with CodexCommit.
 6. Examine the complete request in the review dialog.
 7. Confirm that you use a personal account and a computer without organization policy.
 8. Select Send to Codex to send that request.
@@ -84,7 +84,10 @@ Read [PRIVACY.md](PRIVACY.md) and [security boundaries](../SECURITY.md) for the 
 
 ## Install
 
-The checked [candidate ZIP](https://github.com/nvxraM/pycharm-codex-commit/blob/main/releases/DiffQuill-1.1.1.zip) is in the source repository.
+After the update, check the Codex path in **Settings > Tools > CodexCommit**.
+This release uses a new settings file. Set a custom executable path again if needed.
+
+The checked [candidate ZIP](../releases/CodexCommit-1.1.2.zip?raw=true) is in the source repository.
 The same directory contains its SHA-256 value.
 You can also build the ZIP from the source code.
 

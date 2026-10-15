@@ -1,4 +1,4 @@
-package dev.diffquill.ide;
+package dev.codexcommit.ide;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
@@ -10,16 +10,16 @@ import org.jetbrains.annotations.NotNull;
 
 /** Stores an executable preference only, never prompts, patches, tokens, or drafts. */
 @Service(Service.Level.APP)
-@State(name = "DiffQuillSettings", storages = @Storage(value = "diffquill.xml", roamingType = RoamingType.DISABLED))
-public final class DiffQuillSettings implements PersistentStateComponent<DiffQuillSettings.Options> {
+@State(name = "CodexCommitSettings", storages = @Storage(value = "codexcommit.xml", roamingType = RoamingType.DISABLED))
+public final class CodexCommitSettings implements PersistentStateComponent<CodexCommitSettings.Options> {
     public static final class Options {
         public String codexExecutable = "";
     }
 
     private Options options = new Options();
 
-    public static DiffQuillSettings getInstance() {
-        return ApplicationManager.getApplication().getService(DiffQuillSettings.class);
+    public static CodexCommitSettings getInstance() {
+        return ApplicationManager.getApplication().getService(CodexCommitSettings.class);
     }
 
     @Override public @NotNull Options getState() { return options; }

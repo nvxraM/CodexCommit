@@ -18,7 +18,7 @@ Linux or macOS:
 ./gradlew check buildPlugin
 ```
 
-To use an installed IDE SDK, set `DIFFQUILL_IDE_HOME` to its installation directory before the build.
+To use an installed IDE SDK, set `CODEXCOMMIT_IDE_HOME` to its installation directory before the build.
 On macOS, use the application bundle's `Contents` directory.
 Do not put a personal installation path in a tracked file.
 

@@ -1,4 +1,4 @@
-package dev.diffquill.ide;
+package dev.codexcommit.ide;
 
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
@@ -10,10 +10,10 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.vcs.commit.CommitWorkflowUi;
-import dev.diffquill.core.CodexExecutableLocator;
-import dev.diffquill.core.CodexRunner;
-import dev.diffquill.core.ContentPolicy;
-import dev.diffquill.core.PromptBuilder;
+import dev.codexcommit.core.CodexExecutableLocator;
+import dev.codexcommit.core.CodexRunner;
+import dev.codexcommit.core.ContentPolicy;
+import dev.codexcommit.core.PromptBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /** One cancellable job per project, owned by the project/plugin lifetime. */
 @Service(Service.Level.PROJECT)
-public final class DiffQuillProjectService implements Disposable {
+public final class CodexCommitProjectService implements Disposable {
     private final Project project;
     private volatile boolean disposed;
     private volatile Job active;
@@ -40,7 +40,7 @@ public final class DiffQuillProjectService implements Disposable {
         String failure;
     }
 
-    public DiffQuillProjectService(Project project) { this.project = project; }
+    public CodexCommitProjectService(Project project) { this.project = project; }
 
     public boolean isBusy() { return active != null; }
 
@@ -58,10 +58,10 @@ public final class DiffQuillProjectService implements Disposable {
             notice("Cannot read the selected changes. Check that the files and Git repository are available. No request was sent.");
             return;
         }
-        task(job, "DiffQuill: prepare selected changes", () -> {
+        task(job, "CodexCommit: prepare selected changes", () -> {
             String patch = job.snapshot.build(() -> cancelled(job));
             job.prompt = PromptBuilder.build(patch);
-            job.executable = CodexExecutableLocator.find(DiffQuillSettings.getInstance().getExecutable());
+            job.executable = CodexExecutableLocator.find(CodexCommitSettings.getInstance().getExecutable());
         }, () -> reviewRequest(job), "Could not prepare the selected changes. Check native Codex/Git paths and the whole-file selection. "
                 + "The combined before/after text must be at most 256 KiB and the patch at most 120 KiB. No request was sent.");
     }
@@ -73,7 +73,7 @@ public final class DiffQuillProjectService implements Disposable {
         if (!show(job, dialog)) { finish(job); return; }
         if (!current(job)) return;
         if (!job.snapshot.isFresh()) { stale(job); return; }
-        task(job, "DiffQuill: generate commit message", () -> {
+        task(job, "CodexCommit: generate commit message", () -> {
             job.draft = new CodexRunner().generate(job.executable, job.prompt, () -> cancelled(job));
             ContentPolicy.validateMessage(job.draft);
         }, () -> reviewDraft(job), "Codex could not generate a draft. This release requires native Codex CLI 0.160.1 on Windows or Linux "
@@ -153,14 +153,14 @@ public final class DiffQuillProjectService implements Disposable {
     private void finish(Job job) { if (active == job) active = null; }
 
     private void stale(Job job) {
-        notice("The checked changes, selected hunks, source content, or commit message changed. Run DiffQuill again to review a fresh request. "
+        notice("The checked changes, selected hunks, source content, or commit message changed. Run CodexCommit again to review a fresh request. "
                 + "Your current commit message was preserved.");
         finish(job);
     }
 
     private void notice(String message) {
-        if (!disposed && !project.isDisposed()) NotificationGroupManager.getInstance().getNotificationGroup("DiffQuill")
-                .createNotification("DiffQuill", message, NotificationType.WARNING).notify(project);
+        if (!disposed && !project.isDisposed()) NotificationGroupManager.getInstance().getNotificationGroup("CodexCommit")
+                .createNotification("CodexCommit", message, NotificationType.WARNING).notify(project);
     }
 
     @Override public void dispose() {

@@ -1,4 +1,4 @@
-package dev.diffquill.core;
+package dev.codexcommit.core;
 
 import com.sun.net.httpserver.HttpServer;
 
@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 /** Real native CLI audit against a local stub. Never reads a real credential or calls an account. */
 final class OfflineCliAudit {
     static void run(Path executable) throws Exception {
-        Path workspace = Files.createTempDirectory("diffquill offline security audit-").toRealPath();
+        Path workspace = Files.createTempDirectory("codexcommit offline security audit-").toRealPath();
         Map<String, String> unrelatedEnvironment = SecurityAuditTests.canaryEnvironment();
         String selected = SecurityAuditTests.marker("selected_diff");
         String unselected = SecurityAuditTests.marker("unselected_file");
@@ -59,14 +59,14 @@ final class OfflineCliAudit {
             var command = new ArrayList<>(CodexRunner.command(executable, workspace, catalog));
             command.remove(command.size() - 1);
             // TEST ONLY: append a loopback provider and fake authentication after the production profile.
-            command.addAll(List.of("--config", "model_provider='diffquill-offline-audit'", "--config",
-                    "model_providers.diffquill-offline-audit={name='Offline stub',base_url='http://127.0.0.1:" + stub.getAddress().getPort()
-                            + "/v1',env_key='DIFFQUILL_FAKE_TEST_KEY',wire_api='responses'}", "-"));
+            command.addAll(List.of("--config", "model_provider='codexcommit-offline-audit'", "--config",
+                    "model_providers.codexcommit-offline-audit={name='Offline stub',base_url='http://127.0.0.1:" + stub.getAddress().getPort()
+                            + "/v1',env_key='CODEXCOMMIT_FAKE_TEST_KEY',wire_api='responses'}", "-"));
             Map<String, String> inherited = new HashMap<>(System.getenv());
             inherited.putAll(unrelatedEnvironment);
             Map<String, String> environment = CodexRunner.childEnvironment(inherited);
             environment.put("CODEX_HOME", emptyHome.toString());
-            environment.put("DIFFQUILL_FAKE_TEST_KEY", fakeAuthentication);
+            environment.put("CODEXCOMMIT_FAKE_TEST_KEY", fakeAuthentication);
             var version = CodexRunner.run(List.of(executable.toString(), "--version"), "", workspace, environment,
                     () -> false, 5_000, 4096);
             CoreTests.require(version.exitCode() == 0 && version.stdout().strip().equals("codex-cli " + CodexRunner.AUDITED_CLI_VERSION),
@@ -115,10 +115,10 @@ final class OfflineCliAudit {
 
     private static String response(String text) {
         String escaped = text.replace("\\", "\\\\").replace("\"", "\\\"");
-        String message = "{\"id\":\"msg_diffquill_synthetic\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"" + escaped + "\",\"annotations\":[]}]}";
-        return "data: {\"type\":\"response.created\",\"response\":{\"id\":\"resp_diffquill_synthetic\",\"status\":\"in_progress\",\"output\":[]}}\n\n"
+        String message = "{\"id\":\"msg_codexcommit_synthetic\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"" + escaped + "\",\"annotations\":[]}]}";
+        return "data: {\"type\":\"response.created\",\"response\":{\"id\":\"resp_codexcommit_synthetic\",\"status\":\"in_progress\",\"output\":[]}}\n\n"
                 + "data: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":" + message + "}\n\n"
-                + "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_diffquill_synthetic\",\"status\":\"completed\",\"output\":[" + message
+                + "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_codexcommit_synthetic\",\"status\":\"completed\",\"output\":[" + message
                 + "],\"usage\":{\"input_tokens\":1,\"output_tokens\":1,\"total_tokens\":2}}}\n\n";
     }
 

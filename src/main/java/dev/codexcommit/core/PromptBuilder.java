@@ -1,4 +1,4 @@
-package dev.diffquill.core;
+package dev.codexcommit.core;
 
 /** Builds exactly the text shown in the disclosure dialog and sent through stdin. */
 public final class PromptBuilder {

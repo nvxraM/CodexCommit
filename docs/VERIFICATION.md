@@ -1,18 +1,19 @@
 # Verification record
 
 Date: 15 October 2026.
-Version: 1.1.1.
+Version: 1.1.2.
 
 This record separates software tests from language review.
 It does not prove that the plugin has no risk.
 
 ## Current candidate
 
-The 1.1.1 candidate fixes whole-file selection when an editor tab is closed.
+The 1.1.2 candidate uses CodexCommit for the plugin, packages, UI, and download.
+It retains the 1.1.1 fix for whole-file selection when an editor tab is closed.
 It retains the coloured icon and ASD-STE100 prompt rules.
 Its SHA-256 is:
 
-`5d7ab969e27b6cb95c03a3d18d0e889f6079a4981b882a6f48fe54def59451f6`
+`5994416a3d81ba73f275d3d35d004d7fe80ea434ceca62fec3384c0f28f49d7c`
 
 The full Gradle check, plugin build, and plugin structure check passed on Linux.
 
@@ -33,7 +34,7 @@ They are not counted as passed tests.
 
 The previous candidate rejected a checked whole-file change when its editor was closed.
 A native PyCharm 2026.2.3 test reproduced that failure.
-The same isolated Linux profile then loaded the built 1.1.1 candidate.
+The same isolated Linux profile then loaded the built 1.1.2 candidate.
 
 | Check | Result |
 | --- | --- |
@@ -49,7 +50,8 @@ The test did not bypass selection checks or open the request dialog directly.
 No real account or live model response was tested.
 The broader acceptance limits below still apply.
 
-The documentation screenshots use sample data. See [screenshot details](images/README.md).
+The settings page displays CodexCommit. The plugin ID is unchanged.
+The documentation screenshots now show the renamed plugin and use sample data. See [screenshot details](images/README.md).
 The following Windows results describe the earlier 1.1.0 candidate.
 
 ## Test system
@@ -113,7 +115,7 @@ The audit did not send private code or use a real model account.
 
 ## Repeat the checks
 
-Set `DIFFQUILL_IDE_HOME` to the installed SDK path.
+Set `CODEXCOMMIT_IDE_HOME` to the installed SDK path.
 Use JDK 25 for the build.
 
 ```powershell
@@ -121,7 +123,7 @@ Use JDK 25 for the build.
 .\tools\build-local.ps1 -IdeHome 'PATH_TO_YOUR_IDE'
 java tools/SourceArchive.java --self-test
 java tools/ReleaseAudit.java --self-test
-java tools/ReleaseAudit.java build/distributions/DiffQuill-1.1.1.zip
+java tools/ReleaseAudit.java build/distributions/CodexCommit-1.1.2.zip
 ```
 
 The `check` task uses the `coreTest` and `ideBoundaryTest` programs.

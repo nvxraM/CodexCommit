@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.2 — CodexCommit
+
+Use CodexCommit for the plugin, repository, packages, and download.
+Update the settings page, notifications, and review dialog titles.
+Retain the plugin ID so this release replaces the existing installation.
+
 ## 1.1.1 — selection fix
 
 Accept whole-file changes when the IDE has no active line tracker.

@@ -1,13 +1,14 @@
 <idea-plugin>
   <id>local.codex.commitmessage</id>
-  <name>DiffQuill</name>
-  <version>1.1.1</version>
-  <vendor>DiffQuill contributors</vendor>
+  <name>CodexCommit</name>
+  <version>1.1.2</version>
+  <vendor>CodexCommit contributors</vendor>
   <description><![CDATA[
     This plugin uses Codex in PyCharm to prepare commit messages from selected Git changes. You examine the code before you send it. You examine the message before you use it. The plugin does not make commits or push changes. Each request needs a compatible Codex CLI and an active account.
   ]]></description>
   <change-notes><![CDATA[
-    Version 1.1.1. Whole-file selections work when their editor tabs are closed.
+    Version 1.1.2. The plugin name is CodexCommit.
+    Whole-file selections work when their editor tabs are closed.
     Selection errors state the validation failure. The plugin finds native Codex executables. You can also set the executable path.
     You examine the complete request before you send it. You examine the draft before you apply it.
     The plugin limits file sizes and process time. It stops unsafe selections. You can cancel generation.
@@ -19,15 +20,15 @@
   <depends>com.intellij.modules.vcs</depends>
   <depends>Git4Idea</depends>
   <extensions defaultExtensionNs="com.intellij">
-    <notificationGroup id="DiffQuill" displayType="BALLOON" isLogByDefault="false"/>
-    <applicationConfigurable id="dev.diffquill.settings" parentId="tools"
-      displayName="DiffQuill" instance="dev.diffquill.ide.DiffQuillConfigurable"/>
+    <notificationGroup id="CodexCommit" displayType="BALLOON" isLogByDefault="false"/>
+    <applicationConfigurable id="dev.codexcommit.settings" parentId="tools"
+      displayName="CodexCommit" instance="dev.codexcommit.ide.CodexCommitConfigurable"/>
   </extensions>
   <actions>
-    <action id="CodexCommitMessage.Generate" class="dev.diffquill.ide.GenerateCommitMessageAction"
-      text="Generate Commit Message with Codex"
+    <action id="CodexCommitMessage.Generate" class="dev.codexcommit.ide.GenerateCommitMessageAction"
+      text="Generate Commit Message with CodexCommit"
       description="Prepare a commit message from selected Git changes"
-      icon="/icons/diffquill.svg">
+      icon="/icons/codexcommit.svg">
       <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
     </action>
   </actions>

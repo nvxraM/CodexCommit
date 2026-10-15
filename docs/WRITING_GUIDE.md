@@ -47,7 +47,7 @@ This glossary records project terms. It does not approve arbitrary words under t
 | model | The service model that produces the draft. This release requests `gpt-6.1-sol`. |
 | native | A program that runs directly on the host operating system. |
 | patch | The text that describes the selected file changes. |
-| plugin | The DiffQuill extension for the IDE. |
+| plugin | The CodexCommit extension for the IDE. |
 | quota | The account allowance that a request can use. |
 | repository | The directory and Git history for a project. |
 | request | The patch and fixed task instructions sent through the Codex CLI. |
@@ -60,8 +60,8 @@ This glossary records project terms. It does not approve arbitrary words under t
 | UTF-8 | The supported text encoding. |
 
 Keep UI labels exact when you quote them.
-Examples are `Send to Codex`, `Apply Draft`, and `Generate Commit Message with Codex`.
-Keep code identifiers exact. Examples are `CODEX_HOME`, `DIFFQUILL_IDE_HOME`, and `local.codex.commitmessage`.
+Examples are `Send to Codex`, `Apply Draft`, and `Generate Commit Message with CodexCommit`.
+Keep code identifiers exact. Examples are `CODEX_HOME`, `CODEXCOMMIT_IDE_HOME`, and `local.codex.commitmessage`.
 
 ## Description length
 

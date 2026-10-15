@@ -1,4 +1,4 @@
-package dev.diffquill.core;
+package dev.codexcommit.core;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -80,7 +80,7 @@ final class SecurityAuditTests {
             require(!result.toString().contains(canary), "The result retained stderr");
         }));
         check("temporary cleanup removes local outputs and preserves outside files", () -> {
-            Path outside = Files.createTempDirectory("diffquill-outside-canary-");
+            Path outside = Files.createTempDirectory("codexcommit-outside-canary-");
             Path workspace = (Path) call("createPrivateWorkspace", new Class<?>[0]);
             String canary = marker("outside-private");
             Path retained = outside.resolve("retain.txt");
@@ -141,7 +141,7 @@ final class SecurityAuditTests {
     private static void check(String name, Checked task) throws Exception { task.run(); passed++; System.out.println("PASS security: " + name); }
     private static void require(boolean condition, String message) { CoreTests.require(condition, message); }
     private static void inWorkspace(Workspace task) throws Exception {
-        Path folder = Files.createTempDirectory("diffquill-security-fixture-");
+        Path folder = Files.createTempDirectory("codexcommit-security-fixture-");
         try { task.run(folder); } finally { CoreTests.delete(folder); }
     }
     @FunctionalInterface private interface Checked { void run() throws Exception; }

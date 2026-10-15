@@ -1,4 +1,4 @@
-package dev.diffquill.core;
+package dev.codexcommit.core;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -70,7 +70,7 @@ public final class CodexExecutableLocator {
                 }
             }
         }
-        throw new IOException("Native Codex CLI was not found. Install Codex from its official source, then set its absolute executable path in Settings > Tools > DiffQuill. Windows .cmd/.bat and shell wrappers are not supported.");
+        throw new IOException("Native Codex CLI was not found. Install Codex from its official source, then set its absolute executable path in Settings > Tools > CodexCommit. Windows .cmd/.bat and shell wrappers are not supported.");
     }
 
     public static Path validateNative(Path candidate) throws IOException {

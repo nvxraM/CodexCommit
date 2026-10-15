@@ -1,4 +1,4 @@
-package dev.diffquill.ide;
+package dev.codexcommit.ide;
 
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FileStatus;
@@ -33,7 +33,7 @@ public final class IdeBoundaryTests {
 
     public static void main(String[] args) throws Exception {
         git = findGit();
-        fixture = Files.createTempDirectory("diffquill-ide-test-").toRealPath();
+        fixture = Files.createTempDirectory("codexcommit-ide-test-").toRealPath();
         try {
             command(fixture, "", "init", "--quiet", "--template=");
             test("blocks sensitive names and research/binary formats", () -> {
@@ -61,7 +61,7 @@ public final class IdeBoundaryTests {
                 String name = "odd [draft] file.txt";
                 Files.writeString(fixture.resolve(name), "synthetic baseline λ\n", StandardCharsets.UTF_8);
                 command(fixture, "", "add", "--", name);
-                command(fixture, "", "-c", "user.name=DiffQuill Tests", "-c", "user.email=tests@example.invalid",
+                command(fixture, "", "-c", "user.name=CodexCommit Tests", "-c", "user.email=tests@example.invalid",
                         "-c", "commit.gpgsign=false", "commit", "--quiet", "--no-verify", "-m", "Synthetic fixture");
                 String revision = command(fixture, "", "rev-parse", "HEAD").strip();
                 LocalGitReader reader = new LocalGitReader(git, () -> false);
@@ -77,7 +77,7 @@ public final class IdeBoundaryTests {
                 Path file = fixture.resolve("historical.txt");
                 Files.writeString(file, "x".repeat(LocalGitReader.MAX_FILE_BYTES + 1));
                 command(fixture, "", "add", "--", "historical.txt");
-                command(fixture, "", "-c", "user.name=DiffQuill Tests", "-c", "user.email=tests@example.invalid",
+                command(fixture, "", "-c", "user.name=CodexCommit Tests", "-c", "user.email=tests@example.invalid",
                         "-c", "commit.gpgsign=false", "commit", "--quiet", "--no-verify", "-m", "Oversized synthetic baseline");
                 String revision = command(fixture, "", "rev-parse", "HEAD").strip();
                 Files.writeString(file, "small\n");
@@ -170,13 +170,13 @@ public final class IdeBoundaryTests {
     }
 
     private static Path findGit() throws IOException {
-        String configured = System.getenv("DIFFQUILL_TEST_GIT");
+        String configured = System.getenv("CODEXCOMMIT_TEST_GIT");
         if (configured != null && !configured.isBlank()) return LocalGitReader.requireNativeGit(Path.of(configured));
         for (String candidate : List.of("C:/Program Files/Git/cmd/git.exe", "/usr/bin/git", "/bin/git")) {
             Path path = Path.of(candidate);
             if (Files.isRegularFile(path)) return LocalGitReader.requireNativeGit(path);
         }
-        throw new IOException("Set DIFFQUILL_TEST_GIT to an absolute native Git binary to run boundary tests.");
+        throw new IOException("Set CODEXCOMMIT_TEST_GIT to an absolute native Git binary to run boundary tests.");
     }
 
     private static String command(Path directory, String input, String... args) throws Exception {
@@ -209,7 +209,7 @@ public final class IdeBoundaryTests {
 
     private static void cleanup() throws IOException {
         Path temp = Path.of(System.getProperty("java.io.tmpdir")).toRealPath();
-        require(fixture.startsWith(temp) && fixture.getFileName().toString().startsWith("diffquill-ide-test-"), "Unsafe test cleanup target.");
+        require(fixture.startsWith(temp) && fixture.getFileName().toString().startsWith("codexcommit-ide-test-"), "Unsafe test cleanup target.");
         try (var paths = Files.walk(fixture)) {
             for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
                 if (!Files.isSymbolicLink(path)) {

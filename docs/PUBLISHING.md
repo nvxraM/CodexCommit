@@ -1,13 +1,13 @@
 # Publication checklist
 
-The user requested publication to the `nvxraM/pycharm-codex-commit` GitHub repository.
+Publish this project as **CodexCommit** under the `nvxraM` GitHub account.
 The repository contains the source code and a checked candidate ZIP.
 The source uses the MIT license.
 No JetBrains Marketplace listing or release account has been created by this work.
 This checklist describes the additional Marketplace release steps.
 It does not promise that publication has no risk.
 
-1. Review the source, MIT license, DiffQuill name, icon attribution, privacy notice, security boundaries, and verification results. Confirm the name and retained `local.codex.commitmessage` plugin ID are available and you have the rights to distribute the final content. Rename/reserve the ID before a first public release if Marketplace reports a conflict.
+1. Review the source, MIT license, CodexCommit name, icon attribution, privacy notice, security boundaries, and verification results. Confirm the name and retained `local.codex.commitmessage` plugin ID are available and you have the rights to distribute the final content. Rename/reserve the ID before a first public release if Marketplace reports a conflict.
 2. Choose your public publisher identity, valid contact email, website, source URL, and hosted privacy-policy URL. Fill the ignored `release.properties` from `docs/release.properties.example` and place the approved vendor/contact metadata into the final descriptor. The current generic contributor vendor is local-build metadata, not a completed Marketplace identity.
 3. Decide the publisher's trader/non-trader status and review the Marketplace developer agreement yourself. Public publisher/contact information is a user choice; the build must not invent or expose personal contact details.
 4. Run the full core tests, `verifyPluginProjectConfiguration`, `verifyPluginStructure`, and official Plugin Verifier against every claimed IDE target. Keep the supported build range bounded; do not declare compatibility with unreleased platforms merely to avoid future update work.

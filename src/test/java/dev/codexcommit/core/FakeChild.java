@@ -1,4 +1,4 @@
-package dev.diffquill.core;
+package dev.codexcommit.core;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

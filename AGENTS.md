@@ -1,4 +1,4 @@
-# DiffQuill project instructions
+# CodexCommit project instructions
 
 ## Commit messages
 

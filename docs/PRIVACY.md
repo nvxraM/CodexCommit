@@ -1,6 +1,6 @@
 # Privacy notice — release candidate
 
-DiffQuill processes the tracked changes you include in the Commit tool window to prepare a commit-message draft. It shows the exact patch for review before every generation request. If you choose to send it, that patch and fixed task instructions are passed to the Codex CLI executable selected on your computer. The CLI communicates using its own authentication. This may send filenames, source code, comments, and any personal or secret information present in the patch to the service used by Codex.
+CodexCommit processes the tracked changes you include in the Commit tool window to prepare a commit-message draft. It shows the exact patch for review before every generation request. If you choose to send it, that patch and fixed task instructions are passed to the Codex CLI executable selected on your computer. The CLI communicates using its own authentication. This may send filenames, source code, comments, and any personal or secret information present in the patch to the service used by Codex.
 
 The plugin developer does not receive your patch, result, credentials, account details, or usage data through a developer-operated server. There is no developer telemetry endpoint. The plugin does not read or copy authentication files. Executable-path settings are stored in the IDE's normal application settings, independently of your repository. The IDE's own settings sync, local history, diagnostics, and other plugins are outside this plugin's control.
 

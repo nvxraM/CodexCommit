@@ -34,24 +34,24 @@ public final class LocalBuild {
         Path tests = output.resolve("tests");
         compile(root.resolve("src/test/java"), tests, classes + File.pathSeparator + cp);
         Process test = new ProcessBuilder(javaBinary(), "-cp", tests + File.pathSeparator + classes,
-                "dev.diffquill.core.CoreTests").inheritIO().start();
+                "dev.codexcommit.core.CoreTests").inheritIO().start();
         if (test.waitFor() != 0) throw new IOException("Core regressions failed; no package created.");
         String sdkRuntime = String.join(File.pathSeparator, sdkJars.stream().map(Path::getParent).distinct()
                 .map(p -> p.toString() + File.separator + "*").toList());
         Process boundaryTest = new ProcessBuilder(javaBinary(), "-cp",
                 tests + File.pathSeparator + classes + File.pathSeparator + sdkRuntime,
-                "dev.diffquill.ide.IdeBoundaryTests").inheritIO().start();
+                "dev.codexcommit.ide.IdeBoundaryTests").inheritIO().start();
         if (boundaryTest.waitFor() != 0) throw new IOException("IDE boundary regressions failed; no package created.");
-        Path jar = output.resolve("diffquill.jar");
+        Path jar = output.resolve("codexcommit.jar");
         try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(jar))) {
             addDirectory(zip, classes, "");
             addDirectory(zip, root.resolve("src/main/resources"), "");
             Path license = root.resolve("LICENSE");
             if (Files.isRegularFile(license)) add(zip, license, "META-INF/LICENSE");
         }
-        Path distribution = output.resolve("DiffQuill-1.1.1.zip");
+        Path distribution = output.resolve("CodexCommit-1.1.2.zip");
         try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(distribution))) {
-            add(zip, jar, "DiffQuill/lib/diffquill.jar");
+            add(zip, jar, "CodexCommit/lib/codexcommit.jar");
         }
         System.out.println("Built: " + distribution);
         System.out.println("Offline SDK compilation and core tests passed; run official Plugin Verifier and IDE acceptance separately.");
