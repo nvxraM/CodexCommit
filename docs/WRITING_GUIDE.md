@@ -65,10 +65,10 @@ Keep code identifiers exact. Examples are `CODEX_HOME`, `DIFFQUILL_IDE_HOME`, an
 
 ## Description length
 
-Keep `DESCRIPTION.md` at exactly 50 words.
+Keep `docs/DESCRIPTION.md` at exactly 50 words.
 Use the same text in the XML product description and the first description paragraph of `README.md`.
 Count words as groups of non-whitespace characters.
-Do not include a heading in `DESCRIPTION.md`.
+Do not include a heading in `docs/DESCRIPTION.md`.
 
 ## Before a release
 

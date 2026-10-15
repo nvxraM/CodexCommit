@@ -7,28 +7,34 @@ import java.util.zip.*;
 
 /** Creates a source-only snapshot from an explicit allowlist; never includes caches or local settings. */
 public final class SourceArchive {
-    private static final Set<String> ROOT_FILES = Set.of("README.md", "LICENSE", "CHANGELOG.md", "PRIVACY.md", "SECURITY.md", "PUBLISHING.md",
-            "VERIFICATION.md", "SECURITY_AUDIT.md", "DESCRIPTION.md", "WRITING_GUIDE.md", "AGENTS.md", "THIRD_PARTY_NOTICES.md",
-            "gradle.properties", "settings.gradle.kts", "build.gradle.kts", "gradlew", "gradlew.bat", "build-local.ps1", "build-local.sh",
-            ".gitignore", ".gitattributes", "release.properties.example");
+    private static final Set<String> ROOT_FILES = Set.of("README.md", "LICENSE", "SECURITY.md", "AGENTS.md",
+            "gradle.properties", "settings.gradle.kts", "build.gradle.kts", "gradlew", "gradlew.bat", ".gitignore", ".gitattributes");
+    private static final Set<String> DOCUMENT_FILES = Set.of("docs/README.md", "docs/USAGE.md", "docs/BUILD.md",
+            "docs/CHANGELOG.md", "docs/PRIVACY.md", "docs/PUBLISHING.md", "docs/VERIFICATION.md", "docs/SECURITY_AUDIT.md",
+            "docs/DESCRIPTION.md", "docs/WRITING_GUIDE.md", "docs/THIRD_PARTY_NOTICES.md", "docs/release.properties.example",
+            "docs/images/README.md", "docs/images/generate-button.png", "docs/images/review-request.png", "docs/images/review-draft.png");
     static boolean allowed(String name) {
         if (name.contains("..") || name.contains("\\") || name.startsWith("/")) return false;
-        if (ROOT_FILES.contains(name)) return true;
+        if (ROOT_FILES.contains(name) || DOCUMENT_FILES.contains(name)) return true;
         if (name.matches("src/(main|test)/java/dev/diffquill/[A-Za-z0-9_/]+\\.java")) return true;
-        return Set.of("tools/LocalBuild.java", "tools/ReleaseAudit.java", "tools/SourceArchive.java",
+        return Set.of("tools/LocalBuild.java", "tools/ReleaseAudit.java", "tools/SourceArchive.java", "tools/build-local.sh", "tools/build-local.ps1",
                 "gradle/wrapper/gradle-wrapper.jar", "gradle/wrapper/gradle-wrapper.properties", ".github/workflows/check.yml",
                 "src/main/resources/META-INF/plugin.xml", "src/main/resources/META-INF/pluginIcon.svg", "src/main/resources/icons/diffquill.svg").contains(name);
     }
     public static void main(String[] args) throws Exception {
         if (args.length == 1 && args[0].equals("--self-test")) {
-            for (String path : List.of("tools/.env", "src/main/resources/META-INF/private.pem", "src/main/resources/META-INF/credentials.yml",
-                    "src/main/java/auth.json", "tools/account.key", "gradle/wrapper/credentials.properties", "release.properties", "../auth.json")) {
+            List<String> unsafe = List.of("tools/.env", "src/main/resources/META-INF/private.pem", "src/main/resources/META-INF/credentials.yml",
+                    "src/main/java/auth.json", "tools/account.key", "gradle/wrapper/credentials.properties", "release.properties", "../auth.json",
+                    "docs/auth.json", "docs/.env", "docs/images/private.png", "docs/../auth.json");
+            for (String path : unsafe) {
                 if (allowed(path)) throw new AssertionError("Unsafe source path accepted.");
             }
-            for (String path : List.of("README.md", "src/main/java/dev/diffquill/core/CodexRunner.java", "gradle/wrapper/gradle-wrapper.jar")) {
+            List<String> expected = List.of("README.md", "src/main/java/dev/diffquill/core/CodexRunner.java", "gradle/wrapper/gradle-wrapper.jar",
+                    "docs/USAGE.md", "docs/images/README.md", "docs/images/generate-button.png", "tools/build-local.sh", "tools/build-local.ps1");
+            for (String path : expected) {
                 if (!allowed(path)) throw new AssertionError("Expected source path rejected.");
             }
-            System.out.println("Source allowlist tests: 11 passed, 0 failed.");
+            System.out.println("Source allowlist tests: " + (unsafe.size() + expected.size()) + " passed, 0 failed.");
             return;
         }
         boolean listOnly = args.length == 2 && args[0].equals("--list");
@@ -42,7 +48,10 @@ public final class SourceArchive {
             if (!Files.isRegularFile(file)) throw new IOException("Missing release source: " + name);
             files.add(file);
         }
-        for (String name : List.of("src", "tools", "gradle", ".github")) {
+        for (String name : DOCUMENT_FILES) {
+            if (!Files.isRegularFile(root.resolve(name))) throw new IOException("Missing release document: " + name);
+        }
+        for (String name : List.of("src", "tools", "gradle", ".github", "docs")) {
             try (var stream = Files.walk(root.resolve(name))) {
                 files.addAll(stream.filter(Files::isRegularFile).toList());
             }

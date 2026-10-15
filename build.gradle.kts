@@ -81,5 +81,5 @@ tasks.check { dependsOn(auditRelease) }
 // There is intentionally no automatic upload, signing-key handling, or publication workflow.
 // Publishing requires a separate, reviewed user action after the release checklist.
 tasks.matching { it.name == "publishPlugin" }.configureEach {
-    doFirst { error("Automatic publishing is disabled. Review PUBLISHING.md and upload the reviewed ZIP manually.") }
+    doFirst { error("Automatic publishing is disabled. Review docs/PUBLISHING.md and upload the reviewed ZIP manually.") }
 }

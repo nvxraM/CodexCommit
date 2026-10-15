@@ -1,8 +1,9 @@
 # Candidate ZIP
 
-This directory contains the checked DiffQuill 1.1.0 ZIP.
-It is a release candidate for PyCharm 2026.2.3.
-Read the [verification record](../VERIFICATION.md) and [security audit](../SECURITY_AUDIT.md) before use.
+This directory contains the DiffQuill 1.1.0 candidate ZIP.
+It includes the coloured icon and ASD-STE100 prompt rules.
+Use PyCharm 2026.2.3.
+Read the [verification record](../docs/VERIFICATION.md) and [security audit](../docs/SECURITY_AUDIT.md) for passed checks and incomplete tests.
 
 The ZIP does not include an account, credentials, Git, or the Codex CLI.
 The plugin needs native Codex CLI 0.160.1 and a personal account without organization policy.

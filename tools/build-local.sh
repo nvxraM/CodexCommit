@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
-if [ "$#" -ne 1 ]; then printf '%s\n' 'Usage: sh build-local.sh /path/to/IDE'; exit 2; fi
-project_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if [ "$#" -ne 1 ]; then printf '%s\n' 'Usage: sh tools/build-local.sh /path/to/IDE'; exit 2; fi
+project_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 ide_root=$1
 if [ -d "$ide_root/Contents" ]; then ide_root=$ide_root/Contents; fi
 java_bin=$ide_root/jbr/bin/java

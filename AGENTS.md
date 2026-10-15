@@ -10,12 +10,12 @@ Separate an optional factual body from the subject with a blank line.
 
 ## Documentation
 
-Read `WRITING_GUIDE.md` before you change `README.md`, `DESCRIPTION.md`, or the descriptions in `plugin.xml`.
+Read `docs/WRITING_GUIDE.md` before you change `README.md`, `docs/DESCRIPTION.md`, or the descriptions in `plugin.xml`.
 Use the project rules based on ASD-STE100 Simplified Technical English for these files.
 Use short sentences, the active voice, and one instruction per sentence.
 Use the glossary terms consistently.
 
-Keep `DESCRIPTION.md` at exactly 50 words.
+Keep `docs/DESCRIPTION.md` at exactly 50 words.
 Use the same text in the XML product description and the first description paragraph of `README.md`.
 Count words as groups of non-whitespace characters.
 
