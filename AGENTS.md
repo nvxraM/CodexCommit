@@ -1,5 +1,13 @@
 # DiffQuill project instructions
 
+## Commit messages
+
+Use ASD-STE100 Simplified Technical English for Git commit messages.
+Use short sentences, the active voice, and one main idea per sentence.
+Use consistent technical terms and preserve code identifiers.
+Use an imperative subject of 72 characters or fewer.
+Separate an optional factual body from the subject with a blank line.
+
 ## Documentation
 
 Read `WRITING_GUIDE.md` before you change `README.md`, `DESCRIPTION.md`, or the descriptions in `plugin.xml`.
