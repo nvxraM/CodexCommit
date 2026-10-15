@@ -84,7 +84,7 @@ Read [PRIVACY.md](PRIVACY.md) and [security boundaries](../SECURITY.md) for the 
 
 ## Install
 
-The checked [candidate ZIP](https://github.com/nvxraM/pycharm-codex-commit/blob/main/releases/DiffQuill-1.1.0.zip) is in the source repository.
+The checked [candidate ZIP](https://github.com/nvxraM/pycharm-codex-commit/blob/main/releases/DiffQuill-1.1.1.zip) is in the source repository.
 The same directory contains its SHA-256 value.
 You can also build the ZIP from the source code.
 

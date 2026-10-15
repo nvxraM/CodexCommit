@@ -1,33 +1,56 @@
 # Verification record
 
 Date: 15 October 2026.
-Version: 1.1.0.
+Version: 1.1.1.
 
 This record separates software tests from language review.
 It does not prove that the plugin has no risk.
 
 ## Current candidate
 
-The repository candidate includes the coloured ChatGPT icon and ASD-STE100 prompt rules.
+The 1.1.1 candidate fixes whole-file selection when an editor tab is closed.
+It retains the coloured icon and ASD-STE100 prompt rules.
 Its SHA-256 is:
 
-`0304d78d54962866a4f8ecf022650e00dde4a31fd2215b70469a66b2e738d653`
+`5d7ab969e27b6cb95c03a3d18d0e889f6079a4981b882a6f48fe54def59451f6`
 
-Linux packaging, the release archive audit, and the plugin structure check passed.
-The updated source archive guard passed 20 checks.
-The plugin archive guard passed 9 checks.
-The core suite passed 24 checks.
-The IDE boundary suite passed 9 assertions, then failed during fixture cleanup.
-Its cleanup tries to change DOS file attributes on a Linux symbolic link.
-The complete `check` task therefore remains failed on this system.
+The full Gradle check, plugin build, and plugin structure check passed on Linux.
 
-An isolated PyCharm 2026.2.3 profile loaded the plugin for documentation screenshots.
-A local harness opened the request and draft dialogs with sample data.
-No live Codex request was made.
-These screenshots do not complete native Linux workflow acceptance.
-See [screenshot details](images/README.md).
+| Suite | Passed | Failed | Skipped |
+| --- | --- | --- | --- |
+| Core and credential boundaries | 24 | 0 | 0 |
+| Git, patch, path, and selection boundaries | 12 | 0 | 0 |
+| Source archive guard | 20 | 0 | 0 |
+| Plugin archive guard | 9 | 0 | 0 |
+| Total | 65 | 0 | 0 |
 
-The following Windows results describe the earlier candidate.
+The IDE boundary suite now includes the SDK classes in its runtime classpath.
+The Linux fixture cleanup removes symbolic links without changing their DOS file attributes.
+The regular JUnit task and searchable settings tasks remain disabled by design.
+They are not counted as passed tests.
+
+### Native selection checks
+
+The previous candidate rejected a checked whole-file change when its editor was closed.
+A native PyCharm 2026.2.3 test reproduced that failure.
+The same isolated Linux profile then loaded the built 1.1.1 candidate.
+
+| Check | Result |
+| --- | --- |
+| Checked file with no editor or line tracker | Capture, patch construction, freshness check, and request review passed. |
+| Checked file with an open editor and line tracker | Capture, patch construction, freshness check, and request review passed. |
+| One of two hunks excluded | Selection rejected. The notification gave the specific cause. No request was sent. |
+| Excluded hunk, then editor closed | Tracker retained the exclusion. Selection remained rejected. |
+| Cancel request review | The dialog closed. No model request was made. |
+
+These checks used a tracked sample Python file with two separate changes.
+A local observer recorded the real toolbar action and tracker state.
+The test did not bypass selection checks or open the request dialog directly.
+No real account or live model response was tested.
+The broader acceptance limits below still apply.
+
+The documentation screenshots use sample data. See [screenshot details](images/README.md).
+The following Windows results describe the earlier 1.1.0 candidate.
 
 ## Test system
 
@@ -98,7 +121,7 @@ Use JDK 25 for the build.
 .\tools\build-local.ps1 -IdeHome 'PATH_TO_YOUR_IDE'
 java tools/SourceArchive.java --self-test
 java tools/ReleaseAudit.java --self-test
-java tools/ReleaseAudit.java build/distributions/DiffQuill-1.1.0.zip
+java tools/ReleaseAudit.java build/distributions/DiffQuill-1.1.1.zip
 ```
 
 The `check` task uses the `coreTest` and `ideBoundaryTest` programs.
@@ -131,7 +154,7 @@ Formal STE conformity is not certified.
 - A real account and real model response.
 - Active generation and dialog removal during a native IDE update.
 - Classloader garbage collection after removal.
-- Native Linux or macOS execution.
+- Complete native Linux generation with a real account. macOS execution remains blocked.
 - Hosted GitHub Actions, until the workflow runs after the push.
 - Organization policies and managed accounts.
 

@@ -1,6 +1,7 @@
 # Candidate ZIP
 
-This directory contains the DiffQuill 1.1.0 candidate ZIP.
+This directory contains the DiffQuill 1.1.1 candidate ZIP.
+It fixes whole-file selection when an editor tab is closed.
 It includes the coloured icon and ASD-STE100 prompt rules.
 Use PyCharm 2026.2.3.
 Read the [verification record](../docs/VERIFICATION.md) and [security audit](../docs/SECURITY_AUDIT.md) for passed checks and incomplete tests.

@@ -55,7 +55,7 @@ val ideBoundaryTest by tasks.registering(JavaExec::class) {
     group = "verification"
     description = "Runs local Git-object, path, binary, and unified-patch boundary regressions on synthetic fixtures."
     dependsOn(tasks.testClasses)
-    classpath = sourceSets.test.get().runtimeClasspath
+    classpath = sourceSets.test.get().runtimeClasspath + sourceSets.test.get().compileClasspath
     mainClass.set("dev.diffquill.ide.IdeBoundaryTests")
 }
 tasks.check { dependsOn(ideBoundaryTest) }

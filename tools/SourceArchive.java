@@ -40,7 +40,7 @@ public final class SourceArchive {
         boolean listOnly = args.length == 2 && args[0].equals("--list");
         if (args.length != 1 && !listOnly) throw new IllegalArgumentException("Usage: java tools/SourceArchive.java [--list] <project-root>");
         Path root = Path.of(args[listOnly ? 1 : 0]).toRealPath();
-        Path destination = root.resolve("dist/DiffQuill-source-1.1.0.zip");
+        Path destination = root.resolve("dist/DiffQuill-source-1.1.1.zip");
         List<String> fileNames = ROOT_FILES.stream().sorted().toList();
         List<Path> files = new ArrayList<>();
         for (String name : fileNames) {

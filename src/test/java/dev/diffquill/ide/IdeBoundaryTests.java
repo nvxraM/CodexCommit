@@ -1,5 +1,14 @@
 package dev.diffquill.ide;
 
+import com.intellij.openapi.vcs.FilePath;
+import com.intellij.openapi.vcs.FileStatus;
+import com.intellij.openapi.vcs.changes.Change;
+import com.intellij.openapi.vcs.changes.ChangeListChange;
+import com.intellij.openapi.vcs.changes.ContentRevision;
+import com.intellij.openapi.vcs.ex.ExclusionState;
+import com.intellij.openapi.vcs.ex.PartialLocalLineStatusTracker;
+import com.intellij.openapi.vcs.history.VcsRevisionNumber;
+import java.lang.reflect.Proxy;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -92,9 +101,44 @@ public final class IdeBoundaryTests {
                 applies("rename-old.txt", "rename-new.txt", "unchanged\n", "unchanged\n", List.of());
                 applies(null, "empty-new.txt", "", "", List.of());
             });
+            test("whole-file changelist selection works without an editor tracker", () -> {
+                ChangeSnapshot.checkPartial(selectedChange(), null);
+            });
+            test("whole-file selection works with an operational tracker", () -> {
+                ChangeSnapshot.checkPartial(selectedChange(), tracker(true, List.of("selected"), false, ExclusionState.ALL_INCLUDED));
+            });
+            test("excluded hunks, split changelists, and unready trackers are rejected", () -> {
+                Change change = selectedChange();
+                rejects(() -> ChangeSnapshot.checkPartial(change, tracker(false, List.of("selected"), false, ExclusionState.ALL_INCLUDED)));
+                rejects(() -> ChangeSnapshot.checkPartial(change, tracker(true, List.of("selected", "other"), false, ExclusionState.ALL_INCLUDED)));
+                rejects(() -> ChangeSnapshot.checkPartial(change, tracker(true, List.of("selected"), true, ExclusionState.ALL_INCLUDED)));
+                rejects(() -> ChangeSnapshot.checkPartial(change, tracker(true, List.of("selected"), false, ExclusionState.ALL_EXCLUDED)));
+                rejects(() -> ChangeSnapshot.checkPartial(change, tracker(true, List.of("other"), false, ExclusionState.ALL_INCLUDED)));
+            });
             symlinkTest();
             System.out.println("IDE boundary tests: " + passed + " passed, 0 failed, " + skipped + " skipped. Synthetic local fixtures only; no model request.");
         } finally { cleanup(); }
+    }
+
+    private static Change selectedChange() {
+        ContentRevision revision = new ContentRevision() {
+            @Override public String getContent() { throw new AssertionError("Tracker validation must not load file content."); }
+            @Override public FilePath getFile() { throw new AssertionError("Tracker validation must not access files."); }
+            @Override public VcsRevisionNumber getRevisionNumber() { return VcsRevisionNumber.NULL; }
+        };
+        return new ChangeListChange(new Change(revision, revision, FileStatus.MODIFIED), "Synthetic changelist", "selected");
+    }
+
+    private static PartialLocalLineStatusTracker tracker(boolean operational, List<String> ids,
+                                                        boolean partial, ExclusionState exclusion) {
+        return (PartialLocalLineStatusTracker) Proxy.newProxyInstance(PartialLocalLineStatusTracker.class.getClassLoader(),
+                new Class<?>[]{PartialLocalLineStatusTracker.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "isOperational" -> operational;
+                    case "getAffectedChangeListsIds" -> ids;
+                    case "hasPartialChangesToCommit" -> partial;
+                    case "getExcludedFromCommitState" -> exclusion;
+                    default -> throw new AssertionError("Unexpected tracker access: " + method.getName());
+                });
     }
 
     private static void symlinkTest() throws Exception {
@@ -168,8 +212,10 @@ public final class IdeBoundaryTests {
         require(fixture.startsWith(temp) && fixture.getFileName().toString().startsWith("diffquill-ide-test-"), "Unsafe test cleanup target.");
         try (var paths = Files.walk(fixture)) {
             for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
-                DosFileAttributeView dos = Files.getFileAttributeView(path, DosFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
-                if (dos != null) dos.setReadOnly(false); // Git marks synthetic loose objects read-only on Windows.
+                if (!Files.isSymbolicLink(path)) {
+                    DosFileAttributeView dos = Files.getFileAttributeView(path, DosFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
+                    if (dos != null) dos.setReadOnly(false); // Git marks synthetic loose objects read-only on Windows.
+                }
                 Files.deleteIfExists(path);
             }
         }

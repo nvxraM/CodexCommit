@@ -4,6 +4,9 @@ Date: 15 October 2026.
 
 This audit covers DiffQuill 1.1.0. It covers the source, build tools, release files, and the Codex CLI 0.160.1 interface. It does not certify that the software has no risk. It does not certify compliance with the ASD-STE100 dictionary.
 
+
+For the 1.1.1 selection fix, read the [current verification record](VERIFICATION.md#current-candidate).
+The audit below records the earlier 1.1.0 candidate.
 ## Audit limits
 
 No real Codex/OpenAI credential file was opened. No real Codex/OpenAI key or account token was used in the plugin tests. No private patch was used. No request was sent to a real model service. Tests use synthetic text and local test servers.

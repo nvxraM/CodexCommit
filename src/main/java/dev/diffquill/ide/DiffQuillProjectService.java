@@ -49,11 +49,13 @@ public final class DiffQuillProjectService implements Disposable {
         Job job = new Job();
         active = job;
         try { job.snapshot = ChangeSnapshot.capture(project, ui, messageDocument); }
-        catch (Exception ignored) {
+        catch (ChangeSnapshot.SelectionException exception) {
             finish(job);
-            notice("Cannot prepare this selection. Use whole tracked UTF-8 text files in one changelist, with no excluded hunks. "
-                    + "Staged/custom revisions, sensitive filenames, links, external roots, binary files, and files over 64 KiB are excluded. "
-                    + "Select at most 32 files. Configure an absolute native Git executable in IDE settings.");
+            notice(exception.getMessage() + " No request was sent.");
+            return;
+        } catch (Exception ignored) {
+            finish(job);
+            notice("Cannot read the selected changes. Check that the files and Git repository are available. No request was sent.");
             return;
         }
         task(job, "DiffQuill: prepare selected changes", () -> {
@@ -115,6 +117,8 @@ public final class DiffQuillProjectService implements Disposable {
                 } catch (InterruptedException ignored) {
                     job.cancelled.set(true);
                     indicator.cancel();
+                } catch (ChangeSnapshot.SelectionException exception) {
+                    job.failure = exception.getMessage() + " No request was sent.";
                 } catch (Exception ignored) {
                     job.failure = failureMessage;
                 } finally {

@@ -44,6 +44,11 @@ import java.util.function.BooleanSupplier;
 /** Captures only checked whole-file Git changes, then verifies the same selection before applying. */
 final class ChangeSnapshot {
     static final int MAX_FILES = 32;
+
+    /** Only fixed validation text may be shown to the user; filesystem exception text is not disclosed. */
+    static final class SelectionException extends IOException {
+        SelectionException(String message) { super(message); }
+    }
     private static final Set<String> SENSITIVE_NAMES = Set.of("credentials", "credentials.json", "secrets.json", "secrets.yml", "secrets.yaml",
             "id_rsa", "id_dsa", "id_ecdsa", "id_ed25519", ".npmrc", ".pypirc", ".netrc", "settings.xml", "kubeconfig",
             "config.json", "terraform.tfstate", "terraform.tfstate.backup");
@@ -82,39 +87,41 @@ final class ChangeSnapshot {
 
     /** Called on the EDT: captures selection, partial-changelist state, and already loaded documents. */
     static ChangeSnapshot capture(Project project, CommitWorkflowUi ui, Document messageDocument) throws IOException {
-        if (project.getBasePath() == null) throw new IOException("A local project directory is required.");
+        if (project.getBasePath() == null) throw new SelectionException("A local project directory is required.");
         List<Change> changes = List.copyOf(ui.getIncludedChanges());
-        if (changes.isEmpty() || changes.size() > MAX_FILES) throw new IOException("Select between 1 and 32 tracked files.");
+        if (changes.isEmpty() || changes.size() > MAX_FILES) throw new SelectionException("Select between 1 and 32 tracked files.");
         Path root = Path.of(project.getBasePath()).toRealPath();
         GitExecutable configured = GitExecutableManager.getInstance().getExecutable(project);
-        if (!configured.isLocal()) throw new IOException("Only local native Git is supported.");
+        if (!configured.isLocal()) throw new SelectionException("Only local native Git is supported.");
         Path git;
         try { git = LocalGitReader.requireNativeGit(Path.of(configured.getExePath())); }
-        catch (RuntimeException ignored) { throw new IOException("Configure an absolute native Git executable in IDE settings."); }
+        catch (IOException | RuntimeException ignored) {
+            throw new SelectionException("Open Settings > Version Control > Git. Select the absolute path to a native Git executable.");
+        }
         List<Entry> entries = new ArrayList<>();
         long total = 0;
         for (Change change : changes) {
             ContentRevision beforeRevision = change.getBeforeRevision();
             ContentRevision afterRevision = change.getAfterRevision();
             if (beforeRevision instanceof BinaryContentRevision || afterRevision instanceof BinaryContentRevision) {
-                throw new IOException("Binary changes are not supported.");
+                throw new SelectionException("Binary changes are not supported.");
             }
             if (afterRevision != null && !(afterRevision instanceof CurrentContentRevision)) {
-                throw new IOException("Use the ordinary Commit changes view; staged or custom revisions are not supported.");
+                throw new SelectionException("Use the ordinary Commit changes view; staged or custom revisions are not supported.");
             }
             FilePath beforeFile = beforeRevision == null ? null : beforeRevision.getFile();
             FilePath afterFile = afterRevision == null ? null : afterRevision.getFile();
             Path before = checkedPath(root, beforeFile);
             Path after = checkedPath(root, afterFile);
             FilePath active = afterFile != null ? afterFile : beforeFile;
-            if (active == null) throw new IOException("Selected change is unavailable.");
+            if (active == null) throw new SelectionException("Selected change is unavailable.");
             VcsRoot vcs = ProjectLevelVcsManager.getInstance(project).getVcsRootObjectFor(active);
             if (vcs == null || vcs.getVcs() == null || !"Git".equals(vcs.getVcs().getName())) {
-                throw new IOException("Only Git changes are supported.");
+                throw new SelectionException("Only Git changes are supported.");
             }
             Path repository = Path.of(vcs.getPath().getPath()).toRealPath();
             if (!repository.startsWith(root) || (before != null && !before.startsWith(repository))
-                    || (after != null && !after.startsWith(repository))) throw new IOException("The Git root must be inside this project.");
+                    || (after != null && !after.startsWith(repository))) throw new SelectionException("The Git root must be inside this project.");
             checkPartial(project, change, afterFile);
             Document document = afterFile == null || afterFile.getVirtualFile() == null ? null
                     : FileDocumentManager.getInstance().getCachedDocument(afterFile.getVirtualFile());
@@ -122,23 +129,23 @@ final class ChangeSnapshot {
             long stamp = -1;
             long size = 0;
             if (after != null) {
-                if (!Files.isRegularFile(after, LinkOption.NOFOLLOW_LINKS)) throw new IOException("Only regular local files are supported.");
+                if (!Files.isRegularFile(after, LinkOption.NOFOLLOW_LINKS)) throw new SelectionException("Only regular local files are supported.");
                 size = Files.size(after);
-                if (size > LocalGitReader.MAX_FILE_BYTES) throw new IOException("Selected file exceeds 64 KiB.");
+                if (size > LocalGitReader.MAX_FILE_BYTES) throw new SelectionException("Selected file exceeds 64 KiB.");
                 if (document != null) {
                     if (document.getTextLength() > LocalGitReader.MAX_FILE_BYTES
                             || FileDocumentManager.getInstance().isPartialPreviewOfALargeFile(document)) {
-                        throw new IOException("Selected document exceeds 64 KiB.");
+                        throw new SelectionException("Selected document exceeds 64 KiB.");
                     }
                     text = document.getImmutableCharSequence().toString();
                     int bytes = text.getBytes(StandardCharsets.UTF_8).length;
-                    if (bytes > LocalGitReader.MAX_FILE_BYTES) throw new IOException("Selected document exceeds 64 KiB.");
+                    if (bytes > LocalGitReader.MAX_FILE_BYTES) throw new SelectionException("Selected document exceeds 64 KiB.");
                     size = Math.max(size, bytes);
                     stamp = document.getModificationStamp();
                 }
             }
             total += size;
-            if (total > LocalGitReader.MAX_TOTAL_BYTES) throw new IOException("Selected content exceeds 256 KiB.");
+            if (total > LocalGitReader.MAX_TOTAL_BYTES) throw new SelectionException("Selected content exceeds 256 KiB.");
             String revision = beforeRevision == null ? null : beforeRevision.getRevisionNumber().asString();
             BasicFileAttributes attributes = after == null ? null : Files.readAttributes(after, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
             entries.add(new Entry(before, after, repository, revision, relative(root, before), relative(root, after),
@@ -159,7 +166,7 @@ final class ChangeSnapshot {
                     relative(entry.repository(), entry.before()));
             total += (blob == null ? 0 : blob.size()) + Math.max(entry.diskSize(),
                     entry.documentText() == null ? 0 : entry.documentText().getBytes(StandardCharsets.UTF_8).length);
-            if (total > LocalGitReader.MAX_TOTAL_BYTES) throw new IOException("Selected before and after content exceeds 256 KiB.");
+            if (total > LocalGitReader.MAX_TOTAL_BYTES) throw new SelectionException("Selected before and after content exceeds 256 KiB.");
             candidates.add(new Prepared(entry, blob, null));
         }
         StringBuilder output = new StringBuilder();
@@ -173,9 +180,9 @@ final class ChangeSnapshot {
             checkDiskMetadata(entry);
             String after = entry.after() == null ? "" : entry.documentText() == null ? LocalGitReader.text(disk)
                     : entry.documentText().replace("\r\n", "\n").replace('\r', '\n');
-            if (after.indexOf('\0') >= 0) throw new IOException("Binary changes are not supported.");
+            if (after.indexOf('\0') >= 0) throw new SelectionException("Binary changes are not supported.");
             output.append(UnifiedPatch.build(entry.beforeName(), entry.afterName(), before, after, cancelled));
-            if (output.length() > ContentPolicy.MAX_PATCH_BYTES) throw new IOException("Patch exceeds 120 KiB.");
+            if (output.length() > ContentPolicy.MAX_PATCH_BYTES) throw new SelectionException("Patch exceeds 120 KiB.");
             completed.add(new Prepared(entry, candidate.blob(), digest(disk)));
         }
         String result = output.toString();
@@ -216,7 +223,7 @@ final class ChangeSnapshot {
             if (revision != null && Path.of(revision.getFile().getPath()).toAbsolutePath().normalize()
                     .equals(entry.after() == null ? entry.before() : entry.after())) return change;
         }
-        throw new IOException("Selection changed.");
+        throw new SelectionException("Selection changed.");
     }
 
     private static void checkPartial(Project project, Change change, FilePath file) throws IOException {
@@ -224,43 +231,47 @@ final class ChangeSnapshot {
         VirtualFile virtual = file.getVirtualFile();
         LineStatusTrackerManagerI manager = LineStatusTrackerManager.getInstance(project);
         LineStatusTracker<?> tracker = virtual == null ? null : manager.getLineStatusTracker(virtual);
+        checkPartial(change, tracker);
+    }
+
+    static void checkPartial(Change change, LineStatusTracker<?> tracker) throws IOException {
+        // PyCharm wraps ordinary whole-file changes in ChangeListChange too. No tracker means
+        // no retained per-line exclusions; the IDE also treats this case as a whole-file change.
         if (tracker instanceof PartialLocalLineStatusTracker partial) {
             List<String> ids = partial.getAffectedChangeListsIds();
             if (!partial.isOperational() || ids.size() > 1 || partial.hasPartialChangesToCommit()) {
-                throw new IOException("Partial file or changelist selection is not supported. Select the whole file in one changelist.");
+                throw new SelectionException("Partial file or changelist selection is not supported. Select the whole file in one changelist.");
             }
             for (String id : ids) if (partial.getExcludedFromCommitState(id) != ExclusionState.ALL_INCLUDED) {
-                throw new IOException("Some hunks are excluded. Select the whole file before generating.");
+                throw new SelectionException("Some hunks are excluded. Select the whole file before generating.");
             }
             if (change instanceof ChangeListChange selected && !ids.contains(selected.getChangeListId())) {
-                throw new IOException("Partial changelist state is unavailable.");
+                throw new SelectionException("Partial changelist state is unavailable.");
             }
-        } else if (change instanceof ChangeListChange) {
-            throw new IOException("Partial changelist state is unavailable. Open the file diff and select its whole-file change.");
         }
     }
 
     private static Path checkedPath(Path root, FilePath file) throws IOException {
         if (file == null) return null;
-        if (file.isNonLocal() || file.isDirectory() || file.getFileType().isBinary()) throw new IOException("Only local text files are supported.");
+        if (file.isNonLocal() || file.isDirectory() || file.getFileType().isBinary()) throw new SelectionException("Only local text files are supported.");
         VirtualFile virtual = file.getVirtualFile();
-        if (virtual != null && virtual.is(VFileProperty.SYMLINK)) throw new IOException("Symbolic links are excluded.");
+        if (virtual != null && virtual.is(VFileProperty.SYMLINK)) throw new SelectionException("Symbolic links are excluded.");
         Path path = Path.of(file.getPath()).toAbsolutePath().normalize();
         validateLocation(root, path);
-        if (sensitive(root.relativize(path))) throw new IOException("A selected filename is excluded by the sensitive-content policy.");
+        if (sensitive(root.relativize(path))) throw new SelectionException("A selected filename is excluded by the sensitive-content policy.");
         return path;
     }
 
     static void validateLocation(Path root, Path path) throws IOException {
-        if (!path.startsWith(root) || path.equals(root)) throw new IOException("Selected files must be inside the project.");
+        if (!path.startsWith(root) || path.equals(root)) throw new SelectionException("Selected files must be inside the project.");
         Path current = root;
         for (Path segment : root.relativize(path)) {
             String name = segment.toString();
-            if (name.chars().anyMatch(c -> Character.isISOControl(c) || c == 0x2028 || c == 0x2029)) throw new IOException("Unsupported filename.");
+            if (name.chars().anyMatch(c -> Character.isISOControl(c) || c == 0x2028 || c == 0x2029)) throw new SelectionException("Unsupported filename.");
             current = current.resolve(segment);
-            if (Files.isSymbolicLink(current)) throw new IOException("Symbolic links are excluded.");
+            if (Files.isSymbolicLink(current)) throw new SelectionException("Symbolic links are excluded.");
             if (Files.exists(current, LinkOption.NOFOLLOW_LINKS) && !current.toRealPath().startsWith(root)) {
-                throw new IOException("Selected path resolves outside the project.");
+                throw new SelectionException("Selected path resolves outside the project.");
             }
         }
     }
@@ -293,17 +304,17 @@ final class ChangeSnapshot {
         if (entry.after() == null) return;
         BasicFileAttributes attributes = Files.readAttributes(entry.after(), BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
         if (attributes.size() != entry.diskSize() || !attributes.lastModifiedTime().equals(entry.diskModified())
-                || !java.util.Objects.equals(attributes.fileKey(), entry.fileKey())) throw new IOException("Selected content changed during preparation.");
+                || !java.util.Objects.equals(attributes.fileKey(), entry.fileKey())) throw new SelectionException("Selected content changed during preparation.");
     }
 
     static byte[] readBounded(Path root, Path path) throws IOException {
         validateLocation(root, path);
         if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) || Files.size(path) > LocalGitReader.MAX_FILE_BYTES) {
-            throw new IOException("Only regular files up to 64 KiB are supported.");
+            throw new SelectionException("Only regular files up to 64 KiB are supported.");
         }
         try (InputStream stream = Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS)) {
             byte[] bytes = stream.readNBytes(LocalGitReader.MAX_FILE_BYTES + 1);
-            if (bytes.length > LocalGitReader.MAX_FILE_BYTES) throw new IOException("Selected file exceeds 64 KiB.");
+            if (bytes.length > LocalGitReader.MAX_FILE_BYTES) throw new SelectionException("Selected file exceeds 64 KiB.");
             return bytes;
         }
     }

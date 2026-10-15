@@ -7,7 +7,7 @@ This plugin uses Codex in PyCharm to prepare commit messages from selected Git c
 Use **PyCharm 2026.2.3**, native **Codex CLI 0.160.1**, and native **Git** on Windows or Linux.
 Sign in to Codex with a personal, unmanaged account that can use `gpt-6.1-sol`.
 
-1. [Download the plugin ZIP](releases/DiffQuill-1.1.0.zip?raw=true).
+1. [Download version 1.1.1](releases/DiffQuill-1.1.1.zip?raw=true).
 2. In PyCharm, open **Settings → Plugins → ⚙ → Install Plugin from Disk**.
 3. Select the ZIP. Restart the IDE if requested.
 

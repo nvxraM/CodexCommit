@@ -1,13 +1,14 @@
 <idea-plugin>
   <id>local.codex.commitmessage</id>
   <name>DiffQuill</name>
-  <version>1.1.0</version>
+  <version>1.1.1</version>
   <vendor>DiffQuill contributors</vendor>
   <description><![CDATA[
     This plugin uses Codex in PyCharm to prepare commit messages from selected Git changes. You examine the code before you send it. You examine the message before you use it. The plugin does not make commits or push changes. Each request needs a compatible Codex CLI and an active account.
   ]]></description>
   <change-notes><![CDATA[
-    Version 1.1.0. The plugin finds native Codex executables. You can also set the executable path.
+    Version 1.1.1. Whole-file selections work when their editor tabs are closed.
+    Selection errors state the validation failure. The plugin finds native Codex executables. You can also set the executable path.
     You examine the complete request before you send it. You examine the draft before you apply it.
     The plugin limits file sizes and process time. It stops unsafe selections. You can cancel generation.
     This release includes source code and local regression tests. Native load and unload passed in an idle IDE.
