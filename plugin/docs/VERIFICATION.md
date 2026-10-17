@@ -32,7 +32,10 @@ The Linux Gradle check, build, structure check, and project configuration check 
 Plugin Verifier 1.410 reports Compatible with `PY-262.10968.92`, offline.
 The existing supported-build warning remains. Future IDE versions have no acceptance result.
 Disabled JUnit and searchable settings tasks are not counted as passed tests.
-The motion and screenshot groups also passed headlessly at twice the UI scale.
+The standalone IDE checks also passed at the default and explicit twice-sized user scales.
+The first Windows CI run found missing SDK display-scale initialization in the standalone test harness.
+The harness now precomputes the SDK's system-scale and font data from UI defaults before the tests.
+It retains the detected DPI and user scale. The production code and checked installable ZIP are unchanged.
 The offline helper passed all 67 core and IDE checks and audited its separate package.
 An initial offline run hit the descendant-liveness assertion in this container, whose PID 1 does not reap children.
 A controlled probe confirmed that a killed zombie reports alive until reaped.

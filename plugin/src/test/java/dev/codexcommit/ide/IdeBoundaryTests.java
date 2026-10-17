@@ -8,6 +8,7 @@ import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.openapi.vcs.ex.ExclusionState;
 import com.intellij.openapi.vcs.ex.PartialLocalLineStatusTracker;
 import com.intellij.openapi.vcs.history.VcsRevisionNumber;
+import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.ui.accessibility.ScreenReader;
 import java.awt.Color;
 import java.awt.Insets;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import javax.swing.BorderFactory;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 
 /** Account-free regressions. Every Git mutation below is confined to a newly created synthetic directory. */
 public final class IdeBoundaryTests {
@@ -258,6 +260,9 @@ public final class IdeBoundaryTests {
                 rejects(() -> ChangeSnapshot.checkPartial(change, tracker(true, List.of("selected"), false, ExclusionState.ALL_EXCLUDED)));
                 rejects(() -> ChangeSnapshot.checkPartial(change, tracker(true, List.of("other"), false, ExclusionState.ALL_INCLUDED)));
             });
+            // The IDE normally precomputes display scale before application startup. This standalone harness has no IDE startup.
+            JBUIScale.setSystemScaleFactor(JBUIScale.INSTANCE.computeSystemScaleFactor(UIManager::getDefaults));
+            JBUIScale.scale(1f);
             screenshotLayoutTests();
             toolbarAnimationTests();
             symlinkTest();
