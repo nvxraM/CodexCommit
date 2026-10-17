@@ -1,7 +1,7 @@
 <idea-plugin url="https://github.com/nvxraM/CodexCommit">
   <id>local.codex.commitmessage</id>
   <name>CodexCommit</name>
-  <version>1.1.7</version>
+  <version>1.1.8</version>
   <vendor url="https://github.com/nvxraM/CodexCommit">CodexCommit contributors</vendor>
   <description><![CDATA[
     <div id="codexcommit-overview">
@@ -16,11 +16,11 @@
     </div>
   ]]></description>
   <change-notes><![CDATA[
-    <h3>Version 1.1.7</h3>
+    <h3>Version 1.1.8</h3>
     <ul>
-      <li>Use the supplied cube logo throughout the plugin and guides.</li>
-      <li>Animate the button during generation. Add a high-resolution usage demo.</li>
-      <li>Resize the Overview picture, view it full screen, and open help links.</li>
+      <li>Spin the outer cube during generation.</li>
+      <li>Animate README wordmarks and the button picture.</li>
+      <li>Refresh the usage demo. Keep plugin logos and the Overview picture static.</li>
     </ul>
   ]]></change-notes>
   <idea-version since-build="262.10968.92" until-build="262.*"/>

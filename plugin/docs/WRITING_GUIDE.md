@@ -63,6 +63,13 @@ Keep UI labels exact when you quote them.
 An example is `Generate Commit Message with CodexCommit`.
 Keep code identifiers exact. Examples are `CODEX_HOME`, `CODEXCOMMIT_IDE_HOME`, and `local.codex.commitmessage`.
 
+## Visuals
+
+Keep plugin logos and the Overview picture static.
+Use the approved cube motion for README wordmarks, the button illustration, and the usage demo.
+Keep light and dark README wordmarks consistent with the toolbar motion.
+Keep the copyable installation phrase unchanged when you update these images.
+
 ## Description length
 
 Keep `docs/DESCRIPTION.md` at exactly 50 words.

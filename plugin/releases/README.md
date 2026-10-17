@@ -1,10 +1,10 @@
 # Candidate ZIP
 
-This directory contains the CodexCommit 1.1.7 candidate ZIP.
+This directory contains the CodexCommit 1.1.8 candidate ZIP.
 
-- Use the supplied cube logo throughout the plugin and guides.
-- Animate the button during generation. Add a high-resolution usage demo.
-- Resize the Overview picture, view it full screen, and open help links.
+- Spin the outer cube during generation.
+- Animate README wordmarks and the button picture.
+- Refresh the usage demo. Keep plugin logos and the Overview picture static.
 
 One click fills the commit message field with a short draft.
 Workspace XML contents stay out of generation.

@@ -266,61 +266,159 @@ public final class IdeBoundaryTests {
     }
 
     private static void toolbarAnimationTests() throws Exception {
-        test("toolbar animation stays idle without a visible target or complete frames", () -> SwingUtilities.invokeAndWait(() -> {
-            var busy = new java.util.concurrent.atomic.AtomicBoolean(false);
-            var clock = new java.util.concurrent.atomic.AtomicLong(1_000_000_000L);
-            var animation = new ToolbarAnimation(solidIcon(Color.RED), animationFrames(), busy::get, () -> true, clock::get);
-            var target = new AnimationTarget();
-            try {
-                animation.refresh();
-                require(!animation.isRunning() && animation.frameIndex(clock.get()) == -1, "Idle animation started a timer.");
-                busy.set(true);
-                animation.refresh();
-                require(!animation.isRunning(), "Animation started without a visible painted target.");
-                target.showing = false;
-                require(paintAnimation(animation, target) == Color.RED.getRGB() && !animation.isRunning(), "Hidden toolbar target animated.");
-                require(animation.getIconWidth() == 16 && animation.getIconHeight() == 16, "Animation changed toolbar icon dimensions.");
-            } finally { animation.dispose(); }
-            var missingFrames = new ToolbarAnimation(solidIcon(Color.RED), new javax.swing.Icon[0], () -> true, () -> true, clock::get);
-            try {
-                target.showing = true;
-                require(paintAnimation(missingFrames, target) == Color.RED.getRGB() && !missingFrames.isRunning(), "Missing animation frames did not retain the static icon.");
-            } finally { missingFrames.dispose(); }
-        }));
-        test("toolbar animation follows elapsed time and wraps its loop without restarting on refresh", () -> SwingUtilities.invokeAndWait(() -> {
+        test("outer cube brings opposite corners through the centre during its approved spin plateau", () -> {
+            CubeMotion.Vec right = new CubeMotion.Vec(1, -1, -1), left = new CubeMotion.Vec(-1, 1, 1);
+            require(right.x() + .4 * right.z() > 0 && left.x() + .4 * left.z() < 0, "Synthetic corners do not start on opposite sides.");
+            for (double fraction : new double[]{.3, .5, .7}) {
+                var pose = CubeMotion.busyPose(9.6 * fraction);
+                checkUnitPose(pose);
+                for (var corner : List.of(right, left)) {
+                    var point = pose.outer().rotate(corner);
+                    require(Math.abs(point.x() + .4 * point.z()) < 1e-9 && Math.abs(point.y() + .4 * point.z()) < 1e-9,
+                            "Outer corner missed the projected centre at the spin peak.");
+                }
+            }
+            var sideCorner = new CubeMotion.Vec(1, 1, -1);
+            require(!nearVector(CubeMotion.busyPose(2.88).outer().rotate(sideCorner), CubeMotion.busyPose(4.8).outer().rotate(sideCorner), 1e-3),
+                    "Outer cube stopped spinning while its opposite corners were centred.");
+        });
+        test("inner cubes retain opposite horizontal rotations and every cube returns to its exact loop home", () -> {
+            var vertical = new CubeMotion.Vec(0, 1, 0);
+            var quarter = CubeMotion.busyPose(.8);
+            require(nearVector(quarter.middle().rotate(vertical), new CubeMotion.Vec(0, 0, 1), 1e-9)
+                    && nearVector(quarter.inner().rotate(vertical), new CubeMotion.Vec(0, 0, -1), 1e-9),
+                    "Inner cubes no longer counter-rotate about the horizontal axis.");
+            var innerLoop = CubeMotion.busyPose(3.2);
+            require(nearVector(innerLoop.middle().rotate(vertical), vertical, 1e-9)
+                    && nearVector(innerLoop.inner().rotate(vertical), vertical, 1e-9), "Inner rotation period changed from 3.2 seconds.");
+            require(samePose(CubeMotion.busyPose(0), CubeMotion.home()) && samePose(CubeMotion.busyPose(9.6), CubeMotion.home()),
+                    "The complete animation loop does not meet its home pose.");
+            require(samePose(CubeMotion.busyPose(.8), CubeMotion.busyPose(10.4)), "The outer spin loop has a discontinuous seam.");
+        });
+        test("toolbar motion follows monotonic elapsed time without resetting on refresh or running unseen", () -> SwingUtilities.invokeAndWait(() -> {
             long start = 1_000_000_000L;
             var clock = new java.util.concurrent.atomic.AtomicLong(start);
-            var animation = new ToolbarAnimation(solidIcon(Color.RED), animationFrames(), () -> true, () -> true, clock::get);
+            var animation = new ToolbarAnimation(() -> true, () -> true, clock::get);
             var target = new AnimationTarget();
             try {
-                require(paintAnimation(animation, target) == new Color(10, 40, 100).getRGB() && animation.isRunning(), "Busy visible toolbar did not paint its first frame.");
-                require(animation.frameIndex(start + 79_999_999L) == 0 && animation.frameIndex(start + 80_000_000L) == 1,
-                        "Animation frame boundary differs from the supplied 80 ms timing.");
-                clock.set(start + 80_000_000L);
+                int iconWidth = animation.getIconWidth(), iconHeight = animation.getIconHeight();
+                require(iconWidth > 0 && iconHeight > 0, "Toolbar icon dimensions are empty.");
                 animation.refresh();
-                require(animation.frameIndex(clock.get()) == 1 && paintAnimation(animation, target) == new Color(11, 40, 100).getRGB(), "Refreshing a running animation reset its progress or painted the wrong frame.");
-                require(animation.frameIndex(start + 3_199_999_999L) == 39 && animation.frameIndex(start + 3_200_000_000L) == 0,
-                        "Animation does not wrap the 40-frame, 3.2-second loop.");
+                require(!animation.isRunning() && animation.state() == ToolbarAnimation.State.IDLE, "Animation started without a painted visible target.");
+                target.showing = false;
+                BufferedImage home = paintAnimation(animation, target);
+                require(!animation.isRunning(), "Hidden toolbar target animated.");
+                target.showing = true;
+                paintAnimation(animation, target);
+                require(animation.isRunning() && animation.state() == ToolbarAnimation.State.BUSY, "Busy visible toolbar did not start.");
+                clock.set(start + 400_000_000L);
+                animation.refresh();
+                require(samePose(animation.pose(clock.get()), CubeMotion.busyPose(.4)), "A refresh restarted elapsed motion time.");
+                require(!sameImage(home, paintAnimation(animation, target)), "Active vector motion did not change the painted icon.");
+                clock.set(start + 9_600_000_000L);
+                animation.refresh();
+                require(animation.isRunning() && samePose(animation.pose(clock.get()), CubeMotion.home()), "Busy motion lost its complete loop seam.");
+                require(animation.getIconWidth() == iconWidth && animation.getIconHeight() == iconHeight, "Animation changed toolbar icon dimensions.");
             } finally { animation.dispose(); }
         }));
-        test("motion policy keeps the static toolbar icon and stops an active timer", () -> SwingUtilities.invokeAndWait(() -> {
-            var motion = new java.util.concurrent.atomic.AtomicBoolean(false);
-            var animation = new ToolbarAnimation(solidIcon(Color.RED), animationFrames(), () -> true, motion::get, () -> 1_000_000_000L);
+        test("completed jobs ease to exact home within 800 ms without keeping the job busy", () -> SwingUtilities.invokeAndWait(() -> {
+            long start = 1_000_000_000L;
+            var clock = new java.util.concurrent.atomic.AtomicLong(start);
+            var busy = new java.util.concurrent.atomic.AtomicBoolean(true);
+            var animation = new ToolbarAnimation(busy::get, () -> true, clock::get);
             var target = new AnimationTarget();
             try {
-                require(paintAnimation(animation, target) == Color.RED.getRGB() && !animation.isRunning(), "A disabled motion policy started an animation.");
+                BufferedImage home = paintAnimation(animation, target);
+                long finish = start + 1_100_000_000L;
+                clock.set(finish);
+                var before = animation.pose(finish - 100_000L);
+                var current = animation.pose(finish);
+                busy.set(false);
+                animation.refresh();
+                require(!busy.get() && animation.state() == ToolbarAnimation.State.SETTLING && animation.isRunning()
+                        && samePose(current, animation.pose(finish)), "Completion delayed the job or snapped its current pose.");
+                clock.set(finish + 100_000L);
+                animation.refresh();
+                checkVelocityContinuation(before, current, animation.pose(clock.get()));
+                clock.set(finish + 360_000_000L);
+                animation.refresh();
+                require(animation.state() == ToolbarAnimation.State.SETTLING && !samePose(animation.pose(clock.get()), CubeMotion.home()),
+                        "Completion skipped its smooth return.");
+                checkUnitPose(animation.pose(clock.get()));
+                clock.set(finish + 719_999_999L);
+                animation.refresh();
+                require(animation.state() == ToolbarAnimation.State.SETTLING, "Completion return ended before its approved duration.");
+                clock.set(finish + 720_000_000L);
+                animation.refresh();
+                require(animation.state() == ToolbarAnimation.State.IDLE && !animation.isRunning()
+                        && samePose(animation.pose(clock.get()), CubeMotion.home()) && sameImage(home, paintAnimation(animation, target)),
+                        "Completion did not stop at the exact static home by 720 ms.");
+            } finally { animation.dispose(); }
+        }));
+        test("a new job during the completion return continues from the current pose without a flash", () -> SwingUtilities.invokeAndWait(() -> {
+            long start = 1_000_000_000L;
+            var clock = new java.util.concurrent.atomic.AtomicLong(start);
+            var busy = new java.util.concurrent.atomic.AtomicBoolean(true);
+            var animation = new ToolbarAnimation(busy::get, () -> true, clock::get);
+            var target = new AnimationTarget();
+            try {
+                paintAnimation(animation, target);
+                clock.set(start + 600_000_000L);
+                busy.set(false);
+                animation.refresh();
+                clock.set(start + 840_000_000L);
+                var returning = animation.pose(clock.get());
+                busy.set(true);
+                animation.refresh();
+                require(animation.state() == ToolbarAnimation.State.BUSY && animation.isRunning()
+                        && samePose(returning, animation.pose(clock.get())), "A new job flashed to a different pose during completion.");
+                clock.addAndGet(240_000_000L);
+                animation.refresh();
+                require(samePose(animation.pose(clock.get()), CubeMotion.busyPose(.24)), "A resumed job did not join its fresh busy curve after the short blend.");
+                checkUnitPose(animation.pose(clock.get()));
+            } finally { animation.dispose(); }
+        }));
+        test("motion policy hidden targets and disposal stop both busy and completing timers without idle work", () -> SwingUtilities.invokeAndWait(() -> {
+            var busy = new java.util.concurrent.atomic.AtomicBoolean(true);
+            var motion = new java.util.concurrent.atomic.AtomicBoolean(false);
+            var clock = new java.util.concurrent.atomic.AtomicLong(1_000_000_000L);
+            var animation = new ToolbarAnimation(busy::get, motion::get, clock::get);
+            var target = new AnimationTarget();
+            try {
+                BufferedImage home = paintAnimation(animation, target);
+                require(!animation.isRunning() && animation.state() == ToolbarAnimation.State.IDLE, "A disabled motion policy started a timer.");
                 motion.set(true);
                 animation.refresh();
-                require(animation.isRunning(), "Enabling motion did not start the visible busy icon.");
+                require(animation.isRunning(), "Enabling motion did not resume the visible busy job.");
                 motion.set(false);
                 animation.refresh();
-                require(!animation.isRunning() && paintAnimation(animation, target) == Color.RED.getRGB(), "Disabling motion did not stop the timer and restore the static icon.");
+                require(!animation.isRunning() && samePose(animation.pose(clock.get()), CubeMotion.home())
+                        && sameImage(home, paintAnimation(animation, target)), "Motion policy did not restore the static home immediately.");
+                motion.set(true);
+                animation.refresh();
+                clock.addAndGet(500_000_000L);
+                busy.set(false);
+                animation.refresh();
+                require(animation.state() == ToolbarAnimation.State.SETTLING, "Synthetic completed job did not enter its return.");
+                target.showing = false;
+                animation.refresh();
+                require(!animation.isRunning() && animation.state() == ToolbarAnimation.State.IDLE, "Hidden completion kept its timer alive.");
+                target.showing = true;
+                busy.set(true);
+                animation.refresh();
+                require(!animation.isRunning(), "A removed hidden target was retained for animation.");
+                paintAnimation(animation, target);
+                require(animation.isRunning(), "A new visible repaint did not reattach its busy target.");
+                animation.dispose();
+                int repaintCount = target.repaints;
+                animation.refresh();
+                require(!animation.isRunning() && sameImage(home, paintAnimation(animation, target)) && target.repaints == repaintCount,
+                        "Disposed animation restarted or retained repaint work.");
             } finally { animation.dispose(); }
         }));
         test("screen reader changes stop and resume the same busy icon without repaint or refresh calls", () -> SwingUtilities.invokeAndWait(() -> {
             boolean originalScreenReader = ScreenReader.isActive();
-            var animation = new ToolbarAnimation(solidIcon(Color.RED), animationFrames(), () -> true,
-                    () -> !ScreenReader.isActive(), () -> 1_000_000_000L);
+            var animation = new ToolbarAnimation(() -> true, () -> !ScreenReader.isActive(), () -> 1_000_000_000L);
             var target = new AnimationTarget();
             try {
                 ScreenReader.setActive(false);
@@ -330,7 +428,7 @@ public final class IdeBoundaryTests {
                 require(animation.isRunning(), "Initial busy icon did not animate.");
                 int repaintsBeforePolicy = target.repaints;
                 ScreenReader.setActive(true);
-                require(!animation.isRunning() && animation.frameIndex(1_000_000_000L) == -1
+                require(!animation.isRunning() && animation.state() == ToolbarAnimation.State.IDLE
                         && target.repaints > repaintsBeforePolicy, "Screen reader activation did not stop and repaint the busy icon.");
                 repaintsBeforePolicy = target.repaints;
                 ScreenReader.setActive(false);
@@ -348,34 +446,37 @@ public final class IdeBoundaryTests {
                 finally { ScreenReader.setActive(originalScreenReader); }
             }
         }));
-        test("job completion hidden targets and disposal stop toolbar animation and further repaints", () -> SwingUtilities.invokeAndWait(() -> {
-            var busy = new java.util.concurrent.atomic.AtomicBoolean(true);
-            var animation = new ToolbarAnimation(solidIcon(Color.RED), animationFrames(), busy::get, () -> true, () -> 1_000_000_000L);
-            var target = new AnimationTarget();
-            try {
-                paintAnimation(animation, target);
-                require(animation.isRunning(), "Visible busy icon did not start.");
-                busy.set(false);
-                animation.refresh();
-                require(!animation.isRunning() && animation.frameIndex(2_000_000_000L) == -1, "Completed job kept animating.");
-                busy.set(true);
-                animation.refresh();
-                require(animation.isRunning(), "A new busy job did not restart its visible icon.");
-                target.showing = false;
-                animation.refresh();
-                require(!animation.isRunning(), "Hidden target kept its timer alive.");
-                target.showing = true;
-                animation.refresh();
-                require(!animation.isRunning(), "A removed hidden target was retained for animation.");
-                paintAnimation(animation, target);
-                require(animation.isRunning(), "Visible repaint did not reattach the target.");
-                animation.dispose();
-                int repaintCount = target.repaints;
-                animation.refresh();
-                require(paintAnimation(animation, target) == Color.RED.getRGB() && !animation.isRunning()
-                        && target.repaints == repaintCount, "Disposed animation restarted or retained a repaint target.");
-            } finally { animation.dispose(); }
-        }));
+    }
+
+    private static boolean nearVector(CubeMotion.Vec first, CubeMotion.Vec second, double tolerance) {
+        return Math.abs(first.x() - second.x()) <= tolerance && Math.abs(first.y() - second.y()) <= tolerance
+                && Math.abs(first.z() - second.z()) <= tolerance;
+    }
+
+    private static List<CubeMotion.Quaternion> rotations(CubeMotion.Pose pose) { return List.of(pose.outer(), pose.middle(), pose.inner()); }
+    private static List<CubeMotion.Vec> axes() { return List.of(new CubeMotion.Vec(1, 0, 0), new CubeMotion.Vec(0, 1, 0), new CubeMotion.Vec(0, 0, 1)); }
+
+    private static boolean samePose(CubeMotion.Pose first, CubeMotion.Pose second) {
+        for (int cube = 0; cube < 3; cube++) for (var axis : axes()) {
+            if (!nearVector(rotations(first).get(cube).rotate(axis), rotations(second).get(cube).rotate(axis), 1e-9)) return false;
+        }
+        return true;
+    }
+
+    private static void checkUnitPose(CubeMotion.Pose pose) {
+        for (var rotation : rotations(pose)) require(Double.isFinite(rotation.dot(rotation)) && Math.abs(rotation.dot(rotation) - 1) < 1e-9,
+                "Motion produced a nonfinite or nonunit rotation.");
+    }
+
+    private static void checkVelocityContinuation(CubeMotion.Pose before, CubeMotion.Pose atFinish, CubeMotion.Pose after) {
+        for (int cube = 0; cube < 3; cube++) for (var axis : axes()) {
+            var previous = rotations(before).get(cube).rotate(axis);
+            var current = rotations(atFinish).get(cube).rotate(axis);
+            var next = rotations(after).get(cube).rotate(axis);
+            require(nearVector(new CubeMotion.Vec(current.x() - previous.x(), current.y() - previous.y(), current.z() - previous.z()),
+                    new CubeMotion.Vec(next.x() - current.x(), next.y() - current.y(), next.z() - current.z()), 2e-5),
+                    "Completion changed angular velocity abruptly at the return boundary.");
+        }
     }
 
     private static final class AnimationTarget extends javax.swing.JComponent {
@@ -385,29 +486,18 @@ public final class IdeBoundaryTests {
         @Override public void repaint() { repaints++; }
     }
 
-    private static javax.swing.Icon solidIcon(Color color) {
-        return new javax.swing.Icon() {
-            @Override public int getIconWidth() { return 16; }
-            @Override public int getIconHeight() { return 16; }
-            @Override public void paintIcon(java.awt.Component component, java.awt.Graphics graphics, int x, int y) {
-                graphics.setColor(color);
-                graphics.fillRect(x, y, getIconWidth(), getIconHeight());
-            }
-        };
-    }
-
-    private static javax.swing.Icon[] animationFrames() {
-        var frames = new javax.swing.Icon[40];
-        for (int index = 0; index < frames.length; index++) frames[index] = solidIcon(new Color(10 + index, 40, 100));
-        return frames;
-    }
-
-    private static int paintAnimation(ToolbarAnimation animation, AnimationTarget target) {
-        var image = new BufferedImage(24, 24, BufferedImage.TYPE_INT_ARGB);
+    private static BufferedImage paintAnimation(ToolbarAnimation animation, AnimationTarget target) {
+        var image = new BufferedImage(animation.getIconWidth() + 8, animation.getIconHeight() + 8, BufferedImage.TYPE_INT_ARGB);
         var graphics = image.createGraphics();
         try { animation.paintIcon(target, graphics, 3, 4); }
         finally { graphics.dispose(); }
-        return image.getRGB(4, 5);
+        return image;
+    }
+
+    private static boolean sameImage(BufferedImage first, BufferedImage second) {
+        return first.getWidth() == second.getWidth() && first.getHeight() == second.getHeight()
+                && java.util.Arrays.equals(first.getRGB(0, 0, first.getWidth(), first.getHeight(), null, 0, first.getWidth()),
+                second.getRGB(0, 0, second.getWidth(), second.getHeight(), null, 0, second.getWidth()));
     }
 
     private static void screenshotLayoutTests() throws Exception {

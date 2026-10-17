@@ -18,14 +18,15 @@ The following static files are copied unchanged from that pack:
 | --- | --- | --- |
 | Plugin icons | `05_Platform/JetBrains/META-INF/pluginIcon.svg` and `pluginIcon_dark.svg` | `src/main/resources/META-INF/` |
 | Toolbar fallback icons | `05_Platform/JetBrains/icons/action.svg` and `action_dark.svg` | `src/main/resources/icons/codexcommit.svg` and `codexcommit_dark.svg` |
-| README wordmarks | `04_Wordmarks/horizontal-light-outlined.svg` and `horizontal-dark-outlined.svg` | `docs/images/brand/` |
+| Wordmark masters | `04_Wordmarks/horizontal-light-outlined.svg` and `horizontal-dark-outlined.svg` | `docs/images/brand/` |
 
 The outlined wordmarks use DejaVu Sans Bold glyph outlines. They do not require an installed font.
 The pack's [font copyright and license notice](images/brand/FONT_LICENSE.txt) is retained unchanged from `09_Source/FONT_LICENSE.txt`.
 It includes the Bitstream Vera permission notice, the public-domain DejaVu changes, and Debian packaging notices.
 No font program or pack build script is included.
 The supplied cube artwork replaces the earlier adapted OpenAI toolbar and plugin icons.
-The toolbar uses 40 loading frames from `08_Loading/SVG_Frames/`.
-Only their root width and height change from 32 to 16 logical pixels. Their vector geometry, colours, and viewBox stay unchanged.
-The plugin bundles these SVGs directly. It does not run the pack's browser code or build scripts.
+The toolbar renderer uses the supplied cube dimensions and colours with the maintainer's approved outer-cube motion.
+It draws local vector geometry. It does not bundle loading-frame files or run the pack's browser code or build scripts.
+The animated README wordmarks retain the original outlined text and use the approved cube motion.
+The static SVG masters remain available beside them.
 The release publisher must review the final artwork rights and notices before distribution.

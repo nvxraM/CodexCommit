@@ -3,9 +3,9 @@
 This plugin uses Codex in PyCharm to prepare short commit messages from selected Git changes. Select the files, then select the CodexCommit button. The draft appears in the commit message field. Examine it before you commit. The plugin needs a compatible Codex CLI and an active personal account to work.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="plugin/docs/images/brand/horizontal-dark-outlined.svg">
-  <source media="(prefers-color-scheme: light)" srcset="plugin/docs/images/brand/horizontal-light-outlined.svg">
-  <img alt="CodexCommit" src="plugin/docs/images/brand/horizontal-light-outlined.svg" width="640">
+  <source media="(prefers-color-scheme: dark)" srcset="plugin/docs/images/brand/horizontal-dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="plugin/docs/images/brand/horizontal-light.webp">
+  <img alt="CodexCommit" src="plugin/docs/images/brand/horizontal-light.webp" width="640">
 </picture>
 
 ## Install with Codex
@@ -26,7 +26,7 @@ Or use [manual installation](#manual-install) below. [Requirements](plugin/docs/
 1. Open **Commit**. Select complete tracked file changes in one changelist.
 2. Select the coloured **Generate Commit Message with CodexCommit** button.
 
-![The Codex button in the Commit tool window](plugin/docs/images/generate-button.png)
+![The Codex button in the Commit tool window](plugin/docs/images/generate-button.webp)
 
 3. Wait for the draft in the commit message box. Edit it if necessary. Make the commit yourself.
 
@@ -42,7 +42,7 @@ Requests can use quota or incur charges. Cancel from the IDE background task con
 
 ## Manual install
 
-1. [Download version 1.1.7](https://github.com/nvxraM/CodexCommit/blob/v1.1.7/plugin/releases/CodexCommit-1.1.7.zip?raw=true).
+1. [Download version 1.1.8](https://github.com/nvxraM/CodexCommit/blob/v1.1.8/plugin/releases/CodexCommit-1.1.8.zip?raw=true).
 2. In PyCharm, open **Settings → Plugins → ⚙ → Install Plugin from Disk**.
 3. Select the ZIP. Restart the IDE if requested.
 

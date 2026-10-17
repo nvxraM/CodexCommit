@@ -28,8 +28,9 @@ Keep its heading and bullets within 60 words. The release audit rejects stale ve
 Keep older changes in `docs/CHANGELOG.md`.
 
 Use the supplied scalable cube artwork for plugin and toolbar icons.
-Keep plugin logos, the Overview picture, and README wordmarks static.
-Animate only the toolbar button during an active job and the GitHub usage demo.
+Keep plugin logos and the Overview picture static.
+Animate README wordmarks, the button illustration, and the usage demo with the approved cube motion.
+In the IDE, animate only the toolbar button during an active job.
 Keep the button static in power save and screen reader modes. Stop its timer when hidden or disposed.
 Do not execute or bundle the supplied pack's browser code or build scripts.
 

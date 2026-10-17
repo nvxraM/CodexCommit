@@ -1,12 +1,87 @@
 # Verification record
 
 Date: 17 October 2026.
-Version: 1.1.7.
+Version: 1.1.8.
 
 This record separates software tests from language review.
 It does not prove that the plugin has no risk.
 
 ## Current candidate
+
+Version 1.1.8 uses the approved outer-cube turn, corner tilt, acceleration, and return.
+The inner cubes keep their opposite X rotations and 3.2-second period during generation.
+The busy outer curve repeats every 9.6 seconds. Completion uses a 720 millisecond return curve.
+Painting and timer callbacks follow EDT scheduling.
+Draft insertion and the job's busy state do not wait for that visual return.
+A new request during the return joins the next busy curve without a pose jump.
+
+The toolbar draws local Java2D vector paths at the display scale. It bundles no loading-frame files or browser code.
+The coalesced 40 millisecond timer stops when hidden, disposed, or motion is disabled.
+Power save and screen reader modes use the static home pose. The policy listener is removed on disposal.
+The renderer caches projected paths for unchanged poses and reuses its bounded 216-face storage.
+
+| Suite | Passed | Failed | Skipped |
+| --- | --- | --- | --- |
+| Core and credential boundaries | 32 | 0 | 0 |
+| Git, selection, screenshot, and motion boundaries | 35 | 0 | 0 |
+| Source archive guard | 35 | 0 | 0 |
+| Plugin archive and metadata guard | 43 | 0 | 0 |
+| Total | 145 | 0 | 0 |
+
+The Linux Gradle check, build, structure check, and project configuration check passed.
+Plugin Verifier 1.410 reports Compatible with `PY-262.10968.92`, offline.
+The existing supported-build warning remains. Future IDE versions have no acceptance result.
+Disabled JUnit and searchable settings tasks are not counted as passed tests.
+The motion and screenshot groups also passed headlessly at twice the UI scale.
+The offline helper passed all 67 core and IDE checks and audited its separate package.
+An initial offline run hit the descendant-liveness assertion in this container, whose PID 1 does not reap children.
+A controlled probe confirmed that a killed zombie reports alive until reaped.
+The exact POSIX build entrypoint then passed under an owned subreaper, with the assertions and production code unchanged.
+The bundled-JBR and full-JDK helper builds produced identical ZIPs.
+
+Native checks loaded the exact checked ZIP in an isolated PyCharm 2026.2.3 profile at four-times pixel density.
+A real toolbar click produced the short sample draft with no dialogs.
+The full 9.6-second outer curve and unchanged opposing inner rotations were observed.
+Draft insertion occurred 20.7–146.7 milliseconds after the sample backend returned in the recorded runs.
+These measurements describe a local test backend, not real model response time or a performance guarantee.
+
+A quiet 20 millisecond observer bracketed the timer's finish between 703.8 and 724.2 milliseconds.
+Under 4K capture load, the observed interval was 659.7–768.7 milliseconds.
+These samples bracket the transition; they do not prove an exact timer stop by 720 milliseconds.
+The return pose clamps to home at the configured duration. A repeat request resumed without an idle gap.
+Cancellation, hide/show, power save, and screen reader stop/resume passed.
+The static Overview resized correctly. Its four help links stayed scoped to CodexCommit.
+A real click opened the full-screen picture; Esc closed it.
+SDK removal during active generation with the viewer open stopped the timer, closed the viewer, and removed both listeners.
+All owned GUI processes stopped after testing. No real account request was made.
+
+Independent source review found no actionable defect in the motion, lifecycle, or archive changes.
+The packaged JAR has no loading frames, JavaScript, machine paths, or screenshot harness markers.
+Gitleaks 8.30.1 found no leaks in the unpacked plugin JAR, with full redaction.
+The source snapshot uses 68 approved files. The reviewed source and reachable Git history also passed the secret scan.
+Reachable commit identities use GitHub no-reply addresses.
+
+Both README wordmarks render at 2400 × 768 pixels, without upscaling.
+Their lossless, transparent WebP loops last exactly 12 seconds. The original outlined text pixels stay unchanged.
+Decoded keyframes match the rendered source. The first and last visible home frames match.
+Only the two named wordmark WebPs receive an 8 MiB source-file limit.
+The usage demo retains its 24 MiB limit. Other source files retain the 2 MiB limit.
+
+New native lossless WebP captures show sample files and the exact candidate:
+
+- Usage demo: 3840 × 2160 pixels, 544,342 bytes, 17.893 seconds, with a 2.768-second final draft pause.
+- Button example: 2200 × 464 pixels, 768,136 bytes, 17.800 seconds, with a 2.640-second final pause.
+
+No capture was upscaled. The original static button PNG remains unchanged in the Overview and bundled viewer.
+
+Real account responses, native IDE updates during generation, and classloader garbage collection remain untested.
+These results do not certify zero risk or formal STE conformity.
+
+The checked Gradle ZIP has SHA-256:
+
+`d03066ac4020ca449f45694b3c270fed4ad0119da185b46fb3940c02860e9939`
+
+## Previous 1.1.7 candidate
 
 Version 1.1.7 uses the supplied cube artwork in the plugin, toolbar, README, and new screenshots.
 Static icons and wordmarks are SVGs. The toolbar uses 40 local vector frames at 16 logical pixels.
@@ -486,7 +561,7 @@ cd plugin
 .\tools\build-local.ps1 -IdeHome 'PATH_TO_YOUR_IDE'
 java tools/SourceArchive.java --self-test
 java tools/ReleaseAudit.java --self-test
-java tools/ReleaseAudit.java build/distributions/CodexCommit-1.1.7.zip
+java tools/ReleaseAudit.java build/distributions/CodexCommit-1.1.8.zip
 ```
 
 The `check` task uses the `coreTest` and `ideBoundaryTest` programs.
@@ -510,7 +585,7 @@ This is a recorded configuration warning.
 ## Language review
 
 The description file and first README paragraph contain the same 50 words.
-The Overview uses the shorter action bullets requested for version 1.1.7.
+The Overview uses three short action bullets.
 The README uses the project rules based on ASD-STE100.
 The full official dictionary was not available for this review.
 Formal STE conformity is not certified.

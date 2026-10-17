@@ -21,7 +21,7 @@ public final class ReleaseAudit {
             "images/generate-button.png");
     private static final byte[] PNG_SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', 13, 10, 26, 10};
     static boolean allowed(String path) {
-        return RESOURCES.contains(path) || path.matches("icons/loading/frame-0[0-3][0-9]\\.svg")
+        return RESOURCES.contains(path)
                 || path.matches("dev/codexcommit/(core|ide)/[A-Za-z0-9_$]+\\.class");
     }
     static boolean hasSecret(byte[] bytes) {
@@ -35,12 +35,12 @@ public final class ReleaseAudit {
             int passed = 0;
             for (String path : List.of("META-INF/private.pem", "META-INF/credentials.yml", "META-INF/.env", "icons/account.key",
                     "dev/codexcommit/secret.txt", "dev/codexcommit/core/auth.json", "images/private.png",
-                    "icons/loading/frame-040.svg", "icons/loading/private.svg")) {
+                    "icons/loading/frame-000.svg", "icons/loading/private.svg")) {
                 if (allowed(path)) throw new AssertionError("Unsafe release resource accepted.");
                 passed++;
             }
             for (String path : List.of("dev/codexcommit/core/CodexRunner.class", "META-INF/plugin.xml",
-                    "META-INF/pluginIcon_dark.svg", "icons/loading/frame-000.svg", "icons/loading/frame-039.svg")) {
+                    "META-INF/pluginIcon_dark.svg", "dev/codexcommit/ide/CubeMotion.class")) {
                 if (!allowed(path)) throw new AssertionError("Expected release file rejected.");
                 passed++;
             }
@@ -81,11 +81,8 @@ public final class ReleaseAudit {
             if (!Arrays.equals(inner.get(resource), metadataFile(project.resolve("src/main/resources").resolve(resource))))
                 throw new IOException("The bundled icon differs from source artwork: " + resource);
         }
-        for (int index = 0; index < 40; index++) {
-            String resource = String.format(Locale.ROOT, "icons/loading/frame-%03d.svg", index);
-            if (!Arrays.equals(inner.get(resource), metadataFile(project.resolve("src/main/resources").resolve(resource))))
-                throw new IOException("A loading frame is missing or differs from source artwork: " + resource);
-        }
+        if (!inner.containsKey("dev/codexcommit/ide/CubeMotion.class"))
+            throw new IOException("Missing vector motion renderer.");
         if (!inner.containsKey("META-INF/plugin.xml")) throw new IOException("Missing descriptor.");
         boolean actionFound = false;
         for (var entry : inner.entrySet()) {

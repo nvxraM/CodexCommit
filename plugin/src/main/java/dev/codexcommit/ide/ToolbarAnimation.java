@@ -3,7 +3,7 @@ package dev.codexcommit.ide;
 import com.intellij.ide.PowerSaveMode;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.util.Disposer;
-import com.intellij.openapi.util.IconLoader;
+import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.ui.accessibility.ScreenReader;
 
 import javax.swing.Icon;
@@ -20,51 +20,37 @@ import java.util.function.LongSupplier;
 
 /** A small vector animation owned by one project. It never reads project or account content. */
 final class ToolbarAnimation implements Icon, Disposable {
-    static final int FRAME_DELAY_MS = 80;
-    private static final long FRAME_DELAY_NANOS = FRAME_DELAY_MS * 1_000_000L;
-    private final Icon idle;
-    private final Icon[] frames;
+    static final int FRAME_DELAY_MS = 40;
+    static final int SETTLE_DURATION_MS = 720;
+    private static final long SAMPLE_NANOS = 1_000_000L;
+    private static final double RESUME_SECONDS = .24;
+    enum State { IDLE, BUSY, SETTLING }
+    private final CubeMotion.Renderer renderer = new CubeMotion.Renderer();
     private final BooleanSupplier busy;
     private final BooleanSupplier motionEnabled;
     private final LongSupplier nanoTime;
     private final Set<Component> targets = Collections.newSetFromMap(new WeakHashMap<>());
     private final Timer timer;
     private volatile boolean disposed;
-    private long startedNanos;
+    private State state = State.IDLE;
+    private long phaseStartedNanos;
+    private CubeMotion.Pose resumePose;
+    private CubeMotion.Pose settleStart;
+    private CubeMotion.Pose settleControl;
     private Disposable policyRegistration;
 
     static ToolbarAnimation create(BooleanSupplier busy) {
-        ToolbarAnimation animation = new ToolbarAnimation(Assets.IDLE, Assets.FRAMES, busy,
-                ToolbarAnimation::motionAllowed, System::nanoTime);
+        ToolbarAnimation animation = new ToolbarAnimation(busy, ToolbarAnimation::motionAllowed, System::nanoTime);
         animation.attachScreenReaderPolicyListener();
         return animation;
     }
 
-    ToolbarAnimation(Icon idle, Icon[] frames, BooleanSupplier busy,
-                     BooleanSupplier motionEnabled, LongSupplier nanoTime) {
-        this.idle = Objects.requireNonNull(idle);
-        this.frames = frames.clone();
-        for (Icon frame : this.frames) Objects.requireNonNull(frame);
+    ToolbarAnimation(BooleanSupplier busy, BooleanSupplier motionEnabled, LongSupplier nanoTime) {
         this.busy = Objects.requireNonNull(busy);
         this.motionEnabled = Objects.requireNonNull(motionEnabled);
         this.nanoTime = Objects.requireNonNull(nanoTime);
         timer = new Timer(FRAME_DELAY_MS, event -> refresh());
         timer.setCoalesce(true);
-    }
-
-    private static final class Assets {
-        static final Icon IDLE = IconLoader.getIcon("/icons/codexcommit.svg", ToolbarAnimation.class);
-        static final Icon[] FRAMES = loadFrames();
-
-        private static Icon[] loadFrames() {
-            Icon[] result = new Icon[40];
-            for (int index = 0; index < result.length; index++) {
-                String path = String.format(java.util.Locale.ROOT, "/icons/loading/frame-%03d.svg", index);
-                if (ToolbarAnimation.class.getResource(path) == null) return new Icon[0];
-                result[index] = IconLoader.getIcon(path, ToolbarAnimation.class);
-            }
-            return result;
-        }
     }
 
     private static boolean motionAllowed() {
@@ -85,16 +71,16 @@ final class ToolbarAnimation implements Icon, Disposable {
         }
     }
 
-    @Override public int getIconWidth() { return idle.getIconWidth(); }
-    @Override public int getIconHeight() { return idle.getIconHeight(); }
+    @Override public int getIconWidth() { return JBUIScale.scale(16); }
+    @Override public int getIconHeight() { return JBUIScale.scale(16); }
 
     @Override public void paintIcon(Component component, Graphics graphics, int x, int y) {
         if (SwingUtilities.isEventDispatchThread()) {
             if (!disposed && component != null && component.isShowing()) targets.add(component);
             refreshOnEdt(false);
         }
-        int index = SwingUtilities.isEventDispatchThread() ? frameIndex(nanoTime.getAsLong()) : -1;
-        (index < 0 ? idle : frames[index]).paintIcon(component, graphics, x, y);
+        CubeMotion.Pose current = SwingUtilities.isEventDispatchThread() ? pose(nanoTime.getAsLong()) : CubeMotion.home();
+        renderer.paint(graphics, x, y, getIconWidth(), getIconHeight(), current);
     }
 
     /** Synchronise the timer after a job starts, ends, or changes its motion preference. */
@@ -108,24 +94,54 @@ final class ToolbarAnimation implements Icon, Disposable {
 
     private void refreshOnEdt(boolean repaint) {
         targets.removeIf(component -> !component.isShowing());
-        boolean animate = !disposed && frames.length > 0 && busy.getAsBoolean()
-                && motionEnabled.getAsBoolean() && !targets.isEmpty();
-        if (animate && !timer.isRunning()) {
-            startedNanos = nanoTime.getAsLong();
-            timer.start();
-        } else if (!animate && timer.isRunning()) {
-            timer.stop();
+        boolean available = !disposed && !targets.isEmpty() && motionEnabled.getAsBoolean();
+        long now = nanoTime.getAsLong();
+        if (!available) {
+            home();
+        } else if (busy.getAsBoolean()) {
+            if (state != State.BUSY) {
+                CubeMotion.Pose from = state == State.SETTLING ? pose(now) : null;
+                state = State.BUSY;
+                phaseStartedNanos = now;
+                resumePose = from;
+                settleStart = null;
+                settleControl = null;
+            }
+        } else if (state == State.BUSY) {
+            settleStart = pose(now);
+            settleControl = CubeMotion.returnControl(settleStart, pose(now + SAMPLE_NANOS), .001);
+            state = State.SETTLING;
+            phaseStartedNanos = now;
+            resumePose = null;
+        } else if (state == State.SETTLING && elapsed(now) >= CubeMotion.RETURN_SECONDS) {
+            home();
         }
+        if (state == State.IDLE) timer.stop(); else if (!timer.isRunning()) timer.start();
         if (repaint) for (Component component : targets) component.repaint();
         if (disposed) targets.clear();
     }
 
-    /** A negative result selects the static logo. Time is monotonic and independent of repaint speed. */
-    int frameIndex(long nowNanos) {
-        if (disposed || !timer.isRunning()) return -1;
-        long elapsed = Math.max(0L, nowNanos - startedNanos);
-        return (int) ((elapsed / FRAME_DELAY_NANOS) % frames.length);
+    private double elapsed(long now) { return Math.max(0L, now - phaseStartedNanos) / 1_000_000_000.0; }
+
+    /** Time is monotonic and independent of repaint speed. The finish tail never delays a draft. */
+    CubeMotion.Pose pose(long nowNanos) {
+        if (disposed || state == State.IDLE) return CubeMotion.home();
+        double seconds = elapsed(nowNanos);
+        if (state == State.SETTLING)
+            return CubeMotion.returnPose(settleStart, settleControl, seconds / CubeMotion.RETURN_SECONDS);
+        CubeMotion.Pose current = CubeMotion.busyPose(seconds);
+        return resumePose != null && seconds < RESUME_SECONDS
+                ? CubeMotion.blend(resumePose, current, CubeMotion.smooth(seconds / RESUME_SECONDS)) : current;
     }
+
+    private void home() {
+        state = State.IDLE;
+        resumePose = null;
+        settleStart = null;
+        settleControl = null;
+    }
+
+    State state() { return state; }
 
     boolean isRunning() { return timer.isRunning(); }
 

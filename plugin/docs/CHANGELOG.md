@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8 — cube motion
+
+- Spin the outer cube during generation.
+- Animate README wordmarks and the button picture.
+- Refresh the usage demo. Keep plugin logos and the Overview picture static.
+
 ## 1.1.7 — new artwork and clearer help
 
 - Use the supplied cube logo throughout the plugin and guides.

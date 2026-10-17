@@ -5,18 +5,20 @@ Date: 15 October 2026.
 This audit covers CodexCommit 1.1.0. It covers the source, build tools, release files, and the Codex CLI 0.160.1 interface. It does not certify that the software has no risk. It does not certify compliance with the ASD-STE100 dictionary.
 
 
-Version 1.1.7 adds a responsive screenshot and a full-screen viewer.
+The current UI includes a responsive screenshot and a full-screen viewer.
 The UI enhancement identifies the marked CodexCommit description through Swing component metadata.
 Its global listener observes component layout events, not keyboard or mouse input.
 The viewer reads only the fixed, bundled PNG. Help links open their fixed URLs when clicked.
 Cleanup removes the UI listeners and restores the original description renderer.
 The Overview image loads without a network request.
 Release checks reject stale version notes, oversized notes, and changed screenshot bytes.
-The new cube icons and 40 loading frames use local SVG geometry with no scripts or external references.
-The toolbar's coalesced timer runs only during a visible active job. Completion, hiding, and disposal stop it.
+Version 1.1.8 draws the toolbar's cube motion with local Java2D vector geometry.
+Static plugin icons contain no scripts or external references. No loading-frame files or browser code run in the plugin.
+The toolbar's coalesced timer runs during a visible job and its bounded return to rest.
+Hiding, disposal, power save, and screen reader mode stop motion immediately.
 Power save and screen reader modes use the static icon. The plugin does not run the asset pack's browser code.
 The accessibility preference listener observes only screen reader state. Disposal removes its registration.
-Only the toolbar button and the sample GitHub usage demo animate. The Overview picture stays static.
+The toolbar button and README pictures animate. The plugin listing logo and Overview picture stay static.
 Generation retains one-click operation. The button sends the selected patch without another confirmation.
 It puts the draft directly in the commit message field. It retains content checks and stale-result protection.
 Examine selected changes before using the button. Examine the message before committing.
