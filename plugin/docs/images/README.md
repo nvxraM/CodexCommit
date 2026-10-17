@@ -1,14 +1,15 @@
 # Screenshots
 
-These screenshots show PyCharm 2026.2.3 with CodexCommit 1.1.4 in an isolated test profile.
-They use twice the original pixel density and only sample data.
+These images show PyCharm 2026.2.3 and CodexCommit 1.1.7 in an isolated profile with sample files.
+They are new native captures at four times the logical pixel density. No image was upscaled.
 
-- `generate-button.png` shows the real Commit toolbar and button tooltip at 1100 × 232 pixels.
-- `commit-message.png` shows the draft in the real Commit message field at 912 × 704 pixels.
+- `generate-button.png`: the Commit toolbar and tooltip, 2200 × 464 pixels.
+- `commit-message.png`: a short draft in the Commit box, 1824 × 1412 pixels.
+- `how-to.webp`: select files, click once, wait, and review the draft; 3840 × 2160 pixels.
 
-The selected change uses a simple greeting example.
-A local test harness supplies the draft through the project service's test backend.
-The actual button, background tasks, content checks, and message application run in PyCharm.
-The harness does not call the Codex service. The sample draft is not a recorded model response.
-The README places each image below its instruction. Select the draft image to view it at full resolution.
-These images do not establish real-account or complete native workflow acceptance.
+The animated WebP uses lossless encoding and a native screen capture at 8 frames per second.
+The button icon animates while generation is active. The Overview image stays static.
+
+A local test backend supplies the sample draft. The real button, background tasks, selection checks,
+and draft insertion run in PyCharm. No Codex account request occurs. This is not a recorded model response.
+The images do not establish real-account or complete native workflow acceptance.

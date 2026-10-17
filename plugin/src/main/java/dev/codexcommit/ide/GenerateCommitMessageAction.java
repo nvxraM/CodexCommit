@@ -15,6 +15,11 @@ public final class GenerateCommitMessageAction extends DumbAwareAction {
     @Override public void update(@NotNull AnActionEvent event) {
         Project project = event.getProject();
         CommitWorkflowUi ui = event.getData(VcsDataKeys.COMMIT_WORKFLOW_UI);
+        if (project != null && !project.isDisposed() && ui != null) {
+            var icon = project.getService(CodexCommitProjectService.class).actionIcon();
+            event.getPresentation().setIcon(icon);
+            event.getPresentation().setDisabledIcon(icon);
+        }
         event.getPresentation().setEnabled(project != null && !project.isDisposed() && ui != null
                 && event.getData(VcsDataKeys.COMMIT_MESSAGE_DOCUMENT) != null
                 && !ui.getIncludedChanges().isEmpty()

@@ -1,10 +1,10 @@
 # Changelog
 
-## 1.1.7 — clearer plugin Overview
+## 1.1.7 — new artwork and clearer help
 
-- Use short Overview bullets and a larger button picture.
-- Click the picture to view full screen. Resize the preview with the panel.
-- Add GitHub, usage, license, and privacy links to Additional Info.
+- Use the supplied cube logo throughout the plugin and guides.
+- Animate the button during generation. Add a high-resolution usage demo.
+- Resize the Overview picture, view it full screen, and open help links.
 
 ## 1.1.6 — plugin details
 

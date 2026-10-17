@@ -4,3 +4,5 @@ gradlew text eol=lf
 *.bat text eol=crlf
 *.jar binary
 *.zip binary
+# Keep the supplied copyright notice verbatim.
+docs/images/brand/FONT_LICENSE.txt -whitespace

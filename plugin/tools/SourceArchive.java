@@ -15,16 +15,22 @@ public final class SourceArchive {
     private static final Set<String> DOCUMENT_FILES = Set.of("plugin/docs/README.md", "plugin/docs/USAGE.md", "plugin/docs/BUILD.md",
             "plugin/docs/CHANGELOG.md", "plugin/docs/PRIVACY.md", "plugin/docs/PUBLISHING.md", "plugin/docs/VERIFICATION.md", "plugin/docs/SECURITY_AUDIT.md",
             "plugin/docs/DESCRIPTION.md", "plugin/docs/WRITING_GUIDE.md", "plugin/docs/THIRD_PARTY_NOTICES.md", "plugin/docs/release.properties.example",
-            "plugin/docs/images/README.md", "plugin/docs/images/generate-button.png", "plugin/docs/images/commit-message.png");
+            "plugin/docs/images/README.md", "plugin/docs/images/generate-button.png", "plugin/docs/images/commit-message.png",
+            "plugin/docs/images/how-to.webp", "plugin/docs/images/brand/horizontal-light-outlined.svg",
+            "plugin/docs/images/brand/horizontal-dark-outlined.svg", "plugin/docs/images/brand/FONT_LICENSE.txt");
     private static final Set<String> SUPPORT_FILES = Set.of("plugin/tools/LocalBuild.java", "plugin/tools/ReleaseAudit.java",
             "plugin/tools/SourceArchive.java", "plugin/tools/build-local.sh", "plugin/tools/build-local.ps1",
             "plugin/gradle/wrapper/gradle-wrapper.jar", "plugin/gradle/wrapper/gradle-wrapper.properties",
             "plugin/src/main/resources/META-INF/plugin.xml", "plugin/src/main/resources/META-INF/pluginIcon.svg",
-            "plugin/src/main/resources/icons/codexcommit.svg");
+            "plugin/src/main/resources/META-INF/pluginIcon_dark.svg", "plugin/src/main/resources/icons/codexcommit.svg",
+            "plugin/src/main/resources/icons/codexcommit_dark.svg");
+    private static final Set<String> ANIMATION_FILES = java.util.stream.IntStream.range(0, 40)
+            .mapToObj(index -> String.format(Locale.ROOT, "plugin/src/main/resources/icons/loading/frame-%03d.svg", index))
+            .collect(java.util.stream.Collectors.toUnmodifiableSet());
     static boolean allowed(String name) {
         if (name.contains("..") || name.contains("\\") || name.startsWith("/")) return false;
         if (REPOSITORY_FILES.contains(name) || PROJECT_FILES.contains(name) || DOCUMENT_FILES.contains(name)
-                || SUPPORT_FILES.contains(name)) return true;
+                || SUPPORT_FILES.contains(name) || ANIMATION_FILES.contains(name)) return true;
         return name.matches("plugin/src/(main|test)/java/dev/codexcommit/[A-Za-z0-9_/]+\\.java");
     }
     public static void main(String[] args) throws Exception {
@@ -33,14 +39,17 @@ public final class SourceArchive {
                     "plugin/src/main/java/auth.json", "plugin/tools/account.key", "plugin/gradle/wrapper/credentials.properties", "plugin/release.properties", "../auth.json",
                     "plugin/docs/auth.json", "plugin/docs/.env", "plugin/docs/images/private.png", "plugin/docs/../auth.json",
                     "plugin/build/classes/private.class", "plugin/dist/private.zip", "plugin/.gradle/credentials.properties",
-                    ".github/auth.json");
+                    ".github/auth.json", "plugin/docs/images/brand/private.png",
+                    "plugin/src/main/resources/icons/loading/frame-040.svg", "plugin/src/main/resources/icons/loading/private.svg");
             for (String path : unsafe) {
                 if (allowed(path)) throw new AssertionError("Unsafe source path accepted.");
             }
             List<String> expected = List.of("README.md", ".github/SECURITY.md",
                     "plugin/src/main/java/dev/codexcommit/core/CodexRunner.java", "plugin/gradle/wrapper/gradle-wrapper.jar",
                     "plugin/docs/USAGE.md", "plugin/docs/images/README.md", "plugin/docs/images/generate-button.png",
-                    "plugin/tools/build-local.sh", "plugin/tools/build-local.ps1");
+                    "plugin/tools/build-local.sh", "plugin/tools/build-local.ps1", "plugin/docs/images/how-to.webp",
+                    "plugin/docs/images/brand/horizontal-dark-outlined.svg", "plugin/src/main/resources/META-INF/pluginIcon_dark.svg",
+                    "plugin/src/main/resources/icons/loading/frame-000.svg", "plugin/src/main/resources/icons/loading/frame-039.svg");
             for (String path : expected) {
                 if (!allowed(path)) throw new AssertionError("Expected source path rejected.");
             }
@@ -63,7 +72,7 @@ public final class SourceArchive {
         if (!version.matches("[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9.-]+)?")) throw new IOException("Invalid plugin version.");
         Path destination = root.resolve("plugin/dist/CodexCommit-source-" + version + ".zip");
         Set<Path> files = new TreeSet<>(Comparator.comparing(Path::toString));
-        for (Set<String> names : List.of(REPOSITORY_FILES, PROJECT_FILES, DOCUMENT_FILES, SUPPORT_FILES)) {
+        for (Set<String> names : List.of(REPOSITORY_FILES, PROJECT_FILES, DOCUMENT_FILES, SUPPORT_FILES, ANIMATION_FILES)) {
             for (String name : names) {
                 Path file = root.resolve(name);
                 if (!Files.isRegularFile(file)) throw new IOException("Missing release source: " + name);
@@ -80,7 +89,7 @@ public final class SourceArchive {
             String name = root.relativize(file).toString().replace('\\', '/');
             if (!allowed(name) || Files.isSymbolicLink(file) || !file.toRealPath().startsWith(root))
                 throw new IOException("Unexpected or unsafe source path: " + name);
-            if (Files.size(file) > 2 * 1024 * 1024) throw new IOException("Unexpectedly large source file.");
+            if (Files.size(file) > maxBytes(name)) throw new IOException("Unexpectedly large source file.");
         }
         if (listOnly) {
             for (Path file : files) System.out.println(root.relativize(file).toString().replace('\\', '/'));
@@ -90,8 +99,8 @@ public final class SourceArchive {
         try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(destination, StandardOpenOption.CREATE_NEW))) {
             for (Path file : files) {
                 if (Files.isSymbolicLink(file) || !file.toRealPath().startsWith(root)) throw new IOException("Source link outside release.");
-                if (Files.size(file) > 2 * 1024 * 1024) throw new IOException("Unexpectedly large source file.");
                 String name = root.relativize(file).toString().replace('\\', '/');
+                if (Files.size(file) > maxBytes(name)) throw new IOException("Unexpectedly large source file.");
                 if (name.endsWith(".class") || name.endsWith(".exe") || name.endsWith(".zip") || name.endsWith("auth.json")
                         || (name.endsWith(".jar") && !name.equals("plugin/gradle/wrapper/gradle-wrapper.jar"))) throw new IOException("Unexpected source artifact.");
                 ZipEntry entry = new ZipEntry("CodexCommit/" + name);
@@ -104,5 +113,8 @@ public final class SourceArchive {
         System.out.println("Source files: " + files.size());
         System.out.println("Source archive: " + destination);
         System.out.println("SHA256: " + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(destination))));
+    }
+    private static long maxBytes(String name) {
+        return name.equals("plugin/docs/images/how-to.webp") ? 24L * 1024 * 1024 : 2L * 1024 * 1024;
     }
 }

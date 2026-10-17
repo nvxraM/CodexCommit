@@ -27,6 +27,12 @@ Update What's New for every version. Include only the current version and one to
 Keep its heading and bullets within 60 words. The release audit rejects stale versions or longer notes.
 Keep older changes in `docs/CHANGELOG.md`.
 
+Use the supplied scalable cube artwork for plugin and toolbar icons.
+Keep plugin logos, the Overview picture, and README wordmarks static.
+Animate only the toolbar button during an active job and the GitHub usage demo.
+Keep the button static in power save and screen reader modes. Stop its timer when hidden or disposed.
+Do not execute or bundle the supplied pack's browser code or build scripts.
+
 Preserve all technical requirements, privacy limits, and untested boundaries.
 Do not claim zero risk or formal STE certification.
 Do not change `../LICENSE` as part of a style edit.

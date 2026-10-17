@@ -2,6 +2,12 @@
 
 This plugin uses Codex in PyCharm to prepare short commit messages from selected Git changes. Select the files, then select the CodexCommit button. The draft appears in the commit message field. Examine it before you commit. The plugin needs a compatible Codex CLI and an active personal account to work.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="plugin/docs/images/brand/horizontal-dark-outlined.svg">
+  <source media="(prefers-color-scheme: light)" srcset="plugin/docs/images/brand/horizontal-light-outlined.svg">
+  <img alt="CodexCommit" src="plugin/docs/images/brand/horizontal-light-outlined.svg" width="640">
+</picture>
+
 ## Install with Codex
 
 Use **PyCharm 2026.2.3**, native **Codex CLI 0.160.1**, and native **Git** on Windows or Linux.
@@ -24,12 +30,12 @@ Or use [manual installation](#manual-install) below. [Requirements](plugin/docs/
 
 3. Wait for the draft in the commit message box. Edit it if necessary. Make the commit yourself.
 
-[![Short draft in the Commit message box](plugin/docs/images/commit-message.png)](plugin/docs/images/commit-message.png)
+[![Select files, click CodexCommit, and edit the draft](plugin/docs/images/how-to.webp)](plugin/docs/images/how-to.webp)
 
 One click. No review windows. The prompt requests a short subject and 1–3 brief bullet points.
 Keep `.idea/workspace.xml` checked if needed. Its contents stay out of generation.
 
-Screens use sample data. Select the draft image to enlarge it.
+The demo uses sample data. Click it to view full size. [Static guide](plugin/docs/USAGE.md).
 In the plugin Overview, click the picture to view it full screen.
 The button sends selected code to OpenAI. Check for private data and secrets first.
 Requests can use quota or incur charges. Cancel from the IDE background task control.

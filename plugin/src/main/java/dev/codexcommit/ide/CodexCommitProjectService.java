@@ -28,6 +28,7 @@ public final class CodexCommitProjectService implements Disposable {
     private final Backend backend;
     private volatile boolean disposed;
     private volatile Job active;
+    private volatile ToolbarAnimation toolbarAnimation;
 
     private static final class Job {
         final AtomicBoolean cancelled = new AtomicBoolean();
@@ -63,10 +64,17 @@ public final class CodexCommitProjectService implements Disposable {
 
     public boolean isBusy() { return active != null; }
 
+    javax.swing.Icon actionIcon() {
+        if (toolbarAnimation == null) toolbarAnimation = ToolbarAnimation.create(this::isBusy);
+        if (isBusy() && !toolbarAnimation.isRunning()) toolbarAnimation.refresh();
+        return toolbarAnimation;
+    }
+
     public void start(CommitWorkflowUi ui, Document messageDocument) {
         if (disposed || project.isDisposed() || active != null) return;
         Job job = new Job();
         active = job;
+        if (toolbarAnimation != null) toolbarAnimation.refresh();
         try { job.snapshot = ChangeSnapshot.capture(project, ui, messageDocument); }
         catch (ChangeSnapshot.SelectionException exception) {
             finish(job);
@@ -167,7 +175,10 @@ public final class CodexCommitProjectService implements Disposable {
 
     private boolean current(Job job) { return !disposed && !project.isDisposed() && active == job && !job.cancelled.get(); }
 
-    private void finish(Job job) { if (active == job) active = null; }
+    private void finish(Job job) {
+        if (active == job) active = null;
+        if (toolbarAnimation != null) toolbarAnimation.refresh();
+    }
 
     private void stale(Job job) {
         notice("The checked changes, selected hunks, source content, or commit message changed. Run CodexCommit again for a fresh draft. "
@@ -182,6 +193,7 @@ public final class CodexCommitProjectService implements Disposable {
 
     @Override public void dispose() {
         disposed = true;
+        if (toolbarAnimation != null) toolbarAnimation.dispose();
         Job job = active;
         active = null;
         if (job == null) return;

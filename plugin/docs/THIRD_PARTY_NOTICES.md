@@ -6,4 +6,26 @@ The wrapper JAR SHA-256 is `76805e32c009c0cf0dd5d206bddc9fb22ea42e84db904b764f30
 
 The IntelliJ Platform Gradle Plugin, IDE SDK, Plugin Verifier, JDK, Git, and Codex CLI are separate tools governed by their own licenses/terms. They are not bundled in the installable CodexCommit ZIP. The SDK's platform/Git libraries are compile-time dependencies and are provided by the target IDE at runtime. No upstream executable, framework, authentication file, or third-party model is redistributed as part of the plugin.
 
-The original CodexCommit code and docs use the proposed project license. The toolbar and plugin icons adapt the OpenAI icon from [Simple Icons 15.0.0](https://github.com/simple-icons/simple-icons/blob/15.0.0/icons/openai.svg), distributed under [CC0 1.0](https://github.com/simple-icons/simple-icons/blob/15.0.0/LICENSE.md), with a pink-to-blue gradient. The OpenAI and ChatGPT marks belong to OpenAI. Third-party product names and marks do not imply endorsement. The release publisher must review the final license and notices before distribution.
+The original CodexCommit code and docs use the [MIT license](../../LICENSE).
+Third-party product names and marks do not imply endorsement.
+
+## Supplied artwork
+
+The maintainer supplied `CODEXCommit_Asset_Pack` version 1.0.
+The following static files are copied unchanged from that pack:
+
+| Use | Pack source | Project path |
+| --- | --- | --- |
+| Plugin icons | `05_Platform/JetBrains/META-INF/pluginIcon.svg` and `pluginIcon_dark.svg` | `src/main/resources/META-INF/` |
+| Toolbar fallback icons | `05_Platform/JetBrains/icons/action.svg` and `action_dark.svg` | `src/main/resources/icons/codexcommit.svg` and `codexcommit_dark.svg` |
+| README wordmarks | `04_Wordmarks/horizontal-light-outlined.svg` and `horizontal-dark-outlined.svg` | `docs/images/brand/` |
+
+The outlined wordmarks use DejaVu Sans Bold glyph outlines. They do not require an installed font.
+The pack's [font copyright and license notice](images/brand/FONT_LICENSE.txt) is retained unchanged from `09_Source/FONT_LICENSE.txt`.
+It includes the Bitstream Vera permission notice, the public-domain DejaVu changes, and Debian packaging notices.
+No font program or pack build script is included.
+The supplied cube artwork replaces the earlier adapted OpenAI toolbar and plugin icons.
+The toolbar uses 40 loading frames from `08_Loading/SVG_Frames/`.
+Only their root width and height change from 32 to 16 logical pixels. Their vector geometry, colours, and viewBox stay unchanged.
+The plugin bundles these SVGs directly. It does not run the pack's browser code or build scripts.
+The release publisher must review the final artwork rights and notices before distribution.

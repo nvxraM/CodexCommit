@@ -8,6 +8,75 @@ It does not prove that the plugin has no risk.
 
 ## Current candidate
 
+Version 1.1.7 uses the supplied cube artwork in the plugin, toolbar, README, and new screenshots.
+Static icons and wordmarks are SVGs. The toolbar uses 40 local vector frames at 16 logical pixels.
+Only the active toolbar button and the GitHub usage demo animate. The Overview picture stays static.
+The source frame geometry and colours match the supplied pack. Only logical width and height change.
+All 245 supplied checksum entries matched. Static SVGs contain no scripts, external links, or active animation nodes.
+The original font notice is retained with the outlined wordmarks.
+
+| Suite | Passed | Failed | Skipped |
+| --- | --- | --- | --- |
+| Core and credential boundaries | 32 | 0 | 0 |
+| Git, selection, screenshot, and animation boundaries | 33 | 0 | 0 |
+| Source archive guard | 33 | 0 | 0 |
+| Plugin archive and metadata guard | 44 | 0 | 0 |
+| Total | 142 | 0 | 0 |
+
+The Linux Gradle check, build, structure check, and project configuration check passed.
+The official Plugin Verifier 1.410 reports Compatible with `PY-262.10968.92`, offline.
+The offline helper compiled the same source, passed all 65 core and IDE tests, and audited its package.
+The existing supported-build warning remains. Future IDE versions have no acceptance result.
+The disabled ordinary JUnit and searchable settings tasks are not counted as passed tests.
+
+Native checks used an isolated PyCharm 2026.2.3 profile, synthetic files, and a local test backend.
+The exact final ZIP loaded with the normal default motion settings.
+A real mouse click selected three tracked files and started generation. The disabled icon stayed coloured and animated.
+The draft contained a short subject and two bullets. No request or draft dialog opened. Completion stopped the timer.
+Cancellation stopped it too. Hiding the Commit window stopped it; showing the window restored it during the same job.
+Power save and screen reader modes kept the logo static.
+Turning either mode off resumed the same active job without a forced repaint or a direct helper refresh.
+
+The exact final ZIP also passed responsive Overview checks: 351 × 74 narrow, 409 × 86 default, and 670 × 141 wide.
+All four Additional Info links appeared. Another plugin retained its native renderer and had no owned links.
+Returning to CodexCommit restored the links. A real mouse click opened the full-screen viewer; Esc closed it.
+SDK removal passed with both generation and the viewer active. It stopped the timer, closed the viewer,
+removed the Overview observer and screen reader listener, and restored the original editor kit.
+Both owned listener counts changed from one to zero.
+
+Native testing caught an incorrect tool-window animation preference gate and two policy-resume gaps before release.
+The final code uses the actual screen reader change event and normal busy-action updates for power save.
+The new public-API regression tests screen reader stop, resume, and cleanup.
+The coalesced 80 ms timer does no idle polling. Disposal removes the owned policy listener.
+
+The new captures use native four-times pixel density, without upscaling:
+
+- Button and tooltip: 2200 × 464 PNG.
+- Sample draft: 1824 × 1412 PNG.
+- Usage demo: 3840 × 2160 lossless WebP, 229,364 bytes, 10.001 seconds.
+
+The demo contains 30 optimized frames and 15 distinct toolbar states. Its final draft pause lasts 2.001 seconds.
+The Overview embeds the exact static button PNG and bundles the same bytes for its full-screen viewer.
+Archive guards require all 40 approved frames and compare packaged SVG and PNG bytes with source.
+Only the named usage demo gets a 24 MiB source-file limit. Other source files retain the 2 MiB limit.
+
+Native Markdown preview created one empty JCEF directory in the cached SDK.
+All 12,567 SDK regular files matched the original archive by SHA-256.
+The empty generated directory was removed after shutdown. The final Gradle check passed with cache integrity restored.
+Later native checks use a separate runtime SDK copy.
+
+The source snapshot contains 104 approved files and byte-matches the reviewed tree.
+Gitleaks 8.30.1 found no leaks in that snapshot, the unpacked final plugin JAR, or reachable Git history.
+
+These checks do not test real account responses or prove classloader garbage collection.
+They do not certify zero risk or formal STE conformity.
+
+The final ZIP has SHA-256:
+
+`ab104a32a755e9b296d9534ff14336844b6d40c2c565a87943c7dcc407693b56`
+
+## Initial 1.1.7 UI candidate (superseded)
+
 Version 1.1.7 uses three short Overview bullets and a responsive button picture.
 Clicking the preview opens the bundled picture in an owned, full-screen window. Esc closes it.
 Additional Info links to GitHub, the user guide, the MIT license, and privacy information.

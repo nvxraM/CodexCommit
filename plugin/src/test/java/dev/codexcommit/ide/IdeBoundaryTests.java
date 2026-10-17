@@ -8,6 +8,7 @@ import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.openapi.vcs.ex.ExclusionState;
 import com.intellij.openapi.vcs.ex.PartialLocalLineStatusTracker;
 import com.intellij.openapi.vcs.history.VcsRevisionNumber;
+import com.intellij.util.ui.accessibility.ScreenReader;
 import java.awt.Color;
 import java.awt.Insets;
 import java.awt.Rectangle;
@@ -258,9 +259,155 @@ public final class IdeBoundaryTests {
                 rejects(() -> ChangeSnapshot.checkPartial(change, tracker(true, List.of("other"), false, ExclusionState.ALL_INCLUDED)));
             });
             screenshotLayoutTests();
+            toolbarAnimationTests();
             symlinkTest();
             System.out.println("IDE boundary tests: " + passed + " passed, 0 failed, " + skipped + " skipped. Synthetic local fixtures only; no model request.");
         } finally { cleanup(); }
+    }
+
+    private static void toolbarAnimationTests() throws Exception {
+        test("toolbar animation stays idle without a visible target or complete frames", () -> SwingUtilities.invokeAndWait(() -> {
+            var busy = new java.util.concurrent.atomic.AtomicBoolean(false);
+            var clock = new java.util.concurrent.atomic.AtomicLong(1_000_000_000L);
+            var animation = new ToolbarAnimation(solidIcon(Color.RED), animationFrames(), busy::get, () -> true, clock::get);
+            var target = new AnimationTarget();
+            try {
+                animation.refresh();
+                require(!animation.isRunning() && animation.frameIndex(clock.get()) == -1, "Idle animation started a timer.");
+                busy.set(true);
+                animation.refresh();
+                require(!animation.isRunning(), "Animation started without a visible painted target.");
+                target.showing = false;
+                require(paintAnimation(animation, target) == Color.RED.getRGB() && !animation.isRunning(), "Hidden toolbar target animated.");
+                require(animation.getIconWidth() == 16 && animation.getIconHeight() == 16, "Animation changed toolbar icon dimensions.");
+            } finally { animation.dispose(); }
+            var missingFrames = new ToolbarAnimation(solidIcon(Color.RED), new javax.swing.Icon[0], () -> true, () -> true, clock::get);
+            try {
+                target.showing = true;
+                require(paintAnimation(missingFrames, target) == Color.RED.getRGB() && !missingFrames.isRunning(), "Missing animation frames did not retain the static icon.");
+            } finally { missingFrames.dispose(); }
+        }));
+        test("toolbar animation follows elapsed time and wraps its loop without restarting on refresh", () -> SwingUtilities.invokeAndWait(() -> {
+            long start = 1_000_000_000L;
+            var clock = new java.util.concurrent.atomic.AtomicLong(start);
+            var animation = new ToolbarAnimation(solidIcon(Color.RED), animationFrames(), () -> true, () -> true, clock::get);
+            var target = new AnimationTarget();
+            try {
+                require(paintAnimation(animation, target) == new Color(10, 40, 100).getRGB() && animation.isRunning(), "Busy visible toolbar did not paint its first frame.");
+                require(animation.frameIndex(start + 79_999_999L) == 0 && animation.frameIndex(start + 80_000_000L) == 1,
+                        "Animation frame boundary differs from the supplied 80 ms timing.");
+                clock.set(start + 80_000_000L);
+                animation.refresh();
+                require(animation.frameIndex(clock.get()) == 1 && paintAnimation(animation, target) == new Color(11, 40, 100).getRGB(), "Refreshing a running animation reset its progress or painted the wrong frame.");
+                require(animation.frameIndex(start + 3_199_999_999L) == 39 && animation.frameIndex(start + 3_200_000_000L) == 0,
+                        "Animation does not wrap the 40-frame, 3.2-second loop.");
+            } finally { animation.dispose(); }
+        }));
+        test("motion policy keeps the static toolbar icon and stops an active timer", () -> SwingUtilities.invokeAndWait(() -> {
+            var motion = new java.util.concurrent.atomic.AtomicBoolean(false);
+            var animation = new ToolbarAnimation(solidIcon(Color.RED), animationFrames(), () -> true, motion::get, () -> 1_000_000_000L);
+            var target = new AnimationTarget();
+            try {
+                require(paintAnimation(animation, target) == Color.RED.getRGB() && !animation.isRunning(), "A disabled motion policy started an animation.");
+                motion.set(true);
+                animation.refresh();
+                require(animation.isRunning(), "Enabling motion did not start the visible busy icon.");
+                motion.set(false);
+                animation.refresh();
+                require(!animation.isRunning() && paintAnimation(animation, target) == Color.RED.getRGB(), "Disabling motion did not stop the timer and restore the static icon.");
+            } finally { animation.dispose(); }
+        }));
+        test("screen reader changes stop and resume the same busy icon without repaint or refresh calls", () -> SwingUtilities.invokeAndWait(() -> {
+            boolean originalScreenReader = ScreenReader.isActive();
+            var animation = new ToolbarAnimation(solidIcon(Color.RED), animationFrames(), () -> true,
+                    () -> !ScreenReader.isActive(), () -> 1_000_000_000L);
+            var target = new AnimationTarget();
+            try {
+                ScreenReader.setActive(false);
+                animation.attachScreenReaderPolicyListener();
+                animation.attachScreenReaderPolicyListener();
+                paintAnimation(animation, target);
+                require(animation.isRunning(), "Initial busy icon did not animate.");
+                int repaintsBeforePolicy = target.repaints;
+                ScreenReader.setActive(true);
+                require(!animation.isRunning() && animation.frameIndex(1_000_000_000L) == -1
+                        && target.repaints > repaintsBeforePolicy, "Screen reader activation did not stop and repaint the busy icon.");
+                repaintsBeforePolicy = target.repaints;
+                ScreenReader.setActive(false);
+                require(animation.isRunning() && target.repaints > repaintsBeforePolicy,
+                        "The same busy job did not resume when the screen reader was disabled.");
+                animation.dispose();
+                int repaintsAfterDisposal = target.repaints;
+                animation.attachScreenReaderPolicyListener();
+                ScreenReader.setActive(true);
+                ScreenReader.setActive(false);
+                require(!animation.isRunning() && target.repaints == repaintsAfterDisposal,
+                        "Disposed screen reader registration restarted animation or retained repaint work.");
+            } finally {
+                try { animation.dispose(); }
+                finally { ScreenReader.setActive(originalScreenReader); }
+            }
+        }));
+        test("job completion hidden targets and disposal stop toolbar animation and further repaints", () -> SwingUtilities.invokeAndWait(() -> {
+            var busy = new java.util.concurrent.atomic.AtomicBoolean(true);
+            var animation = new ToolbarAnimation(solidIcon(Color.RED), animationFrames(), busy::get, () -> true, () -> 1_000_000_000L);
+            var target = new AnimationTarget();
+            try {
+                paintAnimation(animation, target);
+                require(animation.isRunning(), "Visible busy icon did not start.");
+                busy.set(false);
+                animation.refresh();
+                require(!animation.isRunning() && animation.frameIndex(2_000_000_000L) == -1, "Completed job kept animating.");
+                busy.set(true);
+                animation.refresh();
+                require(animation.isRunning(), "A new busy job did not restart its visible icon.");
+                target.showing = false;
+                animation.refresh();
+                require(!animation.isRunning(), "Hidden target kept its timer alive.");
+                target.showing = true;
+                animation.refresh();
+                require(!animation.isRunning(), "A removed hidden target was retained for animation.");
+                paintAnimation(animation, target);
+                require(animation.isRunning(), "Visible repaint did not reattach the target.");
+                animation.dispose();
+                int repaintCount = target.repaints;
+                animation.refresh();
+                require(paintAnimation(animation, target) == Color.RED.getRGB() && !animation.isRunning()
+                        && target.repaints == repaintCount, "Disposed animation restarted or retained a repaint target.");
+            } finally { animation.dispose(); }
+        }));
+    }
+
+    private static final class AnimationTarget extends javax.swing.JComponent {
+        private boolean showing = true;
+        private int repaints;
+        @Override public boolean isShowing() { return showing; }
+        @Override public void repaint() { repaints++; }
+    }
+
+    private static javax.swing.Icon solidIcon(Color color) {
+        return new javax.swing.Icon() {
+            @Override public int getIconWidth() { return 16; }
+            @Override public int getIconHeight() { return 16; }
+            @Override public void paintIcon(java.awt.Component component, java.awt.Graphics graphics, int x, int y) {
+                graphics.setColor(color);
+                graphics.fillRect(x, y, getIconWidth(), getIconHeight());
+            }
+        };
+    }
+
+    private static javax.swing.Icon[] animationFrames() {
+        var frames = new javax.swing.Icon[40];
+        for (int index = 0; index < frames.length; index++) frames[index] = solidIcon(new Color(10 + index, 40, 100));
+        return frames;
+    }
+
+    private static int paintAnimation(ToolbarAnimation animation, AnimationTarget target) {
+        var image = new BufferedImage(24, 24, BufferedImage.TYPE_INT_ARGB);
+        var graphics = image.createGraphics();
+        try { animation.paintIcon(target, graphics, 3, 4); }
+        finally { graphics.dispose(); }
+        return image.getRGB(4, 5);
     }
 
     private static void screenshotLayoutTests() throws Exception {

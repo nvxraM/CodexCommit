@@ -14,6 +14,10 @@ Run build and publication commands from `plugin/`.
 4. Update What's New for every version. Match its version to `gradle.properties` and the plugin descriptor. Include only changes for that version. Use at most three bullets and 60 words. Keep older changes in `docs/CHANGELOG.md`. Check the bundled Overview button image in the final JAR.
    Check the preview at narrow and wide widths. Click it to open full screen, then close it with Esc.
    Check the Additional Info links. Switch to another plugin and back. Check listener cleanup during removal.
+   Check the new static logo in light and dark themes. Use the unchanged default IDE settings to check button animation.
+   Check its coloured loading state, completion, cancellation, hidden toolbar, power save, screen reader mode, and removal.
+   Turn power save and screen reader modes off during the same active job. Check that motion resumes without a forced repaint.
+   Keep the Overview image static. Update the high-resolution GitHub demo with only sample data.
 5. Run the full core tests, `verifyPluginProjectConfiguration`, `verifyPluginStructure`, and official Plugin Verifier against every claimed IDE target. Keep the supported build range bounded; do not declare compatibility with unreleased platforms merely to avoid future update work.
 6. In an isolated IDE sandbox, test install, one-click generation using a harmless synthetic diff, cancellation, timeout, partial-selection refusal, stale changes, typed-message preservation, project close, and dynamic unload/reload. Test Windows, macOS, and Linux before claiming those platforms work. A descriptor/verifier pass is not a live dynamic-unload test.
 7. Run a release archive/source scan. Confirm there are no private source files, absolute personal paths, credentials, authentication files, local IDE data, compiled tests, CLI/runtime binaries, logs, or build caches in the release. Inspect both the ZIP and its inner JAR. Record the SHA-256 and the exact source revision separately.

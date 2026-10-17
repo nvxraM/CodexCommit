@@ -44,6 +44,11 @@ Use a different integration if your account needs these settings.
 5. Wait for the draft in the commit message field.
 6. Examine or edit the draft. Make the commit yourself.
 
+The button animates while generation runs. Power save and screen reader modes keep it static.
+The animation stops when the request ends or the toolbar is hidden.
+
+[View the button](images/generate-button.png) · [View a sample draft](images/commit-message.png)
+
 The request runs in the background. No request or draft dialog opens.
 The button sends the selected source patch and fixed instructions to OpenAI through your Codex CLI account.
 The request includes filenames, code, and comments. It can include secrets that the automatic checks do not find.

@@ -12,6 +12,11 @@ The viewer reads only the fixed, bundled PNG. Help links open their fixed URLs w
 Cleanup removes the UI listeners and restores the original description renderer.
 The Overview image loads without a network request.
 Release checks reject stale version notes, oversized notes, and changed screenshot bytes.
+The new cube icons and 40 loading frames use local SVG geometry with no scripts or external references.
+The toolbar's coalesced timer runs only during a visible active job. Completion, hiding, and disposal stop it.
+Power save and screen reader modes use the static icon. The plugin does not run the asset pack's browser code.
+The accessibility preference listener observes only screen reader state. Disposal removes its registration.
+Only the toolbar button and the sample GitHub usage demo animate. The Overview picture stays static.
 Generation retains one-click operation. The button sends the selected patch without another confirmation.
 It puts the draft directly in the commit message field. It retains content checks and stale-result protection.
 Examine selected changes before using the button. Examine the message before committing.
