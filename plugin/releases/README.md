@@ -1,9 +1,10 @@
 # Candidate ZIP
 
-This directory contains the CodexCommit 1.1.6 candidate ZIP.
+This directory contains the CodexCommit 1.1.7 candidate ZIP.
 
-- Show the Commit button in the plugin Overview.
-- Keep What's New short and specific to this version.
+- Use short Overview bullets and a larger button picture.
+- Click the picture to view full screen. Resize the preview with the panel.
+- Add GitHub, usage, license, and privacy links to Additional Info.
 
 One click fills the commit message field with a short draft.
 Workspace XML contents stay out of generation.

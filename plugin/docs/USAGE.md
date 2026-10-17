@@ -132,7 +132,7 @@ It does not install the local plugin or sign in to your local Codex CLI.
 After the update, check the Codex path in **Settings > Tools > CodexCommit**.
 Version 1.1.2 introduced a new settings file. Set a custom executable path again if you update from an older version.
 
-Download the [version 1.1.6 ZIP](https://github.com/nvxraM/CodexCommit/blob/v1.1.6/plugin/releases/CodexCommit-1.1.6.zip?raw=true).
+Download the [version 1.1.7 ZIP](https://github.com/nvxraM/CodexCommit/blob/v1.1.7/plugin/releases/CodexCommit-1.1.7.zip?raw=true).
 The release and the source repository contain its [SHA-256 value](../releases/SHA256SUMS).
 You can also build the ZIP from the source code.
 

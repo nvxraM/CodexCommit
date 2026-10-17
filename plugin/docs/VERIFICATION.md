@@ -1,12 +1,58 @@
 # Verification record
 
 Date: 17 October 2026.
-Version: 1.1.6.
+Version: 1.1.7.
 
 This record separates software tests from language review.
 It does not prove that the plugin has no risk.
 
 ## Current candidate
+
+Version 1.1.7 uses three short Overview bullets and a responsive button picture.
+Clicking the preview opens the bundled picture in an owned, full-screen window. Esc closes it.
+Additional Info links to GitHub, the user guide, the MIT license, and privacy information.
+The image bytes are the original GitHub screenshot.
+
+| Suite | Passed | Failed | Skipped |
+| --- | --- | --- | --- |
+| Core and credential boundaries | 32 | 0 | 0 |
+| Git, selection, and screenshot boundaries | 28 | 0 | 0 |
+| Source archive guard | 25 | 0 | 0 |
+| Plugin archive and metadata guard | 39 | 0 | 0 |
+| Total | 124 | 0 | 0 |
+
+The Linux Gradle check, build, structure check, and project configuration check passed.
+The official Plugin Verifier 1.410 reports Compatible with `PY-262.10968.92`, offline.
+The existing supported-build warning remains. Future IDE versions have no acceptance result.
+The ordinary JUnit and searchable settings tasks remain disabled and are not counted as passed tests.
+
+Five new headless screenshot checks cover landscape and portrait fits, invalid dimensions, actual grow/shrink painting,
+and PNG decoding with exact pixel checks and malformed input rejection.
+Native testing found a double-close error in the first candidate's image loader. The final decoder uses an explicit image reader.
+The decoder regression now exercises that code path.
+The bundle includes the PNG for the viewer. The release audit compares it to the original documentation image.
+
+An isolated PyCharm 2026.2.3 profile loaded the exact final candidate through its normal startup listeners.
+The preview measured 407 × 86 at the default width, 669 × 141 when wide, and 350 × 74 when narrow.
+A real mouse click opened the native full-screen viewer. A real Esc key closed it and preserved the Plugins dialog.
+Additional Info showed four help links. Another installed plugin showed no owned links and retained the SDK renderer.
+Returning directly to CodexCommit's Additional Info restored the four links. Returning to Overview restored the responsive preview.
+No test UrlOpener or browser preference override was active in these final checks.
+
+The SDK accepted dynamic removal while the full-screen viewer was open.
+Removal closed the viewer, restored the SDK editor kit, removed all four help links and preview components,
+and left zero owned AWT observers. This check does not cover active Codex generation or prove classloader garbage collection.
+
+The offline helper also compiled the project, passed its 60 core and IDE tests, and audited its package.
+The source archive contains 57 approved files.
+Gitleaks 8.30.1 found no leaks in the reviewed source snapshot, unpacked plugin JAR, or reachable history.
+Real account responses and active-generation unload remain outside this release's UI checks.
+
+The final ZIP has SHA-256:
+
+`86eb99fba76da345f292e7c3deda63e89c0eb83f92b88cfb7eacaf065addde26`
+
+## Previous 1.1.6 candidate
 
 Version 1.1.6 adds the existing button screenshot to the plugin Overview.
 The descriptor embeds the original PNG bytes. The image needs no image-host request or GitHub login.
@@ -371,7 +417,7 @@ cd plugin
 .\tools\build-local.ps1 -IdeHome 'PATH_TO_YOUR_IDE'
 java tools/SourceArchive.java --self-test
 java tools/ReleaseAudit.java --self-test
-java tools/ReleaseAudit.java build/distributions/CodexCommit-1.1.6.zip
+java tools/ReleaseAudit.java build/distributions/CodexCommit-1.1.7.zip
 ```
 
 The `check` task uses the `coreTest` and `ideBoundaryTest` programs.
@@ -394,8 +440,8 @@ This is a recorded configuration warning.
 
 ## Language review
 
-The description file, first XML description paragraph, and first README paragraph contain the same 50 words.
-HTML line breaks preserve that text in the Overview.
+The description file and first README paragraph contain the same 50 words.
+The Overview uses the shorter action bullets requested for version 1.1.7.
 The README uses the project rules based on ASD-STE100.
 The full official dictionary was not available for this review.
 Formal STE conformity is not certified.

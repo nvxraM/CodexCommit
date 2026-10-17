@@ -17,9 +17,9 @@ Use short sentences, the active voice, and one instruction per sentence.
 Use the glossary terms consistently.
 
 Keep `docs/DESCRIPTION.md` at exactly 50 words.
-Use the same text in the first XML product description paragraph and the first description paragraph of `../README.md`.
+Use the same text in the first description paragraph of `../README.md`.
 Count words as groups of non-whitespace characters.
-Remove HTML tags and normalize whitespace before you compare the XML paragraph.
+Keep the plugin Overview separate. Use three short action bullets, the responsive picture, and brief help links.
 Keep the Overview button image embedded in the descriptor so it works offline.
 Use the exact bytes from `docs/images/generate-button.png`.
 

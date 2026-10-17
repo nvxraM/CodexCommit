@@ -30,12 +30,13 @@ One click. No review windows. The prompt requests a short subject and 1–3 brie
 Keep `.idea/workspace.xml` checked if needed. Its contents stay out of generation.
 
 Screens use sample data. Select the draft image to enlarge it.
+In the plugin Overview, click the picture to view it full screen.
 The button sends selected code to OpenAI. Check for private data and secrets first.
 Requests can use quota or incur charges. Cancel from the IDE background task control.
 
 ## Manual install
 
-1. [Download version 1.1.6](https://github.com/nvxraM/CodexCommit/blob/v1.1.6/plugin/releases/CodexCommit-1.1.6.zip?raw=true).
+1. [Download version 1.1.7](https://github.com/nvxraM/CodexCommit/blob/v1.1.7/plugin/releases/CodexCommit-1.1.7.zip?raw=true).
 2. In PyCharm, open **Settings → Plugins → ⚙ → Install Plugin from Disk**.
 3. Select the ZIP. Restart the IDE if requested.
 

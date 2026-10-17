@@ -8,6 +8,10 @@ import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.openapi.vcs.ex.ExclusionState;
 import com.intellij.openapi.vcs.ex.PartialLocalLineStatusTracker;
 import com.intellij.openapi.vcs.history.VcsRevisionNumber;
+import java.awt.Color;
+import java.awt.Insets;
+import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
 import java.lang.reflect.Proxy;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -22,6 +26,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import javax.swing.BorderFactory;
+import javax.swing.SwingUtilities;
 
 /** Account-free regressions. Every Git mutation below is confined to a newly created synthetic directory. */
 public final class IdeBoundaryTests {
@@ -251,9 +257,111 @@ public final class IdeBoundaryTests {
                 rejects(() -> ChangeSnapshot.checkPartial(change, tracker(true, List.of("selected"), false, ExclusionState.ALL_EXCLUDED)));
                 rejects(() -> ChangeSnapshot.checkPartial(change, tracker(true, List.of("other"), false, ExclusionState.ALL_INCLUDED)));
             });
+            screenshotLayoutTests();
             symlinkTest();
             System.out.println("IDE boundary tests: " + passed + " passed, 0 failed, " + skipped + " skipped. Synthetic local fixtures only; no model request.");
         } finally { cleanup(); }
+    }
+
+    private static void screenshotLayoutTests() throws Exception {
+        test("screenshot decoder returns complete PNG pixels and rejects malformed image streams", () -> {
+            BufferedImage original = new BufferedImage(3, 2, BufferedImage.TYPE_INT_ARGB);
+            int[] pixels = {Color.RED.getRGB(), Color.GREEN.getRGB(), Color.BLUE.getRGB(), 0x80402010, 0xff345678, 0xfffefdfc};
+            original.setRGB(0, 0, 3, 2, pixels, 0, 3);
+            var output = new java.io.ByteArrayOutputStream();
+            require(javax.imageio.ImageIO.write(original, "PNG", output), "Synthetic PNG writer is unavailable.");
+            byte[] png = output.toByteArray();
+            BufferedImage decoded = ScreenshotViewer.decode(new java.io.ByteArrayInputStream(png));
+            require(decoded.getWidth() == 3 && decoded.getHeight() == 2
+                    && java.util.Arrays.equals(pixels, decoded.getRGB(0, 0, 3, 2, null, 0, 3)), "Screenshot decoding changed dimensions or pixels.");
+            rejects(() -> ScreenshotViewer.decode(new java.io.ByteArrayInputStream(new byte[]{'n', 'o', 't', '-', 'p', 'n', 'g'})));
+            rejects(() -> ScreenshotViewer.decode(new java.io.ByteArrayInputStream(java.util.Arrays.copyOf(png, 12))));
+        });
+        test("screenshot fits wide and narrow viewports without clipping or distortion", () -> {
+            Rectangle wide = ScreenshotViewer.fit(1000, 600, 1100, 232);
+            Rectangle narrow = ScreenshotViewer.fit(280, 500, 1100, 232);
+            checkImageFit(wide, 1000, 600, 1100, 232);
+            checkImageFit(narrow, 280, 500, 1100, 232);
+            require(wide.width > narrow.width && wide.height > narrow.height, "Screenshot did not shrink with the viewport.");
+        });
+        test("portrait and exact-size screenshots stay centred and fully visible", () -> {
+            Rectangle portrait = ScreenshotViewer.fit(1200, 600, 240, 960);
+            checkImageFit(portrait, 1200, 600, 240, 960);
+            require(portrait.height > portrait.width && portrait.x > 0 && portrait.y == 0, "Portrait screenshot did not fit the available height.");
+            Rectangle exact = ScreenshotViewer.fit(311, 177, 311, 177);
+            require(exact.equals(new Rectangle(0, 0, 311, 177)), "Exact-size screenshot changed its size or position.");
+        });
+        test("empty viewports and invalid screenshot dimensions have no drawable bounds", () -> {
+            for (int[] dimensions : List.of(new int[]{0, 100, 80, 40}, new int[]{100, 0, 80, 40},
+                    new int[]{-1, 100, 80, 40}, new int[]{100, -1, 80, 40},
+                    new int[]{100, 100, 0, 40}, new int[]{100, 100, 80, 0}, new int[]{100, 100, -1, 40})) {
+                Rectangle bounds = ScreenshotViewer.fit(dimensions[0], dimensions[1], dimensions[2], dimensions[3]);
+                require(bounds.isEmpty() && bounds.x == 0 && bounds.y == 0, "Invalid viewport produced drawable screenshot bounds.");
+            }
+        });
+        test("painted screenshot follows viewport resizing and preserves every image corner inside its insets", () -> {
+            SwingUtilities.invokeAndWait(() -> {
+                BufferedImage picture = new BufferedImage(160, 80, BufferedImage.TYPE_INT_RGB);
+                var source = picture.createGraphics();
+                try {
+                    source.setColor(Color.WHITE);
+                    source.fillRect(0, 0, 160, 80);
+                    source.setColor(Color.RED);
+                    source.fillRect(0, 0, 12, 12);
+                    source.setColor(Color.GREEN);
+                    source.fillRect(148, 0, 12, 12);
+                    source.setColor(Color.BLUE);
+                    source.fillRect(0, 68, 12, 12);
+                    source.setColor(Color.YELLOW);
+                    source.fillRect(148, 68, 12, 12);
+                } finally { source.dispose(); }
+                var panel = new ScreenshotViewer.ImagePanel(picture);
+                panel.setBorder(BorderFactory.createEmptyBorder(7, 11, 13, 17));
+                Rectangle small = checkPaintedImage(panel, 240, 180, 160, 80);
+                Rectangle grown = checkPaintedImage(panel, 640, 360, 160, 80);
+                Rectangle shrunk = checkPaintedImage(panel, 200, 320, 160, 80);
+                require(grown.width > small.width && grown.height > small.height
+                        && shrunk.width < small.width && shrunk.height < small.height, "Painted image did not grow and shrink with the viewport.");
+            });
+        });
+    }
+
+    private static void checkImageFit(Rectangle bounds, int width, int height, int pictureWidth, int pictureHeight) {
+        require(bounds.width > 0 && bounds.height > 0 && new Rectangle(0, 0, width, height).contains(bounds), "Screenshot leaves the viewport.");
+        require(Math.abs(bounds.x - (width - bounds.x - bounds.width)) <= 1
+                && Math.abs(bounds.y - (height - bounds.y - bounds.height)) <= 1, "Screenshot is not centred.");
+        require(bounds.width == width || bounds.height == height, "Screenshot wastes space on both axes.");
+        long aspectError = Math.abs((long) bounds.width * pictureHeight - (long) bounds.height * pictureWidth);
+        require(aspectError <= Math.max(pictureWidth, pictureHeight), "Screenshot aspect ratio changed beyond pixel rounding.");
+    }
+
+    private static Rectangle checkPaintedImage(ScreenshotViewer.ImagePanel panel, int width, int height, int pictureWidth, int pictureHeight) {
+        panel.setSize(width, height);
+        BufferedImage painted = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        var graphics = painted.createGraphics();
+        try { panel.paint(graphics); }
+        finally { graphics.dispose(); }
+        int minimumX = width, minimumY = height, maximumX = -1, maximumY = -1;
+        for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
+            if (painted.getRGB(x, y) != panel.getBackground().getRGB()) {
+                minimumX = Math.min(minimumX, x);
+                minimumY = Math.min(minimumY, y);
+                maximumX = Math.max(maximumX, x);
+                maximumY = Math.max(maximumY, y);
+            }
+        }
+        require(maximumX >= minimumX && maximumY >= minimumY, "Screenshot was not painted.");
+        Rectangle bounds = new Rectangle(minimumX, minimumY, maximumX - minimumX + 1, maximumY - minimumY + 1);
+        Insets insets = panel.getInsets();
+        checkImageFit(new Rectangle(bounds.x - insets.left, bounds.y - insets.top, bounds.width, bounds.height),
+                width - insets.left - insets.right, height - insets.top - insets.bottom, pictureWidth, pictureHeight);
+        int offset = Math.max(1, Math.min(bounds.width, bounds.height) / 40);
+        require(painted.getRGB(bounds.x + offset, bounds.y + offset) == Color.RED.getRGB()
+                && painted.getRGB(bounds.x + bounds.width - 1 - offset, bounds.y + offset) == Color.GREEN.getRGB()
+                && painted.getRGB(bounds.x + offset, bounds.y + bounds.height - 1 - offset) == Color.BLUE.getRGB()
+                && painted.getRGB(bounds.x + bounds.width - 1 - offset, bounds.y + bounds.height - 1 - offset) == Color.YELLOW.getRGB(),
+                "Resizing clipped or changed an image corner.");
+        return bounds;
     }
 
     private static String filenameFailure(Path relative) throws Exception {

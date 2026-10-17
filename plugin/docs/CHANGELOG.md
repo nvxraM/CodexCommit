@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7 — clearer plugin Overview
+
+- Use short Overview bullets and a larger button picture.
+- Click the picture to view full screen. Resize the preview with the panel.
+- Add GitHub, usage, license, and privacy links to Additional Info.
+
 ## 1.1.6 — plugin details
 
 - Show the Commit button in the plugin Overview.

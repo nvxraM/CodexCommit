@@ -60,6 +60,7 @@ public final class LocalBuild {
             addDirectory(zip, classes, "");
             addDirectory(zip, root.resolve("src/main/resources"), "");
             add(zip, license, "META-INF/LICENSE");
+            add(zip, root.resolve("docs/images/generate-button.png"), "images/generate-button.png");
         }
         Path distribution = output.resolve("CodexCommit-" + version + ".zip");
         try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(distribution))) {

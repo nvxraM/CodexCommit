@@ -17,7 +17,7 @@ import org.xml.sax.helpers.DefaultHandler;
 /** Account-free check of what will be distributed. Not a vulnerability scanner or legal clearance. */
 public final class ReleaseAudit {
     private static final Set<String> RESOURCES = Set.of("META-INF/plugin.xml", "META-INF/MANIFEST.MF", "META-INF/LICENSE",
-            "META-INF/pluginIcon.svg", "icons/codexcommit.svg");
+            "META-INF/pluginIcon.svg", "icons/codexcommit.svg", "images/generate-button.png");
     private static final byte[] PNG_SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', 13, 10, 26, 10};
     static boolean allowed(String path) {
         return RESOURCES.contains(path) || path.matches("dev/codexcommit/(core|ide)/[A-Za-z0-9_$]+\\.class");
@@ -70,6 +70,8 @@ public final class ReleaseAudit {
         String name = outer.keySet().iterator().next();
         if (!name.matches("CodexCommit/lib/[^/]+\\.jar")) throw new IOException("Unexpected distribution layout: " + name);
         Map<String, byte[]> inner = unzip(outer.get(name));
+        if (!Arrays.equals(inner.get("images/generate-button.png"), buttonPng))
+            throw new IOException("The bundled viewer image differs from the current button screenshot.");
         if (!inner.containsKey("META-INF/plugin.xml")) throw new IOException("Missing descriptor.");
         boolean actionFound = false;
         for (var entry : inner.entrySet()) {

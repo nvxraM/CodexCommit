@@ -5,7 +5,12 @@ Date: 15 October 2026.
 This audit covers CodexCommit 1.1.0. It covers the source, build tools, release files, and the Codex CLI 0.160.1 interface. It does not certify that the software has no risk. It does not certify compliance with the ASD-STE100 dictionary.
 
 
-Version 1.1.6 embeds the button screenshot in the plugin Overview. The image loads without a network request.
+Version 1.1.7 adds a responsive screenshot and a full-screen viewer.
+The UI enhancement identifies the marked CodexCommit description through Swing component metadata.
+Its global listener observes component layout events, not keyboard or mouse input.
+The viewer reads only the fixed, bundled PNG. Help links open their fixed URLs when clicked.
+Cleanup removes the UI listeners and restores the original description renderer.
+The Overview image loads without a network request.
 Release checks reject stale version notes, oversized notes, and changed screenshot bytes.
 Generation retains one-click operation. The button sends the selected patch without another confirmation.
 It puts the draft directly in the commit message field. It retains content checks and stale-result protection.

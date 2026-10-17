@@ -66,9 +66,9 @@ Keep code identifiers exact. Examples are `CODEX_HOME`, `CODEXCOMMIT_IDE_HOME`, 
 ## Description length
 
 Keep `docs/DESCRIPTION.md` at exactly 50 words.
-Use the same text in the first XML product description paragraph and the first description paragraph of the root `README.md`.
+Use the same text in the first description paragraph of the root `README.md`.
 Count words as groups of non-whitespace characters.
-Remove HTML tags and normalize whitespace before you compare the XML paragraph.
+Keep the plugin Overview separate. Use three short action bullets, the responsive picture, and brief help links.
 Do not include a heading in `docs/DESCRIPTION.md`.
 
 ## Before a release
@@ -77,5 +77,5 @@ Do not include a heading in `docs/DESCRIPTION.md`.
 2. Examine the sentences against this guide.
 3. Examine the terms against the glossary.
 4. Count the words in the product description.
-5. Confirm that all three description copies match.
+5. Confirm that the description file and first README paragraph match. Check the brief Overview separately.
 6. Record any formal STE review separately from software tests.
