@@ -11,6 +11,8 @@ public final class LocalBuild {
     public static void main(String[] args) throws Exception {
         if (args.length != 2) throw new IllegalArgumentException("Usage: java tools/LocalBuild.java <project-root> <IDE-home>");
         Path root = Path.of(args[0]).toRealPath();
+        Path license = root.resolve("../LICENSE").normalize();
+        if (!Files.isRegularFile(license, LinkOption.NOFOLLOW_LINKS)) throw new IOException("Required repository LICENSE is unavailable.");
         Path ide = Path.of(args[1]).toRealPath();
         if (!Files.isRegularFile(ide.resolve("product-info.json"))) throw new IOException("Select an installed JetBrains IDE SDK.");
         Path output = root.resolve("build/local/" + System.currentTimeMillis());
@@ -46,8 +48,7 @@ public final class LocalBuild {
         try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(jar))) {
             addDirectory(zip, classes, "");
             addDirectory(zip, root.resolve("src/main/resources"), "");
-            Path license = root.resolve("LICENSE");
-            if (Files.isRegularFile(license)) add(zip, license, "META-INF/LICENSE");
+            add(zip, license, "META-INF/LICENSE");
         }
         Path distribution = output.resolve("CodexCommit-1.1.5.zip");
         try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(distribution))) {

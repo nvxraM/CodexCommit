@@ -13,18 +13,18 @@ Use a personal, unmanaged Codex account. The model follows your saved CLI settin
    > Help me install CodexCommit in PyCharm from github.com/nvxraM/CodexCommit.
 
 Codex guides setup. You install the ZIP in local PyCharm.
-Or use [manual installation](#manual-install) below. [Requirements](docs/USAGE.md#requirements).
+Or use [manual installation](#manual-install) below. [Requirements](plugin/docs/USAGE.md#requirements).
 
 ## Use
 
 1. Open **Commit**. Select complete tracked file changes in one changelist.
 2. Select the coloured **Generate Commit Message with CodexCommit** button.
 
-![The Codex button in the Commit tool window](docs/images/generate-button.png)
+![The Codex button in the Commit tool window](plugin/docs/images/generate-button.png)
 
 3. Wait for the draft in the commit message box. Edit it if necessary. Make the commit yourself.
 
-[![Short draft in the Commit message box](docs/images/commit-message.png)](docs/images/commit-message.png)
+[![Short draft in the Commit message box](plugin/docs/images/commit-message.png)](plugin/docs/images/commit-message.png)
 
 One click. No review windows. The prompt requests a short subject and 1–3 brief bullet points.
 Keep `.idea/workspace.xml` checked if needed. Its contents stay out of generation.
@@ -39,6 +39,6 @@ Requests can use quota or incur charges. Cancel from the IDE background task con
 2. In PyCharm, open **Settings → Plugins → ⚙ → Install Plugin from Disk**.
 3. Select the ZIP. Restart the IDE if requested.
 
-[User guide](docs/USAGE.md) · [Build](docs/BUILD.md) · [Privacy](docs/PRIVACY.md) · [Security](SECURITY.md) · [All guides](docs/README.md)
+[User guide](plugin/docs/USAGE.md) · [Build](plugin/docs/BUILD.md) · [Privacy](plugin/docs/PRIVACY.md) · [Security](.github/SECURITY.md) · [All guides](plugin/docs/README.md)
 
 Independent project. OpenAI and JetBrains do not endorse it. [MIT license](LICENSE).

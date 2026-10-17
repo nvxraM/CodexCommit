@@ -1,6 +1,6 @@
 # Writing guide
 
-Use this guide for the README, product descriptions, and release descriptions.
+Use this guide for the root README, product descriptions, and release descriptions.
 Use the same terms in the plugin UI when you change that UI.
 
 These project rules use ASD-STE100 Simplified Technical English as a reference.
@@ -66,7 +66,7 @@ Keep code identifiers exact. Examples are `CODEX_HOME`, `CODEXCOMMIT_IDE_HOME`, 
 ## Description length
 
 Keep `docs/DESCRIPTION.md` at exactly 50 words.
-Use the same text in the XML product description and the first description paragraph of `README.md`.
+Use the same text in the XML product description and the first description paragraph of the root `README.md`.
 Count words as groups of non-whitespace characters.
 Do not include a heading in `docs/DESCRIPTION.md`.
 

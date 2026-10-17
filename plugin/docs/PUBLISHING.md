@@ -6,6 +6,7 @@ The source uses the MIT license.
 No JetBrains Marketplace listing or release account has been created by this work.
 This checklist describes the additional Marketplace release steps.
 It does not promise that publication has no risk.
+Run build and publication commands from `plugin/`.
 
 1. Review the source, MIT license, CodexCommit name, icon attribution, privacy notice, security boundaries, and verification results. Confirm the name and retained `local.codex.commitmessage` plugin ID are available and you have the rights to distribute the final content. Rename/reserve the ID before a first public release if Marketplace reports a conflict.
 2. Choose your public publisher identity, valid contact email, website, source URL, and hosted privacy-policy URL. Fill the ignored `release.properties` from `docs/release.properties.example` and place the approved vendor/contact metadata into the final descriptor. The current generic contributor vendor is local-build metadata, not a completed Marketplace identity.

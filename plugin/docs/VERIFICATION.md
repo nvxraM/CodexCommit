@@ -6,6 +6,18 @@ Version: 1.1.5.
 This record separates software tests from language review.
 It does not prove that the plugin has no risk.
 
+## Repository layout — 17 October 2026
+
+The repository root has five entries: `.github`, `.gitignore`, `LICENSE`, `README.md`, and `plugin/`.
+The project, guides, build tools, and release copies are under `plugin/`.
+GitHub reads the security policy from `.github/SECURITY.md`.
+
+The Linux Gradle check, plugin build, structure check, and project configuration check passed from `plugin/`.
+All 89 local checks passed: 32 core, 23 IDE/Git, 25 source archive, and 9 plugin archive checks.
+The offline helper also compiled the project and passed its 55 core and IDE/Git checks.
+The rebuilt Gradle ZIP is byte-identical to the released 1.1.5 ZIP identified below.
+Production source, license text, screenshots, and the released ZIP are unchanged.
+
 ## Current candidate
 
 Version 1.1.5 accepts selected `.idea/workspace.xml` as workspace metadata.
@@ -313,8 +325,10 @@ The audit did not send private code or use a real model account.
 
 Set `CODEXCOMMIT_IDE_HOME` to the installed SDK path.
 Use JDK 25 for the build.
+From the repository root, enter `plugin/` before running the commands.
 
 ```powershell
+cd plugin
 .\gradlew.bat check buildPlugin verifyPluginStructure verifyPluginProjectConfiguration --no-daemon
 .\tools\build-local.ps1 -IdeHome 'PATH_TO_YOUR_IDE'
 java tools/SourceArchive.java --self-test

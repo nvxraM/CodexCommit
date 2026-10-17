@@ -17,7 +17,7 @@ Read the [verification record](../docs/VERIFICATION.md) and [security audit](../
 
 The ZIP does not include an account, credentials, Git, or the Codex CLI.
 Source generation needs native Codex CLI 0.160.1 and a personal account without organization policy.
-Read the main [README](../README.md) for the other requirements and installation steps.
+Read the main [README](../../README.md) for the other requirements and installation steps.
 
 The SHA-256 value is in `SHA256SUMS`.
 This value identifies the checked bytes.

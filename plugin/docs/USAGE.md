@@ -114,7 +114,7 @@ The plugin uses a private temporary directory for CLI execution.
 It requests a restricted, ephemeral CLI run. It removes temporary files after the run.
 It does not store credentials or send data to a developer server. It has no developer telemetry service.
 These controls cannot make an untrusted executable safe.
-Read [PRIVACY.md](PRIVACY.md) and [security boundaries](../SECURITY.md) for the remaining limits.
+Read [PRIVACY.md](PRIVACY.md) and [security boundaries](../../.github/SECURITY.md) for the remaining limits.
 
 
 ## Install with Codex
@@ -155,7 +155,7 @@ Plugin classloader garbage collection also remains untested.
 Read [VERIFICATION.md](VERIFICATION.md) for the exact commands, results, and remaining acceptance tests.
 
 Read [PUBLISHING.md](PUBLISHING.md) before a public release.
-The source uses the [MIT license](../LICENSE). Read the license before you distribute the plugin.
+The source uses the [MIT license](../../LICENSE). Read the license before you distribute the plugin.
 Automatic plugin publication is disabled.
 
 The descriptions and this README use project rules based on ASD-STE100 Simplified Technical English.

@@ -24,7 +24,7 @@ dependencies {
 
 java { sourceCompatibility = JavaVersion.VERSION_25; targetCompatibility = JavaVersion.VERSION_25 }
 tasks.withType<JavaCompile>().configureEach { options.release.set(25); options.encoding = "UTF-8" }
-tasks.jar { from("LICENSE") { into("META-INF") } }
+tasks.jar { from("../LICENSE") { into("META-INF") } }
 tasks.withType<AbstractArchiveTask>().configureEach {
     isPreserveFileTimestamps = false
     isReproducibleFileOrder = true
