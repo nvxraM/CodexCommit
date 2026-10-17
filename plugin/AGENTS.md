@@ -17,8 +17,15 @@ Use short sentences, the active voice, and one instruction per sentence.
 Use the glossary terms consistently.
 
 Keep `docs/DESCRIPTION.md` at exactly 50 words.
-Use the same text in the XML product description and the first description paragraph of `../README.md`.
+Use the same text in the first XML product description paragraph and the first description paragraph of `../README.md`.
 Count words as groups of non-whitespace characters.
+Remove HTML tags and normalize whitespace before you compare the XML paragraph.
+Keep the Overview button image embedded in the descriptor so it works offline.
+Use the exact bytes from `docs/images/generate-button.png`.
+
+Update What's New for every version. Include only the current version and one to three short HTML bullets.
+Keep its heading and bullets within 60 words. The release audit rejects stale versions or longer notes.
+Keep older changes in `docs/CHANGELOG.md`.
 
 Preserve all technical requirements, privacy limits, and untested boundaries.
 Do not claim zero risk or formal STE certification.

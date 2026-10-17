@@ -5,7 +5,9 @@ Date: 15 October 2026.
 This audit covers CodexCommit 1.1.0. It covers the source, build tools, release files, and the Codex CLI 0.160.1 interface. It does not certify that the software has no risk. It does not certify compliance with the ASD-STE100 dictionary.
 
 
-Version 1.1.5 retains one-click generation. The button sends the selected patch without another confirmation.
+Version 1.1.6 embeds the button screenshot in the plugin Overview. The image loads without a network request.
+Release checks reject stale version notes, oversized notes, and changed screenshot bytes.
+Generation retains one-click operation. The button sends the selected patch without another confirmation.
 It puts the draft directly in the commit message field. It retains content checks and stale-result protection.
 Examine selected changes before using the button. Examine the message before committing.
 Selected workspace XML stays out of generation. Mixed selections use a fixed generic note; workspace-only selections use a local draft.

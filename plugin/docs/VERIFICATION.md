@@ -1,12 +1,50 @@
 # Verification record
 
-Date: 15 October 2026.
-Version: 1.1.5.
+Date: 17 October 2026.
+Version: 1.1.6.
 
 This record separates software tests from language review.
 It does not prove that the plugin has no risk.
 
-## Repository layout — 17 October 2026
+## Current candidate
+
+Version 1.1.6 adds the existing button screenshot to the plugin Overview.
+The descriptor embeds the original PNG bytes. The image needs no image-host request or GitHub login.
+What's New contains the current version and two short bullets.
+
+| Suite | Passed | Failed | Skipped |
+| --- | --- | --- | --- |
+| Core and credential boundaries | 32 | 0 | 0 |
+| Git, patch, path, and selection boundaries | 23 | 0 | 0 |
+| Source archive guard | 25 | 0 | 0 |
+| Plugin archive and metadata guard | 39 | 0 | 0 |
+| Total | 119 | 0 | 0 |
+
+The Linux Gradle check, build, structure check, and project configuration check passed.
+The official Plugin Verifier 1.410 reports Compatible with `PY-262.10968.92` for the final ZIP, offline.
+The supported-build warning remains. Future IDE versions have no acceptance result.
+The ordinary JUnit and searchable settings tasks remain disabled and are not counted as passed tests.
+The offline helper compiled the project, passed its 55 core and IDE/Git checks, and audited its package.
+Both version-file readers rejected linked, oversized, and FIFO metadata in six additional manual fixture checks.
+
+Release checks reject stale source or packaged versions, stale or excessive release notes, and missing or changed inline images.
+Each version must have one to three current bullets within 60 words. The full history stays in `CHANGELOG.md`.
+Package filenames now use `pluginVersion` from `gradle.properties`.
+All production classes, icons, and license bytes match 1.1.5. Only the descriptor and build manifest differ in the JAR.
+Real account responses and active-request unload remain untested.
+
+An isolated PyCharm 2026.2.3 profile loaded the final ZIP.
+The Overview image and all text fit the default Plugins pane without horizontal or vertical scrolling.
+The original 1100 × 232 image renders at 400 × 84. Its decoded bytes match the GitHub screenshot.
+The native What's New tab shows the current heading and two brief bullets.
+These display checks used a temporary profile and no real account.
+Gitleaks 8.30.1 found no leaks in the reviewed source snapshot, unpacked plugin JAR, or reachable history.
+
+The final ZIP has SHA-256:
+
+`f2a6cdccc0ac4d5cda3f9e3f6d69db95d3203567fc1e32a080f71d60df092c64`
+
+## Repository layout — 3ace223, 17 October 2026
 
 The repository root has five entries: `.github`, `.gitignore`, `LICENSE`, `README.md`, and `plugin/`.
 The project, guides, build tools, and release copies are under `plugin/`.
@@ -18,7 +56,7 @@ The offline helper also compiled the project and passed its 55 core and IDE/Git 
 The rebuilt Gradle ZIP is byte-identical to the released 1.1.5 ZIP identified below.
 Production source, license text, screenshots, and the released ZIP are unchanged.
 
-## Current candidate
+## Previous 1.1.5 candidate
 
 Version 1.1.5 accepts selected `.idea/workspace.xml` as workspace metadata.
 The file stays checked for the user's Git commit. Generation never reads its XML body or Git baseline.
@@ -333,7 +371,7 @@ cd plugin
 .\tools\build-local.ps1 -IdeHome 'PATH_TO_YOUR_IDE'
 java tools/SourceArchive.java --self-test
 java tools/ReleaseAudit.java --self-test
-java tools/ReleaseAudit.java build/distributions/CodexCommit-1.1.5.zip
+java tools/ReleaseAudit.java build/distributions/CodexCommit-1.1.6.zip
 ```
 
 The `check` task uses the `coreTest` and `ideBoundaryTest` programs.
@@ -356,7 +394,8 @@ This is a recorded configuration warning.
 
 ## Language review
 
-The description file, XML description, and first README paragraph contain the same 50 words.
+The description file, first XML description paragraph, and first README paragraph contain the same 50 words.
+HTML line breaks preserve that text in the Overview.
 The README uses the project rules based on ASD-STE100.
 The full official dictionary was not available for this review.
 Formal STE conformity is not certified.

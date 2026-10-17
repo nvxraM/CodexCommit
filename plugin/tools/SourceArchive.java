@@ -1,4 +1,5 @@
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
@@ -49,7 +50,18 @@ public final class SourceArchive {
         boolean listOnly = args.length == 2 && args[0].equals("--list");
         if (args.length != 1 && !listOnly) throw new IllegalArgumentException("Usage: java plugin/tools/SourceArchive.java [--list] <repository-root>");
         Path root = Path.of(args[listOnly ? 1 : 0]).toRealPath();
-        Path destination = root.resolve("plugin/dist/CodexCommit-source-1.1.5.zip");
+        Path versionFile = root.resolve("plugin/gradle.properties");
+        if (!Files.isRegularFile(versionFile, LinkOption.NOFOLLOW_LINKS) || Files.size(versionFile) > 64 * 1024)
+            throw new IOException("Missing or oversized version metadata.");
+        Properties properties = new Properties();
+        try (InputStream input = Files.newInputStream(versionFile, LinkOption.NOFOLLOW_LINKS)) {
+            byte[] content = input.readNBytes(64 * 1024 + 1);
+            if (content.length > 64 * 1024) throw new IOException("Oversized version metadata.");
+            properties.load(new StringReader(new String(content, StandardCharsets.UTF_8)));
+        }
+        String version = properties.getProperty("pluginVersion", "");
+        if (!version.matches("[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9.-]+)?")) throw new IOException("Invalid plugin version.");
+        Path destination = root.resolve("plugin/dist/CodexCommit-source-" + version + ".zip");
         Set<Path> files = new TreeSet<>(Comparator.comparing(Path::toString));
         for (Set<String> names : List.of(REPOSITORY_FILES, PROJECT_FILES, DOCUMENT_FILES, SUPPORT_FILES)) {
             for (String name : names) {

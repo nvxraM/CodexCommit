@@ -1,18 +1,13 @@
 # Candidate ZIP
 
-This directory contains the CodexCommit 1.1.5 candidate ZIP.
-One click runs generation in the background and fills the commit message field.
-The prompt requests a short subject and 1–3 brief bullet points.
-Keep `.idea/workspace.xml` checked if needed. Its XML contents stay out of generation.
-A mixed source selection sends a fixed generic note without workspace paths or values.
-A workspace-only selection uses a fixed local draft without Codex or account calls.
-Other excluded filename warnings name the file and tell you to uncheck it.
-It accepts up to 500 tracked files and 50 MiB of combined before and after content.
-It detects the saved Codex CLI model or uses the CLI default.
-The selected patch can be up to 512 KiB.
-It retains the fix for whole-file selection when an editor tab is closed.
-It includes the coloured icon and ASD-STE100 prompt rules.
-Use PyCharm 2026.2.3.
+This directory contains the CodexCommit 1.1.6 candidate ZIP.
+
+- Show the Commit button in the plugin Overview.
+- Keep What's New short and specific to this version.
+
+One click fills the commit message field with a short draft.
+Workspace XML contents stay out of generation.
+Read the [user guide](../docs/USAGE.md) for requirements and limits.
 Read the [verification record](../docs/VERIFICATION.md) and [security audit](../docs/SECURITY_AUDIT.md) for passed checks and incomplete tests.
 
 The ZIP does not include an account, credentials, Git, or the Codex CLI.

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.6 — plugin details
+
+- Show the Commit button in the plugin Overview.
+- Keep What's New short and specific to this version.
+
 ## 1.1.5 — workspace settings selection
 
 Keep selected `.idea/workspace.xml` checked for the user's Git commit.

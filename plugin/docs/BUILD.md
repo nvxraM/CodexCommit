@@ -44,3 +44,6 @@ The offline helper compiles the source and does the local regression tests.
 It puts a new plugin ZIP in `build/local/`.
 It does not install the plugin or launch the IDE.
 Build tests do not replace native UI acceptance tests.
+
+Both builds check the release version, brief What's New notes, and embedded Overview image.
+Update the notes whenever you change `pluginVersion`. Keep one to three bullets within 60 words.

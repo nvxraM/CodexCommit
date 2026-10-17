@@ -66,8 +66,9 @@ Keep code identifiers exact. Examples are `CODEX_HOME`, `CODEXCOMMIT_IDE_HOME`, 
 ## Description length
 
 Keep `docs/DESCRIPTION.md` at exactly 50 words.
-Use the same text in the XML product description and the first description paragraph of the root `README.md`.
+Use the same text in the first XML product description paragraph and the first description paragraph of the root `README.md`.
 Count words as groups of non-whitespace characters.
+Remove HTML tags and normalize whitespace before you compare the XML paragraph.
 Do not include a heading in `docs/DESCRIPTION.md`.
 
 ## Before a release

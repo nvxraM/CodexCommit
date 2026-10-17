@@ -11,6 +11,17 @@ public final class LocalBuild {
     public static void main(String[] args) throws Exception {
         if (args.length != 2) throw new IllegalArgumentException("Usage: java tools/LocalBuild.java <project-root> <IDE-home>");
         Path root = Path.of(args[0]).toRealPath();
+        Path versionFile = root.resolve("gradle.properties");
+        if (!Files.isRegularFile(versionFile, LinkOption.NOFOLLOW_LINKS) || Files.size(versionFile) > 64 * 1024)
+            throw new IOException("Missing or oversized version metadata.");
+        Properties properties = new Properties();
+        try (InputStream input = Files.newInputStream(versionFile, LinkOption.NOFOLLOW_LINKS)) {
+            byte[] content = input.readNBytes(64 * 1024 + 1);
+            if (content.length > 64 * 1024) throw new IOException("Oversized version metadata.");
+            properties.load(new StringReader(new String(content, StandardCharsets.UTF_8)));
+        }
+        String version = properties.getProperty("pluginVersion", "");
+        if (!version.matches("[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9.-]+)?")) throw new IOException("Invalid plugin version.");
         Path license = root.resolve("../LICENSE").normalize();
         if (!Files.isRegularFile(license, LinkOption.NOFOLLOW_LINKS)) throw new IOException("Required repository LICENSE is unavailable.");
         Path ide = Path.of(args[1]).toRealPath();
@@ -50,10 +61,13 @@ public final class LocalBuild {
             addDirectory(zip, root.resolve("src/main/resources"), "");
             add(zip, license, "META-INF/LICENSE");
         }
-        Path distribution = output.resolve("CodexCommit-1.1.5.zip");
+        Path distribution = output.resolve("CodexCommit-" + version + ".zip");
         try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(distribution))) {
             add(zip, jar, "CodexCommit/lib/codexcommit.jar");
         }
+        Process audit = new ProcessBuilder(javaBinary(), root.resolve("tools/ReleaseAudit.java").toString(),
+                distribution.toString(), root.toString()).inheritIO().start();
+        if (audit.waitFor() != 0) throw new IOException("Release metadata or archive checks failed; do not distribute this package.");
         System.out.println("Built: " + distribution);
         System.out.println("Offline SDK compilation and core tests passed; run official Plugin Verifier and IDE acceptance separately.");
     }
