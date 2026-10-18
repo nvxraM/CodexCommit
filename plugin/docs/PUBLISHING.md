@@ -29,3 +29,21 @@ The current candidate's execution boundary is personal unmanaged accounts with n
 The Gradle `publishPlugin` task is deliberately blocked to prevent accidental uploads. Signing and update automation can be added in a later reviewed change after a publisher identity and protected credential handling exist.
 
 Official requirements: [Marketplace approval guidelines](https://plugins.jetbrains.com/docs/marketplace/jetbrains-marketplace-approval-guidelines.html), [build compatibility ranges](https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html), [Plugin Verifier](https://plugins.jetbrains.com/docs/intellij/verifying-plugin-compatibility.html).
+
+## GitHub release workflow
+
+Use the manual **Publish GitHub release** workflow on `main` after the compatibility check and normal CI pass.
+Supply the stable plugin version without `v` and its exact 40-character source commit SHA.
+The commit must already be on `main`. The descriptor and Gradle version must match the input.
+
+The read-only build job checks, builds and verifies that exact source. It prepares the ZIP, checksum and notes.
+A separate release job uses only the built-in temporary GitHub token with `contents: write`.
+It does not execute the source code. It verifies the artifact hash, refuses existing tags/releases,
+creates the release, and downloads its assets again to verify their bytes and the tag's source SHA.
+Only this release job has write permission. Repository defaults and other workflow permissions stay unchanged.
+There is no PAT, stored publisher credential, PR release trigger or Marketplace upload in this workflow.
+
+If a run fails after publication, inspect the existing tag, release and assets before recovery.
+The workflow does not overwrite or delete existing releases or tags.
+GitHub releases in this private repository remain visible only to users with repository access.
+Marketplace publication still requires the user's configured account, listing and accepted publisher terms.

@@ -9,7 +9,7 @@ import java.util.zip.*;
 /** Creates a source-only snapshot from an explicit allowlist; never includes caches or local settings. */
 public final class SourceArchive {
     private static final Set<String> REPOSITORY_FILES = Set.of("README.md", "LICENSE", ".gitignore",
-            ".github/SECURITY.md", ".github/workflows/check.yml");
+            ".github/SECURITY.md", ".github/workflows/check.yml", ".github/workflows/release.yml");
     private static final Set<String> PROJECT_FILES = Set.of("plugin/AGENTS.md", "plugin/.gitattributes",
             "plugin/gradle.properties", "plugin/settings.gradle.kts", "plugin/build.gradle.kts", "plugin/gradlew", "plugin/gradlew.bat");
     private static final Set<String> DOCUMENT_FILES = Set.of("plugin/docs/README.md", "plugin/docs/USAGE.md", "plugin/docs/BUILD.md",
@@ -43,7 +43,7 @@ public final class SourceArchive {
             for (String path : unsafe) {
                 if (allowed(path)) throw new AssertionError("Unsafe source path accepted.");
             }
-            List<String> expected = List.of("README.md", ".github/SECURITY.md",
+            List<String> expected = List.of("README.md", ".github/SECURITY.md", ".github/workflows/release.yml",
                     "plugin/src/main/java/dev/codexcommit/core/CodexRunner.java", "plugin/gradle/wrapper/gradle-wrapper.jar",
                     "plugin/docs/USAGE.md", "plugin/docs/images/README.md", "plugin/docs/images/generate-button.png",
                     "plugin/tools/build-local.sh", "plugin/tools/build-local.ps1", "plugin/docs/images/how-to.webp",

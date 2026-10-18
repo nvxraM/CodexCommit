@@ -1,0 +1,176 @@
+name: Publish GitHub release
+run-name: Release v${{ inputs.version }} from ${{ inputs.commit }}
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Stable plugin version, for example 1.1.9 (without v)'
+        required: true
+        type: string
+      commit:
+        description: 'Full 40-character commit SHA already tested on main'
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: codexcommit-github-release
+  cancel-in-progress: false
+jobs:
+  build:
+    if: github.repository == 'nvxraM/CodexCommit' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      source: ${{ steps.validate.outputs.source }}
+      sha256: ${{ steps.package.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate the exact source and version
+        id: validate
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          SOURCE_SHA: ${{ inputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git cat-file -t "$SOURCE_SHA")" = commit
+          git merge-base --is-ancestor "$SOURCE_SHA" origin/main
+          git checkout --detach "$SOURCE_SHA"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          python3 - <<'PY'
+          import os, pathlib, xml.etree.ElementTree as ET
+          version = os.environ['RELEASE_VERSION']
+          properties = dict(line.split('=', 1) for line in pathlib.Path('plugin/gradle.properties').read_text().splitlines() if '=' in line)
+          descriptor = ET.parse('plugin/src/main/resources/META-INF/plugin.xml').getroot()
+          assert properties['pluginVersion'] == version, 'Gradle version does not match input'
+          assert descriptor.findtext('version') == version, 'Descriptor version does not match input'
+          assert descriptor.findtext('id') == 'local.codex.commitmessage', 'Unexpected plugin ID'
+          assert descriptor.findtext('name') == 'CodexCommit', 'Unexpected plugin name'
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f'version={version}\nsource={os.environ["SOURCE_SHA"]}\n')
+          PY
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+      - name: Build, test and verify the candidate
+        working-directory: plugin
+        run: sh gradlew check buildPlugin verifyPluginStructure verifyPluginProjectConfiguration verifyPlugin --no-daemon
+      - name: Prepare the tested ZIP, checksum and notes
+        id: package
+        env:
+          RELEASE_VERSION: ${{ steps.validate.outputs.version }}
+          SOURCE_SHA: ${{ steps.validate.outputs.source }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, os, pathlib, shutil, xml.etree.ElementTree as ET
+          version, source = os.environ['RELEASE_VERSION'], os.environ['SOURCE_SHA']
+          name = f'CodexCommit-{version}.zip'
+          package = pathlib.Path('plugin/build/distributions') / name
+          assert package.is_file() and not package.is_symlink()
+          destination = pathlib.Path('release-assets')
+          destination.mkdir()
+          shutil.copyfile(package, destination / name)
+          digest = hashlib.sha256(package.read_bytes()).hexdigest()
+          (destination / 'SHA256SUMS').write_text(f'{digest}  {name}\n')
+          descriptor = ET.parse('plugin/src/main/resources/META-INF/plugin.xml').getroot()
+          notes = ET.fromstring('<notes>' + descriptor.findtext('change-notes') + '</notes>')
+          bullets = [''.join(item.itertext()).strip() for item in notes.findall('.//li')]
+          assert 1 <= len(bullets) <= 3, 'Expected current version notes'
+          repository = os.environ['GITHUB_REPOSITORY']
+          run = os.environ['GITHUB_RUN_ID']
+          text = '\n'.join('- ' + item for item in bullets)
+          text += f'\n\nInstall `{name}` with **Settings → Plugins → ⚙ → Install Plugin from Disk**.\n'
+          text += f'\n[Release build, regression tests and JetBrains verification](https://github.com/{repository}/actions/runs/{run}) passed. '
+          text += 'These are account-free checks. This workflow does not test native GUI interaction, native Windows Codex execution or real model responses.\n'
+          text += f'\nSee the [versioned verification record](https://github.com/{repository}/blob/v{version}/plugin/docs/VERIFICATION.md) for CLI smoke tests, supported platforms and remaining limits.\n'
+          text += f'\nSource commit: `{source}`.\nZIP SHA-256: `{digest}`.\n'
+          (destination / 'RELEASE_NOTES.md').write_text(text)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f'sha256={digest}\n')
+          PY
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-candidate
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 7
+  release:
+    needs: build
+    if: github.repository == 'nvxraM/CodexCommit' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      # Same-run artifacts need no extra actions:read permission. No source is executed in this job.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-candidate
+          path: release-assets
+      - name: Verify the artifact and refuse existing releases or tags
+        env:
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+          SOURCE_SHA: ${{ needs.build.outputs.source }}
+          EXPECTED_SHA256: ${{ needs.build.outputs.sha256 }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, os, pathlib, re, urllib.error, urllib.request
+          version, source, digest = (os.environ[k] for k in ['RELEASE_VERSION', 'SOURCE_SHA', 'EXPECTED_SHA256'])
+          assert re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', version)
+          assert re.fullmatch(r'[0-9a-f]{40}', source)
+          assert re.fullmatch(r'[0-9a-f]{64}', digest)
+          root = pathlib.Path('release-assets')
+          name = f'CodexCommit-{version}.zip'
+          assert {p.name for p in root.iterdir()} == {name, 'SHA256SUMS', 'RELEASE_NOTES.md'}
+          assert all(p.is_file() and not p.is_symlink() for p in root.iterdir())
+          assert hashlib.sha256((root / name).read_bytes()).hexdigest() == digest
+          assert (root / 'SHA256SUMS').read_text() == f'{digest}  {name}\n'
+          for endpoint in [f'releases/tags/v{version}', f'git/ref/tags/v{version}']:
+              request = urllib.request.Request(f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/{endpoint}', headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json'})
+              try:
+                  with urllib.request.urlopen(request, timeout=30):
+                      raise SystemExit('Release or tag already exists; inspect it before retrying. Nothing was overwritten.')
+              except urllib.error.HTTPError as error:
+                  if error.code != 404:
+                      raise SystemExit(f'Preflight API check failed with status {error.code}')
+          PY
+      - name: Publish and verify the release assets
+        env:
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+          SOURCE_SHA: ${{ needs.build.outputs.source }}
+          EXPECTED_SHA256: ${{ needs.build.outputs.sha256 }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "v$RELEASE_VERSION" "release-assets/CodexCommit-$RELEASE_VERSION.zip" release-assets/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --target "$SOURCE_SHA" --title "CodexCommit $RELEASE_VERSION" \
+            --notes-file release-assets/RELEASE_NOTES.md
+          gh release view "v$RELEASE_VERSION" --repo "$GITHUB_REPOSITORY" --json isDraft,tagName,url,assets > release.json
+          gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$RELEASE_VERSION" > tag.json
+          gh release download "v$RELEASE_VERSION" --repo "$GITHUB_REPOSITORY" --dir downloaded \
+            --pattern "CodexCommit-$RELEASE_VERSION.zip" --pattern SHA256SUMS
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib
+          version, source, digest = (os.environ[k] for k in ['RELEASE_VERSION', 'SOURCE_SHA', 'EXPECTED_SHA256'])
+          release, tag = json.loads(pathlib.Path('release.json').read_text()), json.loads(pathlib.Path('tag.json').read_text())
+          name = f'CodexCommit-{version}.zip'
+          assert not release['isDraft'] and release['tagName'] == f'v{version}'
+          assert tag['object']['type'] == 'commit' and tag['object']['sha'] == source
+          assert {a['name'] for a in release['assets']} == {name, 'SHA256SUMS'}
+          assert hashlib.sha256((pathlib.Path('downloaded') / name).read_bytes()).hexdigest() == digest
+          assert pathlib.Path('downloaded/SHA256SUMS').read_text() == f'{digest}  {name}\n'
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write(f'Published [{version}]({release["url"]}) from `{source}`. Downloaded ZIP SHA-256: `{digest}`.\n')
+          PY
