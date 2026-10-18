@@ -1,4 +1,7 @@
-# Privacy notice — release candidate
+# Privacy notice
+
+Publisher: **nvxraM**. For privacy questions, contact [freematt438@gmail.com](mailto:freematt438@gmail.com).
+Notice URL: [CodexCommit privacy notice](https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/PRIVACY.md).
 
 CodexCommit processes the tracked changes you include in the Commit tool window to prepare a commit-message draft. Selecting the Generate button sends the source patch and fixed task instructions through your local Codex CLI. No additional review or confirmation dialog opens. Check the selected changes before you use the button. The CLI communicates using its own authentication. This may send filenames, source code, comments, and any personal or secret information present in the patch to the service used by Codex.
 
@@ -23,4 +26,4 @@ Filename and content checks reject some obvious credentials and unsupported inpu
 
 The CLI may use account quota or incur charges under your chosen service. Provider processing and retention depend on your account, settings, and applicable terms. The plugin cannot promise that data never leaves your computer or that provider-side data is deleted by cancelling a request.
 
-Before public release, the publisher must add a real public contact and hosted privacy-policy URL. This draft describes the intended behavior; compare it with the final audited code and verification report before publishing.
+Read the [verification record](VERIFICATION.md) for the tests and remaining limits of each version. This notice does not imply JetBrains Marketplace approval.

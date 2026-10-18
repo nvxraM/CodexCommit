@@ -5,6 +5,7 @@
 - Support native Codex CLI 0.163.0. Keep support for 0.160.1.
 - Keep other CLI versions blocked until verification is complete.
 - Add an explicit native CLI audit task for repeat checks.
+- Add the approved publisher contact and privacy notice.
 
 ## 1.1.8 — cube motion
 

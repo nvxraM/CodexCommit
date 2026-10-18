@@ -93,6 +93,7 @@ jobs:
           text += f'\n[Release build, regression tests and JetBrains verification](https://github.com/{repository}/actions/runs/{run}) passed. '
           text += 'These are account-free checks. This workflow does not test native GUI interaction, native Windows Codex execution or real model responses.\n'
           text += f'\nSee the [versioned verification record](https://github.com/{repository}/blob/v{version}/plugin/docs/VERIFICATION.md) for CLI smoke tests, supported platforms and remaining limits.\n'
+          text += '\nThis is a GitHub distribution under the repository visibility settings. It is not a JetBrains Marketplace submission or approval.\n'
           text += f'\nSource commit: `{source}`.\nZIP SHA-256: `{digest}`.\n'
           (destination / 'RELEASE_NOTES.md').write_text(text)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:

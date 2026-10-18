@@ -2,7 +2,7 @@
   <id>local.codex.commitmessage</id>
   <name>CodexCommit</name>
   <version>1.1.9</version>
-  <vendor url="https://github.com/nvxraM/CodexCommit">CodexCommit contributors</vendor>
+  <vendor email="freematt438@gmail.com" url="https://github.com/nvxraM/CodexCommit">nvxraM</vendor>
   <description><![CDATA[
     <div id="codexcommit-overview">
     <ul>
@@ -20,6 +20,7 @@
     <ul>
       <li>Support native Codex CLI 0.163.0. Keep support for 0.160.1.</li>
       <li>Keep other CLI versions blocked until verification is complete.</li>
+      <li>Add the publisher contact and privacy notice.</li>
     </ul>
   ]]></change-notes>
   <idea-version since-build="262.10968.92" until-build="262.*"/>

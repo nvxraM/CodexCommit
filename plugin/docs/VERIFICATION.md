@@ -1,5 +1,26 @@
 # Verification record
 
+## Publisher metadata and GitHub release preparation — 18 October 2026
+
+The unpublished 1.1.9 candidate now uses the approved publisher `nvxraM` and public contact `freematt438@gmail.com`.
+The privacy notice retains its data-processing disclosure and links to its repository-hosted page.
+The repository is private and has no GitHub Pages site. That URL is not yet a publicly readable Marketplace privacy page.
+Marketplace submission and approval are separate; neither is claimed here.
+
+The runtime CLI integration is unchanged from the compatibility check below.
+The source archive guard now includes the manual GitHub release workflow. Local checks pass 147 cases:
+33 core, 35 IDE boundary, 36 source guard and 43 release guard cases. Build and structure checks pass.
+Plugin Verifier 1.410 reports Compatible for this updated ZIP against `PY-262.10968.92`, offline.
+The metadata-updated local ZIP has SHA-256 `22c59e2cec258d8583de5b1b958c714bed08d2d81eabf6ff9dfa7e3e6ba27bdf`.
+The release workflow independently builds, tests and verifies its exact source commit, and records its own ZIP hash.
+The local ZIP hash does not substitute for the hash of an independently built release artifact.
+
+The workflow passed actionlint 1.7.12 and shell/Python syntax checks. Actual local validation scripts rejected
+version mismatch, shell text, symbolic refs and missing commits. Mocked API tests rejected existing releases/tags,
+authentication/server failures and artifact tampering. These mocked checks are not successful publication evidence.
+The workflow uses read-only build permissions and grants `contents: write` only to its separate release job.
+No PAT, persistent credential or repository permission setting was added or changed.
+
 ## Compatibility check — 18 October 2026
 
 Repository: https://github.com/nvxraM/CodexCommit.
