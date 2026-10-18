@@ -1,6 +1,12 @@
 # Changelog
 
-## 1.1.9 — Codex compatibility (source candidate)
+## 1.1.10 — public contact and privacy links
+
+- Use `nvxram.support@gmail.com` for publisher and privacy questions.
+- Open the public profile repository privacy notice from the Overview and Additional Info links.
+- Keep the publisher account, license and source repository visibility unchanged.
+
+## 1.1.9 — Codex compatibility
 
 - Support native Codex CLI 0.163.0. Keep support for 0.160.1.
 - Keep other CLI versions blocked until verification is complete.

@@ -397,7 +397,7 @@ public final class CodexCommitOverview implements Disposable {
             links.add(link("GitHub repository", "https://github.com/nvxraM/CodexCommit"));
             links.add(link("User guide", "https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/USAGE.md"));
             links.add(link("MIT license", "https://github.com/nvxraM/CodexCommit/blob/main/LICENSE"));
-            links.add(link("Privacy", "https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/PRIVACY.md"));
+            links.add(link("Privacy", "https://github.com/nvxraM/nvxraM/blob/main/docs/codexcommit/PRIVACY.md"));
             changing = true;
             try { panel.add(links, panel.getComponentZOrder(label) + 1); }
             finally { changing = false; }

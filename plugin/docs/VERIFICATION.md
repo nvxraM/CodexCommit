@@ -1,8 +1,26 @@
 # Verification record
 
+## 1.1.10 — public support contact and privacy notice
+
+The publisher remains `nvxraM`. The approved public contact is now `nvxram.support@gmail.com`.
+Both the plugin Overview and Additional Info link to the public profile-repository privacy notice.
+An unauthenticated HTTP read confirmed that the page is accessible and contains the new support email.
+The source repository remains private. The license, account ownership and CLI integration are unchanged.
+Marketplace submission remains paused; this update does not claim submission or approval.
+
+The local build, structure check and 147 regression/archive cases passed (33 core, 35 IDE boundary,
+36 source guard, 43 release guard). Plugin Verifier 1.410 reports Compatible against `PY-262.10968.92`.
+The existing bounded-build configuration warning remains intentional.
+Packaged-byte inspection confirmed version 1.1.10, the unchanged publisher name, the new support email,
+and the new URL in both the descriptor and compiled Additional Info code. The old email and private privacy URL
+are absent from the packaged JAR. This is a byte-level check, not a native GUI interaction test.
+Local candidate SHA-256: `70c35809ecbe2ccf5f83edb508608751340a1de3cd9c4b11f6555cfc2d6953ec`. The release workflow records its independently built artifact hash.
+Native GUI acceptance, native Windows Codex execution and real-account responses remain untested.
+
+
 ## Publisher metadata and GitHub release preparation — 18 October 2026
 
-The unpublished 1.1.9 candidate now uses the approved publisher `nvxraM` and public contact `freematt438@gmail.com`.
+The unpublished 1.1.9 candidate now uses the approved publisher `nvxraM` and the public contact approved for that version.
 The privacy notice retains its data-processing disclosure and links to its repository-hosted page.
 The repository is private and has no GitHub Pages site. That URL is not yet a publicly readable Marketplace privacy page.
 Marketplace submission and approval are separate; neither is claimed here.

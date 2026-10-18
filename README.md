@@ -11,8 +11,8 @@ This plugin uses Codex in PyCharm to prepare short commit messages from selected
 ## Install with Codex
 
 Use **PyCharm 2026.2.3** and native **Git** on Windows or Linux.
-The checked version 1.1.8 ZIP requires native **Codex CLI 0.160.1**.
-Source version 1.1.9 also supports **Codex CLI 0.163.0**. Build it with the [build guide](plugin/docs/BUILD.md).
+Use native **Codex CLI 0.160.1 or 0.163.0**.
+For a source build, use the [build guide](plugin/docs/BUILD.md).
 Use a personal, unmanaged Codex account. The model follows your saved CLI setting or the CLI default.
 
 1. Connect GitHub to Codex. Select [this repository](https://github.com/nvxraM/CodexCommit).
@@ -44,10 +44,10 @@ Requests can use quota or incur charges. Cancel from the IDE background task con
 
 ## Manual install
 
-1. [Download version 1.1.8](https://github.com/nvxraM/CodexCommit/blob/v1.1.8/plugin/releases/CodexCommit-1.1.8.zip?raw=true).
+1. [Download version 1.1.10](https://github.com/nvxraM/CodexCommit/releases/download/v1.1.10/CodexCommit-1.1.10.zip).
 2. In PyCharm, open **Settings → Plugins → ⚙ → Install Plugin from Disk**.
 3. Select the ZIP. Restart the IDE if requested.
 
-[User guide](plugin/docs/USAGE.md) · [Build](plugin/docs/BUILD.md) · [Privacy](plugin/docs/PRIVACY.md) · [Security](.github/SECURITY.md) · [All guides](plugin/docs/README.md)
+[User guide](plugin/docs/USAGE.md) · [Build](plugin/docs/BUILD.md) · [Privacy](https://github.com/nvxraM/nvxraM/blob/main/docs/codexcommit/PRIVACY.md) · [Security](.github/SECURITY.md) · [All guides](plugin/docs/README.md)
 
 Independent project. OpenAI and JetBrains do not endorse it. [MIT license](LICENSE).
