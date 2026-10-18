@@ -84,3 +84,17 @@ tasks.check { dependsOn(auditRelease) }
 tasks.matching { it.name == "publishPlugin" }.configureEach {
     doFirst { error("Automatic publishing is disabled. Review docs/PUBLISHING.md and upload the reviewed ZIP manually.") }
 }
+
+// Explicit opt-in: use a supplied native CLI with fake authentication and a loopback server.
+val auditCli by tasks.registering(JavaExec::class) {
+    group = "verification"
+    description = "Audits a native Codex CLI against a local stub; makes no real account request."
+    dependsOn(tasks.testClasses)
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("dev.codexcommit.core.CoreTests")
+    doFirst {
+        val executable = providers.gradleProperty("codexExecutable").orNull
+            ?: error("Supply -PcodexExecutable=/absolute/path/to/native/codex")
+        args("--audit-cli", executable, providers.gradleProperty("auditModel").getOrElse("gpt-5.4"))
+    }
+}

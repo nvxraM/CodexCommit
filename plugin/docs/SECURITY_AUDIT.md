@@ -1,5 +1,9 @@
 # Security audit
 
+The 18 October 2026 source candidate also accepts CLI 0.163.0.
+See the [current compatibility check](VERIFICATION.md#compatibility-check--18-october-2026) for its source review, native loopback tests, and limits.
+The dated audit below retains its original 0.160.1 scope.
+
 Date: 15 October 2026.
 
 This audit covers CodexCommit 1.1.0. It covers the source, build tools, release files, and the Codex CLI 0.160.1 interface. It does not certify that the software has no risk. It does not certify compliance with the ASD-STE100 dictionary.

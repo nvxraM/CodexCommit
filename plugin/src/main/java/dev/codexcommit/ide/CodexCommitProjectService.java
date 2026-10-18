@@ -109,7 +109,7 @@ public final class CodexCommitProjectService implements Disposable {
         task(job, "CodexCommit: generate commit message", () -> {
             job.draft = backend.generate(job.executable, job.prompt, job.model, () -> cancelled(job));
             ContentPolicy.validateMessage(job.draft);
-        }, () -> whenFresh(job, () -> { job.snapshot.apply(job.draft); finish(job); }), "Codex could not generate a draft. This release requires native Codex CLI 0.160.1 on Windows or Linux "
+        }, () -> whenFresh(job, () -> { job.snapshot.apply(job.draft); finish(job); }), "Codex could not generate a draft. This release requires native Codex CLI " + CodexRunner.SUPPORTED_CLI_VERSIONS + " on Windows or Linux "
                 + "and blocks managed/system Codex configuration. Check sign-in, account quota, and connection. "
                 + "The CLI may have processed the request before failing. Your commit message was not changed.");
     }

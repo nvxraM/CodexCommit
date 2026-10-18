@@ -1,7 +1,7 @@
 <idea-plugin url="https://github.com/nvxraM/CodexCommit">
   <id>local.codex.commitmessage</id>
   <name>CodexCommit</name>
-  <version>1.1.8</version>
+  <version>1.1.9</version>
   <vendor url="https://github.com/nvxraM/CodexCommit">CodexCommit contributors</vendor>
   <description><![CDATA[
     <div id="codexcommit-overview">
@@ -16,11 +16,10 @@
     </div>
   ]]></description>
   <change-notes><![CDATA[
-    <h3>Version 1.1.8</h3>
+    <h3>Version 1.1.9</h3>
     <ul>
-      <li>Spin the outer cube during generation.</li>
-      <li>Animate README wordmarks and the button picture.</li>
-      <li>Refresh the usage demo. Keep plugin logos and the Overview picture static.</li>
+      <li>Support native Codex CLI 0.163.0. Keep support for 0.160.1.</li>
+      <li>Keep other CLI versions blocked until verification is complete.</li>
     </ul>
   ]]></change-notes>
   <idea-version since-build="262.10968.92" until-build="262.*"/>

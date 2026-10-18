@@ -24,7 +24,7 @@ Run build and publication commands from `plugin/`.
 8. Keep the reviewed source revisions in the GitHub repository. The build tools do not make commits or push changes automatically. Publication commits use the GitHub no-reply address.
 9. Create the initial Marketplace listing manually using your approved publisher identity and the reviewed ZIP. Read and accept the vendor agreement yourself. Marketplace approval and any security scan are separate checks; approval does not eliminate risk.
 
-The current candidate's execution boundary is personal unmanaged accounts with native Codex 0.160.1 on Windows/Linux; macOS is blocked. Resolve or clearly disclose those restrictions in the listing. A successful fake-provider safety probe does not prove cloud-managed accounts retain the same tool profile. The CI file defines account-free Windows/macOS/Linux build/test jobs, but those hosted jobs have not run merely because the workflow exists. They do not test real model access or native dynamic UI behavior.
+The current candidate's execution boundary is personal unmanaged accounts with native Codex 0.160.1 or 0.163.0 on Windows/Linux; macOS is blocked. Resolve or clearly disclose those restrictions in the listing. A successful fake-provider safety probe does not prove cloud-managed accounts retain the same tool profile. The CI file defines account-free Windows/macOS/Linux build/test jobs, but those hosted jobs have not run merely because the workflow exists. They do not test real model access or native dynamic UI behavior.
 
 The Gradle `publishPlugin` task is deliberately blocked to prevent accidental uploads. Signing and update automation can be added in a later reviewed change after a publisher identity and protected credential handling exist.
 

@@ -1,5 +1,61 @@
 # Verification record
 
+## Compatibility check — 18 October 2026
+
+Repository: https://github.com/nvxraM/CodexCommit.
+Base revision: `6e39dbe7e356c772be313bd3200a6466b479547b`.
+Candidate: source version 1.1.9. The checked 1.1.8 release ZIP is unchanged.
+
+Official stable releases checked today:
+
+- [PyCharm 2026.2.3](https://www.jetbrains.com/pycharm/download/), build `PY-262.10968.92`, released 18 September 2026.
+- [Codex CLI 0.163.0](https://github.com/openai/codex/releases/tag/rust-v0.163.0), released 15 October 2026.
+
+The original code rejects 0.163.0 before generation and automatic model selection.
+The candidate accepts exactly 0.160.1 and 0.163.0. Unknown versions and prereleases remain blocked.
+The IDE range remains `262.10968.92` through `262.*`. Older IDEs and the 263 EAP are not claimed.
+
+Linux x86-64 checks used OpenJDK 25+36, Gradle 9.1.0, IntelliJ Platform Gradle plugin 2.19.0,
+and Plugin Verifier 1.410. The native Linux musl CLI archives matched GitHub release asset SHA-256 metadata.
+
+| Check | Result | Scope |
+| --- | --- | --- |
+| `check buildPlugin verifyPluginStructure verifyPluginProjectConfiguration` | Pass | 33 core, 35 IDE boundary, 35 source guard, 43 release guard cases: 146 total |
+| Official Plugin Verifier | Compatible | Exact candidate against `PY-262.10968.92`, offline |
+| `auditCli` with 0.160.1 and 0.163.0 | Pass | Real native CLI, fake key, loopback response server, synthetic diff; model ID `gpt-5.4` |
+| 0.163.0 audit with `gpt-6.1` | Pass | Same loopback test with another model ID; no claim of real model availability |
+| Tagged 0.163.0 source review | No required profile change found | ModelInfo schema, tool registration, configuration schema, official provider defaults |
+
+The native CLI tests verify automatic model discovery, exact large-prompt delivery, empty tools,
+synthetic draft return, excluded file/configuration/skill/environment/home markers, fake-key header placement,
+and no prompt/draft/fake-key persistence. They do not call OpenAI or test model behavior.
+The IDE boundary suite uses SDK classes and synthetic local Git fixtures. It does not click the IDE toolbar.
+JUnit and searchable-options tasks are disabled and are not counted as passing tests.
+
+The first ordinary Gradle run failed the descendant-termination assertion because this container's PID 1
+leaves killed children as zombies. The unchanged assertion passed with Gradle under an owned Linux child subreaper.
+The Gradle verifier task could not create its default read-only home cache. Direct invocation with a writable
+`-Duser.home` passed. The verifier reported missing optional SDK layout modules, with no plugin compatibility finding.
+The configuration task warns about `until-build`; the bounded range is retained deliberately.
+
+Commands, from `plugin/` (set `JAVA_HOME` to JDK 25 and use a writable `GRADLE_USER_HOME`):
+
+```sh
+sh gradlew check buildPlugin verifyPluginStructure verifyPluginProjectConfiguration --no-daemon
+sh gradlew auditCli -PcodexExecutable=/absolute/path/to/native/codex --no-daemon
+sh gradlew auditCli -PcodexExecutable=/absolute/path/to/native/codex -PauditModel=gpt-6.1 --no-daemon
+java -Duser.home=/writable/verifier-home -jar /path/to/verifier-cli-1.410-all.jar check-plugin build/distributions/CodexCommit-1.1.9.zip /path/to/pycharm-2026.2.3 -offline -verification-reports-dir /writable/reports
+```
+
+Candidate ZIP SHA-256: `aec10dc074f217c1fd6e7794014290ce97bec2b1de9f3df0b77ea13cbdb2a222`.
+
+No display server was available for a fresh native UI acceptance run. Real account authentication, real model responses,
+Windows execution of CLI 0.163.0, native UI generation/cancellation/unload, and future IDE builds remain untested in this run.
+macOS execution remains disabled. No credentials, installed plugin, release ZIP, or schedule were changed.
+See [the repeat check procedure](BUILD.md#repeat-compatibility-check). Build/verifier success alone is not an end-to-end guarantee.
+
+## Earlier verification records
+
 Date: 17 October 2026.
 Version: 1.1.8.
 

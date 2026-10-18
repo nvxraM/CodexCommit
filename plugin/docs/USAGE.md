@@ -3,7 +3,8 @@
 ## Requirements
 
 - Use PyCharm 2026.2.3, build `262.10968.92`, or a compatible build in the `262` branch. Other IDE releases and products have no acceptance result.
-- Install native Codex CLI `0.160.1`. This release blocks other CLI versions.
+- For source version 1.1.9, install native Codex CLI `0.160.1` or `0.163.0`. Other CLI versions are blocked.
+- The checked version 1.1.8 ZIP still requires `0.160.1`.
 - Use the CLI's default saved login for a personal, unmanaged account. Enterprise and managed account configurations are not supported.
 - Configure an absolute path to native Git in the IDE. WSL and script wrappers are not supported.
 

@@ -47,3 +47,31 @@ Build tests do not replace native UI acceptance tests.
 
 Both builds check the release version, brief What's New notes, and embedded Overview image.
 Update the notes whenever you change `pluginVersion`. Keep one to three bullets within 60 words.
+
+## Repeat compatibility check
+
+Run this procedure for each weekly check. It creates no schedule and publishes nothing.
+
+1. Record `git remote get-url origin`, `git rev-parse HEAD`, and `git status --short`.
+2. Check the stable [PyCharm download](https://www.jetbrains.com/pycharm/download/) and
+   [Codex release](https://github.com/openai/codex/releases/latest). Exclude EAP and alpha releases.
+3. Compare those versions with `gradle.properties` and `CodexRunner`'s exact CLI allowlist.
+   Download native CLI binaries from the official release. Check the asset SHA-256 from its release metadata.
+4. Use JDK 25. Run `sh gradlew check buildPlugin verifyPluginStructure verifyPluginProjectConfiguration --no-daemon`.
+5. Run `sh gradlew verifyPlugin --no-daemon`. Record the exact IDE build and verifier findings.
+   For a restricted container, run the verifier JAR directly with a writable `-Duser.home`,
+   `check-plugin`, the candidate ZIP, the exact installed SDK path, `-offline`, and `-verification-reports-dir`.
+6. For each accepted CLI, run `sh gradlew auditCli -PcodexExecutable=/absolute/path/to/native/codex --no-daemon`.
+   Repeat with `-PauditModel=another-valid-model-id` to check model selection independence.
+   This runs the real CLI with fake authentication and a loopback response server. It is not a real model test.
+7. Before adding a CLI version, review its model schema, configuration and tool registration against the restricted profile.
+   Audit the candidate version in an isolated source copy first. Do not accept a version range or bypass strict settings.
+8. Test the candidate in an isolated native IDE with synthetic tracked changes: generation, cancellation,
+   stale results, typed-message preservation, project close, and unload. Record any missing GUI or account access.
+9. Record commands, versions, source revision, ZIP hash, failures, skips, and untested boundaries.
+   A build or verifier pass alone does not establish end-to-end compatibility.
+
+The main regression harnesses are `coreTest` and `ideBoundaryTest`. JUnit is disabled.
+The CLI audit is opt-in and is not part of `check` or the account-free hosted workflow.
+On Linux containers whose PID 1 does not reap children, run Gradle under a child subreaper.
+Keep the descendant-termination assertion enabled. A zombie-process failure is not a passing test.

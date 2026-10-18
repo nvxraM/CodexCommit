@@ -10,7 +10,9 @@ This plugin uses Codex in PyCharm to prepare short commit messages from selected
 
 ## Install with Codex
 
-Use **PyCharm 2026.2.3**, native **Codex CLI 0.160.1**, and native **Git** on Windows or Linux.
+Use **PyCharm 2026.2.3** and native **Git** on Windows or Linux.
+The checked version 1.1.8 ZIP requires native **Codex CLI 0.160.1**.
+Source version 1.1.9 also supports **Codex CLI 0.163.0**. Build it with the [build guide](plugin/docs/BUILD.md).
 Use a personal, unmanaged Codex account. The model follows your saved CLI setting or the CLI default.
 
 1. Connect GitHub to Codex. Select [this repository](https://github.com/nvxraM/CodexCommit).

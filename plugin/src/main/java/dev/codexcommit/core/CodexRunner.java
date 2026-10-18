@@ -23,7 +23,12 @@ import java.util.stream.Stream;
 
 /** One bounded native CLI process; never runs from the repository or through a shell. */
 public final class CodexRunner {
-    public static final String AUDITED_CLI_VERSION = "0.160.1";
+    public static final String AUDITED_CLI_VERSION = "0.163.0";
+    public static final String SUPPORTED_CLI_VERSIONS = "0.160.1 or " + AUDITED_CLI_VERSION;
+
+    static boolean isAuditedVersion(String output) {
+        return output != null && List.of("codex-cli 0.160.1", "codex-cli " + AUDITED_CLI_VERSION).contains(output.strip());
+    }
     private static final Pattern MODEL_ID = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}");
     private static final long GENERATION_TIMEOUT_MILLIS = 120_000;
     // Native exec echoes the selected prompt to stderr. Discard it, but allow the
@@ -70,8 +75,8 @@ public final class CodexRunner {
             rejectAncestorConfiguration(workspace);
             ProcessResult version = run(List.of(nativeBinary.toString(), "--version"), "", workspace,
                     environment, cancelled, 5_000, 4096);
-            if (version.exitCode != 0 || !version.stdout.strip().equals("codex-cli " + AUDITED_CLI_VERSION)) {
-                throw new IOException("This release requires the audited native Codex CLI " + AUDITED_CLI_VERSION
+            if (version.exitCode != 0 || !isAuditedVersion(version.stdout)) {
+                throw new IOException("This release requires the audited native Codex CLI " + SUPPORTED_CLI_VERSIONS
                         + ". Other CLI versions are blocked until their safety profile is verified.");
             }
             Path catalog = workspace.resolve("models.json");
@@ -117,8 +122,8 @@ public final class CodexRunner {
             rejectAncestorConfiguration(workspace);
             ProcessResult version = run(List.of(nativeBinary.toString(), "--version"), "", workspace,
                     environment, cancelled, 5_000, 4096);
-            if (version.exitCode != 0 || !version.stdout.strip().equals("codex-cli " + AUDITED_CLI_VERSION)) {
-                throw new IOException("Use native Codex CLI " + AUDITED_CLI_VERSION + " for automatic model selection.");
+            if (version.exitCode != 0 || !isAuditedVersion(version.stdout)) {
+                throw new IOException("Use native Codex CLI " + SUPPORTED_CLI_VERSIONS + " for automatic model selection.");
             }
             return CodexModelResolver.resolve(modelDiscoveryCommand(nativeBinary, workspace), workspace, environment, cancelled, 20_000);
         } finally { deleteWorkspace(workspace); }

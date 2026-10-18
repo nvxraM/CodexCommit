@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.9 — Codex compatibility (source candidate)
+
+- Support native Codex CLI 0.163.0. Keep support for 0.160.1.
+- Keep other CLI versions blocked until verification is complete.
+- Add an explicit native CLI audit task for repeat checks.
+
 ## 1.1.8 — cube motion
 
 - Spin the outer cube during generation.

@@ -21,6 +21,14 @@ public final class CoreTests {
             OfflineCliAudit.run(Path.of(args[1]), args.length == 3 ? args[2] : "gpt-5.4");
             return;
         }
+        check("CLI versions require an exact audited stable release", () -> {
+            require(CodexRunner.isAuditedVersion("codex-cli 0.160.1\n"), "Retain the previous audited CLI");
+            require(CodexRunner.isAuditedVersion("codex-cli 0.163.0\n"), "Accept the newly audited CLI");
+            for (String rejected : List.of("codex-cli 0.163.0-alpha.1", "codex-cli 0.164.0", "codex-cli 0.162.0",
+                    "codex-cli 0.163.00", "0.163.0", "codex-cli 0.163.0\nextra")) {
+                require(!CodexRunner.isAuditedVersion(rejected), "Reject unverified CLI output");
+            }
+        });
         check("portable prompt uses exact selection", () -> {
             String patch = "diff --git a/hello.txt b/hello.txt\n--- a/hello.txt\n+++ b/hello.txt\n@@ -1 +1 @@\n-old\n+new\n";
             String prompt = PromptBuilder.build(patch);
