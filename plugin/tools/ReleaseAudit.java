@@ -20,6 +20,8 @@ public final class ReleaseAudit {
             "META-INF/pluginIcon.svg", "META-INF/pluginIcon_dark.svg", "icons/codexcommit.svg", "icons/codexcommit_dark.svg",
             "images/generate-button.png");
     private static final byte[] PNG_SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', 13, 10, 26, 10};
+    private static final String BUTTON_URL = "https://raw.githubusercontent.com/nvxraM/CodexCommit/3cbb38e74bb64aedf8478d5c85003edfa70661e1/plugin/docs/images/generate-button.png";
+    private static final String BUTTON_SHA256 = "882418f2e776c524b141f661580b2e0d9f442d322d0ca7b265ed152eb0be1df2";
     static boolean allowed(String path) {
         return RESOURCES.contains(path)
                 || path.matches("dev/codexcommit/(core|ide)/[A-Za-z0-9_$]+\\.class");
@@ -110,7 +112,7 @@ public final class ReleaseAudit {
         System.out.println("PASS: archive contains only project classes/resources, no bundled runtimes or tests.");
         System.out.println("PASS: personal-path and unrelated-project checks.");
         System.out.println("PASS: source and packaged versions match pluginVersion; current release notes contain 1-3 bullets and at most 60 words.");
-        System.out.println("PASS: source and packaged descriptions match; their inline PNG matches the current button screenshot.");
+        System.out.println("PASS: source and packaged descriptions match; their pinned HTTPS image and bundled screenshot match the reviewed PNG.");
         System.out.println("SHA256: " + sha);
         System.out.println("JAR entries: " + inner.size());
         System.out.println("Still required: live IDE acceptance, publisher metadata, license review, and publication approval.");
@@ -160,23 +162,53 @@ public final class ReleaseAudit {
     private static String canonical(String text) { return text.replaceAll("(?U)\\s+", " ").strip(); }
     private static String canonicalMarkup(String text) { return canonical(text).replace("> <", "><"); }
     static void auditDescription(byte[] packaged, byte[] source, byte[] expectedPng) throws IOException {
+        auditDescription(packaged, source, expectedPng, BUTTON_SHA256);
+    }
+    private static void auditDescription(byte[] packaged, byte[] source, byte[] expectedPng, String expectedSha) throws IOException {
         if (!validPng(expectedPng)) throw new IOException("Invalid source button PNG header.");
+        if (!sha256(expectedPng).equals(expectedSha)) throw new IOException("Source button screenshot differs from the pinned HTTPS image.");
         String packagedDescription = childText(parseXml(packaged), "description");
         String sourceDescription = childText(parseXml(source), "description");
         if (!canonicalMarkup(packagedDescription).equals(canonicalMarkup(sourceDescription)))
             throw new IOException("Packaged description differs from source description.");
         for (String description : List.of(packagedDescription, sourceDescription)) {
+            if (Pattern.compile("(?i)\\bdata\\s*:").matcher(description).find()) throw new IOException("Inline data URLs are excluded from the Marketplace description.");
+            description = description.replaceAll("(?s)<!--.*?-->", "");
             var images = Pattern.compile("(?i)<img\\b").matcher(description);
             if (!images.find() || images.find()) throw new IOException("Description needs exactly one button image element.");
-            var urls = Pattern.compile("(?i)data:image/png;base64,").matcher(description);
-            if (!urls.find() || urls.find()) throw new IOException("Description needs exactly one inline button PNG.");
-            var image = Pattern.compile("(?i)<img\\b[^>]*\\bsrc\\s*=\\s*([\"'])data:image/png;base64,([A-Za-z0-9+/]+={0,2})\\1[^>]*>").matcher(description);
-            if (!image.find()) throw new IOException("Description needs an inline PNG image element.");
-            byte[] actual;
-            try { actual = Base64.getDecoder().decode(image.group(2)); }
-            catch (IllegalArgumentException error) { throw new IOException("Description PNG data is invalid.", error); }
-            if (!validPng(actual) || !Arrays.equals(actual, expectedPng)) throw new IOException("Description PNG differs from the current button screenshot.");
+            var image = Pattern.compile("(?i)<img\\b([^<>]*)>").matcher(description);
+            if (!image.find()) throw new IOException("Description needs a valid button image element.");
+            Map<String, String> imageAttributes = tagAttributes(image.group(1));
+            if (!Set.of("src", "width", "height", "id", "alt", "title").containsAll(imageAttributes.keySet())
+                    || !BUTTON_URL.equals(imageAttributes.get("src"))) throw new IOException("Description image must use the exact pinned HTTPS URL.");
+            if (!"640".equals(imageAttributes.get("width")) || !"135".equals(imageAttributes.get("height")))
+                throw new IOException("Description button image dimensions must be 640 by 135.");
+            var link = Pattern.compile("(?is)<a\\b([^<>]*)>\\s*<img\\b[^<>]*>\\s*</a\\s*>").matcher(description);
+            if (!link.find()) throw new IOException("Description button image needs a clickable link.");
+            Map<String, String> linkAttributes = tagAttributes(link.group(1));
+            if (!Set.of("href", "title").containsAll(linkAttributes.keySet()) || !BUTTON_URL.equals(linkAttributes.get("href")))
+                throw new IOException("Description button link must match the pinned HTTPS image.");
         }
+    }
+    private static Map<String, String> tagAttributes(String attributes) throws IOException {
+        String input = attributes.stripTrailing();
+        if (input.endsWith("/")) input = input.substring(0, input.length() - 1);
+        var matcher = Pattern.compile("\\s+([A-Za-z][A-Za-z0-9:-]*)\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)')").matcher(input);
+        Map<String, String> result = new LinkedHashMap<>();
+        int position = 0;
+        while (position < input.length() && !input.substring(position).isBlank()) {
+            matcher.region(position, input.length());
+            if (!matcher.lookingAt()) throw new IOException("Malformed description image or link attribute.");
+            String name = matcher.group(1).toLowerCase(Locale.ROOT);
+            String value = matcher.group(2) != null ? matcher.group(2) : matcher.group(3);
+            if (result.putIfAbsent(name, value) != null) throw new IOException("Duplicate description image or link attribute.");
+            position = matcher.end();
+        }
+        return result;
+    }
+    private static String sha256(byte[] bytes) throws IOException {
+        try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes)); }
+        catch (java.security.NoSuchAlgorithmException error) { throw new IOException("SHA-256 is unavailable.", error); }
     }
     private static String childText(Element root, String tag) throws IOException {
         String result = null;
@@ -275,28 +307,52 @@ public final class ReleaseAudit {
     }
     private static int descriptionSelfTests() throws IOException {
         byte[] png = samplePng();
-        String image = "<img src=\"data:image/png;base64," + Base64.getEncoder().encodeToString(png) + "\" width=\"1\" height=\"1\"/>";
+        String expectedSha = sha256(png);
+        String img = "<img src=\"" + BUTTON_URL + "\" width=\"640\" height=\"135\"/>";
+        String image = "<a href=\"" + BUTTON_URL + "\">" + img + "</a>";
         byte[] current = described("<p>Use the button.</p>" + image);
-        auditDescription(current, current, png);
-        auditDescription(current, described("\n<p>Use the button.</p>\n" + image + "\n"), png);
-        int passed = 2;
-        List<byte[][]> invalid = List.of(
-                new byte[][]{described("<p>Use the button.</p>"), described("<p>Use the button.</p>")},
-                new byte[][]{described(image + image), described(image + image)},
-                new byte[][]{described(image + "<img src=\"https://example.invalid/button.png\"/>"),
-                        described(image + "<img src=\"https://example.invalid/button.png\"/>")},
-                new byte[][]{current, described("<p>Use another button.</p>" + image)},
-                new byte[][]{described(image.replace("data:image/png;base64,", "https://example.invalid/")),
-                        described(image.replace("data:image/png;base64,", "https://example.invalid/"))},
-                new byte[][]{described(image.replace(Base64.getEncoder().encodeToString(png), "invalid")),
-                        described(image.replace(Base64.getEncoder().encodeToString(png), "invalid"))});
-        for (byte[][] pair : invalid) {
-            try { auditDescription(pair[0], pair[1], png); throw new AssertionError("Missing, remote, or changed inline screenshot accepted."); }
+        auditDescription(current, current, png, expectedSha);
+        auditDescription(current, described("\n<p>Use the button.</p>\n" + image + "\n"), png, expectedSha);
+        String alternate = image.replace("src=", "SRC=").replace("href=", "HREF=").replace('"', '\'');
+        auditDescription(described(alternate), described(alternate), png, expectedSha);
+        int passed = 3;
+        List<String> invalid = List.of(
+                "<p>Use the button.</p>",
+                image + image,
+                image + "<img src=\"https://example.invalid/button.png\"/>",
+                image.replace("src=\"" + BUTTON_URL + "\"", ""),
+                image.replace("src=", "data-src="),
+                image.replace(BUTTON_URL, "http://example.invalid/button.png"),
+                image.replace(BUTTON_URL, "https://example.invalid/button.png"),
+                image.replace(BUTTON_URL, "javascript:alert(1)"),
+                image.replace(BUTTON_URL, "file:///synthetic-test-button.png"),
+                image.replace(BUTTON_URL, BUTTON_URL.substring("https:".length())),
+                image.replace("3cbb38e74bb64aedf8478d5c85003edfa70661e1", "main"),
+                image.replace("href=\"" + BUTTON_URL, "href=\"https://example.invalid/button.png"),
+                img,
+                image.replace("src=", "SRC=\"https://example.invalid/button.png\" src="),
+                image.replace("href=", "HREF=\"https://example.invalid/button.png\" href="),
+                image.replace("width=\"640\"", "width=\"640\" width=\"640\""),
+                image.replace("width=\"640\"", "width=\"1\""),
+                image.replace("width=", "onerror=\"alert(1)\" width="),
+                image.replace("width=", "srcset=\"https://example.invalid/button.png 2x\" width="),
+                image.replace(BUTTON_URL, "data:image/png;base64," + Base64.getEncoder().encodeToString(png)),
+                image + "<p>data:image/png;base64,unused</p>",
+                "<!--" + image + "-->");
+        for (String description : invalid) {
+            byte[] candidate = described(description);
+            try { auditDescription(candidate, candidate, png, expectedSha); throw new AssertionError("Missing, unsafe, unpinned, or duplicate description image accepted."); }
             catch (IOException expected) { passed++; }
         }
+        try {
+            auditDescription(current, described("<p>Use another button.</p>" + image), png, expectedSha);
+            throw new AssertionError("Changed packaged description accepted.");
+        } catch (IOException expected) { passed++; }
         byte[] changed = png.clone();
         java.nio.ByteBuffer.wrap(changed).putInt(16, 2);
-        try { auditDescription(current, current, changed); throw new AssertionError("Stale inline screenshot accepted."); }
+        try { auditDescription(current, current, changed, expectedSha); throw new AssertionError("Changed source screenshot accepted."); }
+        catch (IOException expected) { passed++; }
+        try { auditDescription(current, current, png); throw new AssertionError("Synthetic PNG accepted as the reviewed public screenshot."); }
         catch (IOException expected) { passed++; }
         return passed;
     }

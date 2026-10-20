@@ -1,5 +1,67 @@
 # Verification record
 
+## 1.1.11 — Marketplace presentation — 20 October 2026
+
+The public 1.1.10 description lost its inline PNG and custom HTML IDs during Marketplace sanitization.
+Its remaining image had no `src`. The previous ID-based IDE renderer could not replace it.
+Version 1.1.11 uses an immutable public HTTPS PNG and the same bundled static image.
+The IDE also handles the exact cached 1.1.10 image tuple, only inside the verified CodexCommit panel.
+Other image sources, changed links, missing data, and known other-plugin panels remain excluded.
+
+The Overview has a short introduction, three steps, an image, setup requirements, and help links.
+Short explicit lines avoid the native Details renderer's paragraph clipping.
+Additional Info groups Documentation and Privacy above the native rows, with equal-width, left-aligned buttons.
+Native links are retained. Existing Documentation or Privacy links suppress the matching fallback.
+The canonical privacy notice now lives in this public repository and explains public image requests.
+No source selection, Codex model, process, or commit-message behavior changed.
+
+| Check | Result |
+| --- | --- |
+| Core regression cases | 33 passed, 0 failed, 0 skipped |
+| IDE boundary cases | 43 passed, 0 failed, 0 skipped |
+| Source archive guard | 39 passed, 0 failed |
+| Plugin archive and metadata guard | 62 passed, 0 failed |
+| Total | 177 passed |
+| Build and plugin structure | Passed |
+| Official Plugin Verifier 1.410 | Compatible with `PY-262.10968.92`, offline |
+
+The full check passed before a descriptor-only line-break correction.
+After that correction, the package, all 101 archive/metadata guard cases, structure check, and official verifier passed again.
+The Java classes and 76 core/IDE regression cases were unchanged by that correction.
+The bounded `until-build` warning remains intentional. JUnit and searchable-options tasks remain disabled and are not passed tests.
+
+Final local candidate SHA-256:
+
+`24b31540da15df6c18161f29ce62d7413a0d8845613977dde4394ac6c83b221f`
+
+The public pinned PNG returned HTTP 200 as `image/png`. Its 48,439 bytes exactly match the bundled 2200 × 464 image.
+Its SHA-256 is `882418f2e776c524b141f661580b2e0d9f442d322d0ca7b265ed152eb0be1df2`.
+Both Marketplace gallery PNGs are exact 3840 × 2160 frames from the existing native lossless sample capture.
+They contain synthetic files and a local test draft, with no personal account or project data.
+They were not upscaled or composited.
+
+An isolated PyCharm 2026.2.3 profile loaded the exact final local ZIP at four times logical pixel density.
+The native Details renderer used a Marketplace `PluginNode` model, not a replacement editor-pane text fixture.
+It displayed the bundled descriptor, ID-stripped current HTTPS HTML, and the exact published 1.1.10 no-source HTML.
+The picture remained readable at narrow, default, and wide sizes: 347 × 73, 404 × 85, and 666 × 140 logical pixels.
+All three layouts had no horizontal clipping. Longer content used normal vertical scrolling.
+Additional Info retained native Source Code and License rows. Documentation, Privacy, Version, and Plugin ID aligned at the same parent x position.
+Repeated tabs kept one fallback panel. An explicitly synthetic native-Documentation metadata variant retained one native Documentation link and only the missing Privacy fallback.
+
+An actual mouse click opened the bundled full-screen image; Esc closed it.
+Switching to another plugin removed the owned panel and renderer. Returning and reopening Plugins retained one panel.
+Dynamic unload with the viewer open passed the SDK validation and unload operation.
+It closed the viewer, restored the editor kit, and removed the Overview and motion-policy listeners.
+All owned UI processes stopped. The native checks made no account or model requests.
+
+Gitleaks 8.30.1 found no secrets in the approved source snapshot, unpacked package metadata, or extracted class constants.
+The archive audit also checked every packaged entry against its resource allowlist and secret patterns.
+These checks do not prove zero risk or complete real-account acceptance.
+
+Marketplace submission, gallery uploads, URL-field edits, and approval remain separate from local verification.
+The release workflow independently builds and verifies its exact Git commit and records its artifact hash.
+Native Windows behavior, macOS execution, real Codex account responses, and future IDE versions are outside this presentation check.
+
 ## 1.1.10 — public support contact and privacy notice
 
 The publisher remains `nvxraM`. The approved public contact is now `nvxram.support@gmail.com`.

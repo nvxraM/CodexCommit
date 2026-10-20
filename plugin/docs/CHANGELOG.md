@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.11 — Marketplace presentation
+
+- Fix the Overview picture after Marketplace removes custom HTML attributes.
+- Use a public HTTPS picture and the same bundled PNG for offline viewing.
+- Align Documentation and Privacy links. Use native Source Code and License links.
+- State the setup requirements and data transmission in the Overview.
+- Link the current public project privacy notice, including public image requests.
+
 ## 1.1.10 — public contact and privacy links
 
 - Use `nvxram.support@gmail.com` for publisher and privacy questions.

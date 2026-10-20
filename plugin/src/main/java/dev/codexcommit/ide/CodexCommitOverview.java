@@ -20,6 +20,7 @@ import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.Writer;
 import java.lang.ref.WeakReference;
 import java.util.ArrayDeque;
@@ -30,11 +31,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 
-/** Enhances only the marked CodexCommit description; all image data stays in the plugin. */
+/** Enhances only the trusted CodexCommit description; the replacement image stays in the plugin. */
 public final class CodexCommitOverview implements Disposable {
-    private static final String MARKER = "codexcommit-overview";
-    private static final String PREVIEW = "codexcommit-button-preview";
     private static final String PLUGIN_ID = "Plugin ID: local.codex.commitmessage";
+    private static final String PLUGIN_ID_PREFIX = "Plugin ID: ";
+    private static final String PREVIEW_URL = "https://raw.githubusercontent.com/nvxraM/CodexCommit/"
+            + "3cbb38e74bb64aedf8478d5c85003edfa70661e1/plugin/docs/images/generate-button.png";
+    private static final String LEGACY_PREVIEW_URL = "https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/images/generate-button.png";
+    private static final String PREVIEW_ALT = "CodexCommit button. Click to view full screen.";
+    private static final String DOCUMENTATION_URL = "https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/USAGE.md";
+    private static final String PRIVACY_URL = "https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/PRIVACY.md";
     private static final int MAX_SCAN = 20_000;
     private static final int MAX_PANES = 512;
     private final Map<JEditorPane, PaneWatch> panes = new WeakHashMap<>();
@@ -76,10 +82,24 @@ public final class CodexCommitOverview implements Disposable {
         if (disposed || changing) return;
         if (event instanceof ContainerEvent item && item.getID() == ContainerEvent.COMPONENT_ADDED) {
             enqueue(item.getChild());
+            refreshRelatedLabels(item.getContainer());
+        } else if (event instanceof ContainerEvent item && item.getID() == ContainerEvent.COMPONENT_REMOVED) {
+            refreshRelatedLabels(item.getContainer());
         } else if (event instanceof HierarchyEvent item
                 && (item.getChangeFlags() & (HierarchyEvent.DISPLAYABILITY_CHANGED | HierarchyEvent.SHOWING_CHANGED)) != 0) {
             Component component = item.getComponent();
             if (component instanceof JEditorPane || component instanceof JLabel || component instanceof Window) enqueue(component);
+        }
+    }
+
+    private void refreshRelatedLabels(Container container) {
+        if (!SwingUtilities.isEventDispatchThread()) { SwingUtilities.invokeLater(() -> refreshRelatedLabels(container)); return; }
+        if (disposed) return;
+        for (LabelWatch watch : new ArrayList<>(labels.values())) {
+            JLabel label = watch.reference.get();
+            Container parent = label == null ? null : label.getParent();
+            if (parent != null
+                    && (container == parent || SwingUtilities.isDescendingFrom(container, parent))) enqueue(label);
         }
     }
 
@@ -138,18 +158,68 @@ public final class CodexCommitOverview implements Disposable {
         }
     }
 
-    private static boolean ownDocument(Document document) {
+    static boolean ownDocument(Document document, boolean ownPluginScope) {
         if (!(document instanceof HTMLDocument html)) return false;
         boolean[] matches = {false};
         html.render(() -> {
-            Element marker = html.getElement(MARKER);
-            Element preview = html.getElement(PREVIEW);
-            if (marker == null || preview == null || preview.getAttributes().getAttribute(StyleConstants.NameAttribute) != HTML.Tag.IMG) return;
-            for (Element parent = preview.getParentElement(); parent != null; parent = parent.getParentElement()) {
-                if (parent == marker) { matches[0] = true; return; }
+            ElementIterator elements = new ElementIterator(html);
+            for (int scanned = 0; scanned < MAX_SCAN; scanned++) {
+                Element element = elements.next();
+                if (element == null) return;
+                if (previewElement(element, ownPluginScope)) { matches[0] = true; return; }
             }
         });
         return matches[0];
+    }
+
+    static boolean ownDocument(JEditorPane pane) {
+        if (!ownDocument(pane.getDocument(), true)) return false;
+        PluginScope scope = pluginScope(pane);
+        return scope == PluginScope.OWN || scope == PluginScope.UNKNOWN && ownDocument(pane.getDocument(), false);
+    }
+
+    static boolean previewElement(Element element, boolean ownPluginScope) {
+        AttributeSet attributes = element.getAttributes();
+        if (attributes.getAttribute(StyleConstants.NameAttribute) != HTML.Tag.IMG) return false;
+        Object source = attributes.getAttribute(HTML.Attribute.SRC);
+        boolean trustedSource = PREVIEW_URL.equals(source);
+        boolean legacy = ownPluginScope && source == null && PREVIEW_ALT.equals(attributes.getAttribute(HTML.Attribute.ALT))
+                && "640".equals(attributes.getAttribute(HTML.Attribute.WIDTH)) && "135".equals(attributes.getAttribute(HTML.Attribute.HEIGHT));
+        if (!trustedSource && !legacy) return false;
+        for (Element current = element; current != null; current = current.getParentElement()) {
+            AttributeSet currentAttributes = current.getAttributes();
+            Object anchor = currentAttributes.getAttribute(HTML.Tag.A);
+            if (anchor instanceof AttributeSet link)
+                return (legacy ? LEGACY_PREVIEW_URL : PREVIEW_URL).equals(link.getAttribute(HTML.Attribute.HREF));
+            if (currentAttributes.getAttribute(StyleConstants.NameAttribute) == HTML.Tag.A)
+                return (legacy ? LEGACY_PREVIEW_URL : PREVIEW_URL).equals(currentAttributes.getAttribute(HTML.Attribute.HREF));
+        }
+        return trustedSource && ownPluginScope;
+    }
+
+    private enum PluginScope { OWN, OTHER, UNKNOWN }
+
+    private static PluginScope pluginScope(JEditorPane pane) {
+        Set<Component> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (Container parent = pane.getParent(); parent != null && seen.size() < MAX_SCAN; parent = parent.getParent()) {
+            ArrayDeque<Component> queue = new ArrayDeque<>();
+            queue.add(parent);
+            boolean own = false;
+            boolean other = false;
+            while (!queue.isEmpty() && seen.size() < MAX_SCAN) {
+                Component component = queue.removeFirst();
+                if (!seen.add(component)) continue;
+                if (component instanceof JLabel label && label.getText() != null && label.getText().startsWith(PLUGIN_ID_PREFIX)) {
+                    if (PLUGIN_ID.equals(label.getText())) own = true;
+                    else other = true;
+                }
+                if (component instanceof Container container) Collections.addAll(queue, container.getComponents());
+            }
+            if (other) return PluginScope.OTHER;
+            if (own) return PluginScope.OWN;
+            if (parent instanceof Window) break;
+        }
+        return PluginScope.UNKNOWN;
     }
 
     private final class PaneWatch {
@@ -194,7 +264,7 @@ public final class CodexCommitOverview implements Disposable {
             if (applying) return;
             observe(pane.getDocument());
             if (disposed || !pane.isDisplayable()) { remove(); return; }
-            boolean own = ownDocument(pane.getDocument());
+            boolean own = ownDocument(pane);
             if (own && !recognized) {
                 Window window = SwingUtilities.getWindowAncestor(pane);
                 if (window != null) enqueue(window);
@@ -263,8 +333,12 @@ public final class CodexCommitOverview implements Disposable {
         ResponsiveKit(HTMLEditorKit delegate, PaneWatch watch) { this.delegate = delegate; this.watch = watch; }
         @Override public ViewFactory getViewFactory() {
             return element -> {
-                Object id = element.getAttributes().getAttribute(HTML.Attribute.ID);
-                if (PREVIEW.equals(id) && ownDocument(element.getDocument())) return new PreviewView(element, watch);
+                if (previewElement(element, true)) {
+                    JEditorPane pane = watch.reference.get();
+                    PluginScope scope = pane == null ? PluginScope.OTHER : pluginScope(pane);
+                    if (pane != null && element.getDocument() == pane.getDocument() && scope != PluginScope.OTHER
+                            && previewElement(element, scope == PluginScope.OWN)) return new PreviewView(element, watch);
+                }
                 return delegate.getViewFactory().create(element);
             };
         }
@@ -289,7 +363,7 @@ public final class CodexCommitOverview implements Disposable {
             this.watch = watch;
             open = event -> {
                 JEditorPane pane = watch.reference.get();
-                if (!disposed && pane != null && ownDocument(pane.getDocument())) ScreenshotViewer.show(pane);
+                if (!disposed && pane != null && ownDocument(pane)) ScreenshotViewer.show(pane);
             };
             watch.views.add(this);
         }
@@ -379,6 +453,7 @@ public final class CodexCommitOverview implements Disposable {
         private final WeakReference<JLabel> reference;
         private JPanel links;
         private Container parent;
+        private int missingLinks = -1;
         private final PropertyChangeListener properties;
         LabelWatch(JLabel label) {
             reference = new WeakReference<>(label);
@@ -389,17 +464,17 @@ public final class CodexCommitOverview implements Disposable {
             if (label == null) { removePanel(); return; }
             if (disposed || !label.isDisplayable()) { remove(); return; }
             if (!PLUGIN_ID.equals(label.getText())) { removePanel(); return; }
-            if (links != null || !(label.getParent() instanceof JPanel panel) || !vertical(panel.getLayout())) return;
+            if (links != null && parent != label.getParent()) removePanel();
+            if (!(label.getParent() instanceof JPanel panel) || !vertical(panel.getLayout())) return;
+            int missing = missingInfoLinks(panel, links);
+            if (links != null && missing == missingLinks) return;
+            removePanel();
+            if (missing == 0) return;
             parent = panel;
-            links = new JPanel();
-            links.setOpaque(false);
-            links.setLayout(new BoxLayout(links, BoxLayout.Y_AXIS));
-            links.add(link("GitHub repository", "https://github.com/nvxraM/CodexCommit"));
-            links.add(link("User guide", "https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/USAGE.md"));
-            links.add(link("MIT license", "https://github.com/nvxraM/CodexCommit/blob/main/LICENSE"));
-            links.add(link("Privacy", "https://github.com/nvxraM/nvxraM/blob/main/docs/codexcommit/PRIVACY.md"));
+            links = additionalInfoLinks(missing);
+            missingLinks = missing;
             changing = true;
-            try { panel.add(links, panel.getComponentZOrder(label) + 1); }
+            try { panel.add(links, 0); }
             finally { changing = false; }
             panel.revalidate();
             panel.repaint();
@@ -412,6 +487,7 @@ public final class CodexCommitOverview implements Disposable {
             }
             links = null;
             parent = null;
+            missingLinks = -1;
         }
         private void remove() {
             JLabel label = reference.get();
@@ -426,12 +502,96 @@ public final class CodexCommitOverview implements Disposable {
         return layout != null && layout.getClass().getName().equals("com.intellij.ide.plugins.newui.VerticalLayout");
     }
 
+    static JPanel additionalInfoLinks() {
+        return additionalInfoLinks(3);
+    }
+
+    static JPanel additionalInfoLinks(Container nativeInfo) {
+        int missing = missingInfoLinks(nativeInfo, null);
+        return missing == 0 ? null : additionalInfoLinks(missing);
+    }
+
+    private static int missingInfoLinks(Container nativeInfo, Component ignored) {
+        if (nativeInfo == null) return 3;
+        int available = 0;
+        ArrayDeque<Component> queue = new ArrayDeque<>();
+        Set<Component> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        queue.add(nativeInfo);
+        while (!queue.isEmpty() && seen.size() < MAX_SCAN) {
+            Component component = queue.removeFirst();
+            if (component == ignored || !seen.add(component)) continue;
+            if (component instanceof AbstractButton button) available |= linkKinds(button.getText());
+            else if (component instanceof JLabel label) available |= linkKinds(label.getText());
+            else if (component instanceof JEditorPane pane && pane.getDocument() instanceof HTMLDocument html)
+                available |= documentLinkKinds(html);
+            if (available == 3) return 0;
+            if (component instanceof Container container) Collections.addAll(queue, container.getComponents());
+        }
+        return 3 & ~available;
+    }
+
+    private static int linkKinds(String text) {
+        if (text == null || text.length() > 4096) return 0;
+        String label = text.replaceAll("<[^>]+>", " ").trim();
+        int kinds = knownUrl(text.trim());
+        if (label.equalsIgnoreCase("Documentation")) kinds |= 1;
+        if (label.equalsIgnoreCase("Privacy") || label.equalsIgnoreCase("Privacy Policy")) kinds |= 2;
+        if (text.contains("<")) {
+            HTMLEditorKit kit = new HTMLEditorKit();
+            HTMLDocument document = (HTMLDocument) kit.createDefaultDocument();
+            try {
+                kit.read(new StringReader(text), document, 0);
+                kinds |= documentLinkKinds(document);
+            } catch (IOException | BadLocationException ignored) { }
+        }
+        return kinds;
+    }
+
+    private static int knownUrl(Object url) {
+        return DOCUMENTATION_URL.equals(url) ? 1 : PRIVACY_URL.equals(url) ? 2 : 0;
+    }
+
+    private static int documentLinkKinds(HTMLDocument document) {
+        int[] kinds = {0};
+        document.render(() -> {
+            HTMLDocument.Iterator links = document.getIterator(HTML.Tag.A);
+            for (int scanned = 0; links.isValid() && scanned < MAX_SCAN; scanned++, links.next())
+                kinds[0] |= knownUrl(links.getAttributes().getAttribute(HTML.Attribute.HREF));
+        });
+        return kinds[0];
+    }
+
+    private static JPanel additionalInfoLinks(int missing) {
+        JPanel panel = new JPanel(new GridBagLayout()) {
+            @Override public Dimension getMinimumSize() { return getPreferredSize(); }
+            @Override public Dimension getMaximumSize() { return getPreferredSize(); }
+        };
+        panel.setOpaque(false);
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        String[][] items = {
+                {"Documentation", DOCUMENTATION_URL},
+                {"Privacy", PRIVACY_URL}
+        };
+        for (int row = 0; row < items.length; row++) {
+            if ((missing & (1 << row)) == 0) continue;
+            GridBagConstraints constraints = new GridBagConstraints();
+            constraints.gridx = 0;
+            constraints.gridy = row;
+            constraints.weightx = 1;
+            constraints.fill = GridBagConstraints.HORIZONTAL;
+            constraints.anchor = GridBagConstraints.NORTHWEST;
+            panel.add(link(items[row][0], items[row][1]), constraints);
+        }
+        return panel;
+    }
+
     private static JButton link(String text, String url) {
         JButton button = new JButton("<html><a href=\"\">" + text + "</a></html>");
         button.setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
         button.setContentAreaFilled(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         button.setAlignmentX(Component.LEFT_ALIGNMENT);
+        button.setHorizontalAlignment(SwingConstants.LEFT);
         button.addActionListener(event -> BrowserUtil.browse(url));
         return button;
     }

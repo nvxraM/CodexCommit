@@ -12,6 +12,7 @@
 | [Verification](VERIFICATION.md) | Test results and incomplete checks. |
 | [Security audit](SECURITY_AUDIT.md) | Detailed audit record. |
 | [Publication](PUBLISHING.md) | Release checklist and publisher settings. |
+| [Marketplace listing](MARKETPLACE.md) | Overview, gallery pictures, and Additional Info links. |
 | [Changes](CHANGELOG.md) | Version history. |
 | [Writing guide](WRITING_GUIDE.md) | ASD-STE100 project rules and terms. |
 | [Project instructions](../AGENTS.md) | Commit, documentation, and maintenance rules. |

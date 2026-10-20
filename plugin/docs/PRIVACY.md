@@ -1,7 +1,7 @@
 # Privacy notice
 
 Publisher: **nvxraM**. For privacy questions, contact [nvxram.support@gmail.com](mailto:nvxram.support@gmail.com).
-Notice URL: [CodexCommit privacy notice](https://github.com/nvxraM/nvxraM/blob/main/docs/codexcommit/PRIVACY.md).
+Notice URL: [CodexCommit privacy notice](https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/PRIVACY.md).
 
 CodexCommit processes the tracked changes you include in the Commit tool window to prepare a commit-message draft. Selecting the Generate button sends the source patch and fixed task instructions through your local Codex CLI. No additional review or confirmation dialog opens. Check the selected changes before you use the button. The CLI communicates using its own authentication. This may send filenames, source code, comments, and any personal or secret information present in the patch to the service used by Codex.
 
@@ -14,6 +14,8 @@ Other IDE settings and credential paths remain blocked. Workspace path, revision
 The plugin does not make your Git commit. Examine workspace settings for private data before you commit them yourself.
 
 The plugin developer does not receive your patch, result, credentials, account details, or usage data through a developer-operated server. There is no developer telemetry endpoint. The plugin does not read or copy authentication files. Executable-path settings are stored in the IDE's normal application settings, independently of your repository. The IDE's own settings sync, local history, diagnostics, and other plugins are outside this plugin's control.
+
+The plugin Overview includes a fixed public screenshot hosted on GitHub. The enhanced IDE renderer and full-size viewer use the bundled PNG. The Marketplace website and an unenhanced IDE HTML renderer can fetch the public screenshot from GitHub. These image requests contain no selected source changes or Codex account data. GitHub can receive normal connection information under its privacy terms.
 
 Before source generation, the plugin asks the local Codex CLI for its saved model selection or default model.
 This local query does not include source text or start a Codex conversation.

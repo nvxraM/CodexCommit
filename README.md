@@ -44,10 +44,10 @@ Requests can use quota or incur charges. Cancel from the IDE background task con
 
 ## Manual install
 
-1. [Download version 1.1.10](https://github.com/nvxraM/CodexCommit/releases/download/v1.1.10/CodexCommit-1.1.10.zip).
+1. [Download version 1.1.11](https://github.com/nvxraM/CodexCommit/releases/download/v1.1.11/CodexCommit-1.1.11.zip).
 2. In PyCharm, open **Settings → Plugins → ⚙ → Install Plugin from Disk**.
 3. Select the ZIP. Restart the IDE if requested.
 
-[User guide](plugin/docs/USAGE.md) · [Build](plugin/docs/BUILD.md) · [Privacy](https://github.com/nvxraM/nvxraM/blob/main/docs/codexcommit/PRIVACY.md) · [Security](.github/SECURITY.md) · [All guides](plugin/docs/README.md)
+[User guide](plugin/docs/USAGE.md) · [Build](plugin/docs/BUILD.md) · [Privacy](plugin/docs/PRIVACY.md) · [Security](.github/SECURITY.md) · [All guides](plugin/docs/README.md)
 
 Independent project. OpenAI and JetBrains do not endorse it. [MIT license](LICENSE).

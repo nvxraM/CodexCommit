@@ -14,9 +14,10 @@ public final class SourceArchive {
             "plugin/gradle.properties", "plugin/settings.gradle.kts", "plugin/build.gradle.kts", "plugin/gradlew", "plugin/gradlew.bat");
     private static final Set<String> DOCUMENT_FILES = Set.of("plugin/docs/README.md", "plugin/docs/USAGE.md", "plugin/docs/BUILD.md",
             "plugin/docs/CHANGELOG.md", "plugin/docs/PRIVACY.md", "plugin/docs/PUBLISHING.md", "plugin/docs/VERIFICATION.md", "plugin/docs/SECURITY_AUDIT.md",
-            "plugin/docs/DESCRIPTION.md", "plugin/docs/WRITING_GUIDE.md", "plugin/docs/THIRD_PARTY_NOTICES.md", "plugin/docs/release.properties.example",
+            "plugin/docs/DESCRIPTION.md", "plugin/docs/WRITING_GUIDE.md", "plugin/docs/MARKETPLACE.md", "plugin/docs/THIRD_PARTY_NOTICES.md", "plugin/docs/release.properties.example",
             "plugin/docs/images/README.md", "plugin/docs/images/generate-button.png", "plugin/docs/images/commit-message.png",
             "plugin/docs/images/how-to.webp", "plugin/docs/images/generate-button.webp",
+            "plugin/docs/images/marketplace/01-select-and-generate.png", "plugin/docs/images/marketplace/02-review-the-draft.png",
             "plugin/docs/images/brand/horizontal-light.webp", "plugin/docs/images/brand/horizontal-dark.webp",
             "plugin/docs/images/brand/horizontal-light-outlined.svg",
             "plugin/docs/images/brand/horizontal-dark-outlined.svg", "plugin/docs/images/brand/FONT_LICENSE.txt");
@@ -45,7 +46,8 @@ public final class SourceArchive {
             }
             List<String> expected = List.of("README.md", ".github/SECURITY.md", ".github/workflows/release.yml",
                     "plugin/src/main/java/dev/codexcommit/core/CodexRunner.java", "plugin/gradle/wrapper/gradle-wrapper.jar",
-                    "plugin/docs/USAGE.md", "plugin/docs/images/README.md", "plugin/docs/images/generate-button.png",
+                    "plugin/docs/USAGE.md", "plugin/docs/MARKETPLACE.md", "plugin/docs/images/README.md", "plugin/docs/images/generate-button.png",
+                    "plugin/docs/images/marketplace/01-select-and-generate.png", "plugin/docs/images/marketplace/02-review-the-draft.png",
                     "plugin/tools/build-local.sh", "plugin/tools/build-local.ps1", "plugin/docs/images/how-to.webp",
                     "plugin/docs/images/brand/horizontal-dark-outlined.svg", "plugin/src/main/resources/META-INF/pluginIcon_dark.svg",
                     "plugin/docs/images/brand/horizontal-dark.webp", "plugin/docs/images/brand/horizontal-light.webp",

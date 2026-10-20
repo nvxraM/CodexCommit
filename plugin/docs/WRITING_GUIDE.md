@@ -75,7 +75,7 @@ Keep the copyable installation phrase unchanged when you update these images.
 Keep `docs/DESCRIPTION.md` at exactly 50 words.
 Use the same text in the first description paragraph of the root `README.md`.
 Count words as groups of non-whitespace characters.
-Keep the plugin Overview separate. Use three short action bullets, the responsive picture, and brief help links.
+Keep the plugin Overview separate. Use a brief introduction, three action bullets, the responsive picture, requirements, and help links.
 Do not include a heading in `docs/DESCRIPTION.md`.
 
 ## Before a release

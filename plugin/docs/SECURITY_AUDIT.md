@@ -10,11 +10,14 @@ This audit covers CodexCommit 1.1.0. It covers the source, build tools, release 
 
 
 The current UI includes a responsive screenshot and a full-screen viewer.
-The UI enhancement identifies the marked CodexCommit description through Swing component metadata.
+The UI enhancement identifies the exact CodexCommit picture and trusted link through Swing component metadata.
+It accepts Marketplace HTML after custom IDs are removed. It rejects known other-plugin panels.
 Its global listener observes component layout events, not keyboard or mouse input.
 The viewer reads only the fixed, bundled PNG. Help links open their fixed URLs when clicked.
 Cleanup removes the UI listeners and restores the original description renderer.
-The Overview image loads without a network request.
+The enhanced IDE viewer reads the bundled PNG and works offline.
+The Marketplace website and an unenhanced IDE HTML renderer can load the fixed public PNG from GitHub.
+These image requests contain no selected patch, Codex account data, or plugin telemetry.
 Release checks reject stale version notes, oversized notes, and changed screenshot bytes.
 Version 1.1.8 draws the toolbar's cube motion with local Java2D vector geometry.
 Static plugin icons contain no scripts or external references. No loading-frame files or browser code run in the plugin.

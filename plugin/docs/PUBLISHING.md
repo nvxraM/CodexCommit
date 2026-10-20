@@ -3,17 +3,19 @@
 Publish this project as **CodexCommit** under the `nvxraM` GitHub account.
 The repository contains the source code and a checked candidate ZIP.
 The source uses the MIT license.
-No JetBrains Marketplace listing or release account has been created by this work.
-This checklist describes the additional Marketplace release steps.
+The Marketplace listing is [CodexCommit](https://plugins.jetbrains.com/plugin/35249-codexcommit).
+Use the [listing guide](MARKETPLACE.md) for its Overview, screenshots, and links.
+This checklist describes the release steps.
 It does not promise that publication has no risk.
 Run build and publication commands from `plugin/`.
 
 1. Review the source, MIT license, CodexCommit name, icon attribution, privacy notice, security boundaries, and verification results. Confirm the name and retained `local.codex.commitmessage` plugin ID are available and you have the rights to distribute the final content. Rename/reserve the ID before a first public release if Marketplace reports a conflict.
-2. Choose your public publisher identity, valid contact email, website, source URL, and hosted privacy-policy URL. Fill the ignored `release.properties` from `docs/release.properties.example` and place the approved vendor/contact metadata into the final descriptor. The descriptor uses the approved publisher name `nvxraM` and public contact `nvxram.support@gmail.com`. The privacy notice uses the [public profile repository page](https://github.com/nvxraM/nvxraM/blob/main/docs/codexcommit/PRIVACY.md). The source repository remains private. Marketplace submission remains separate from GitHub publication.
+2. Choose your public publisher identity, valid contact email, website, source URL, and hosted privacy-policy URL. Fill the ignored `release.properties` from `docs/release.properties.example` and place the approved vendor/contact metadata into the final descriptor. The descriptor uses the approved publisher name `nvxraM` and public contact `nvxram.support@gmail.com`. The privacy notice uses the [public project page](https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/PRIVACY.md). Check the current repository visibility before publication. Marketplace submission remains separate from GitHub publication.
 3. Decide the publisher's trader/non-trader status and review the Marketplace developer agreement yourself. Public publisher/contact information is a user choice; the build must not invent or expose personal contact details.
-4. Update What's New for every version. Match its version to `gradle.properties` and the plugin descriptor. Include only changes for that version. Use at most three bullets and 60 words. Keep older changes in `docs/CHANGELOG.md`. Check the bundled Overview button image in the final JAR.
+4. Update What's New for every version. Match its version to `gradle.properties` and the plugin descriptor. Include only changes for that version. Use at most three bullets and 60 words. Keep older changes in `docs/CHANGELOG.md`. Check the public Overview image and the bundled offline copy in the final JAR.
    Check the preview at narrow and wide widths. Click it to open full screen, then close it with Esc.
-   Check the Additional Info links. Switch to another plugin and back. Check listener cleanup during removal.
+   Check the aligned Documentation and Privacy links in Additional Info.
+   Use the Marketplace native URL fields for Source Code, License, and other standard links. Switch to another plugin and back. Check listener cleanup during removal.
    Check the new static logo in light and dark themes. Use the unchanged default IDE settings to check button animation.
    Check its coloured loading state, completion, cancellation, hidden toolbar, power save, screen reader mode, and removal.
    Turn power save and screen reader modes off during the same active job. Check that motion resumes without a forced repaint.
@@ -22,7 +24,7 @@ Run build and publication commands from `plugin/`.
 6. In an isolated IDE sandbox, test install, one-click generation using a harmless synthetic diff, cancellation, timeout, partial-selection refusal, stale changes, typed-message preservation, project close, and dynamic unload/reload. Test Windows, macOS, and Linux before claiming those platforms work. A descriptor/verifier pass is not a live dynamic-unload test.
 7. Run a release archive/source scan. Confirm there are no private source files, absolute personal paths, credentials, authentication files, local IDE data, compiled tests, CLI/runtime binaries, logs, or build caches in the release. Inspect both the ZIP and its inner JAR. Record the SHA-256 and the exact source revision separately.
 8. Keep the reviewed source revisions in the GitHub repository. The build tools do not make commits or push changes automatically. Publication commits use the GitHub no-reply address.
-9. Create the initial Marketplace listing manually using your approved publisher identity and the reviewed ZIP. Read and accept the vendor agreement yourself. Marketplace approval and any security scan are separate checks; approval does not eliminate risk.
+9. Upload the checked ZIP to the existing Marketplace listing. Use its owner page for gallery pictures and general information links. A configured Marketplace token can upload updates through the official API. Read any new vendor agreement yourself. Marketplace approval and any security scan are separate checks; approval does not eliminate risk.
 
 The current candidate's execution boundary is personal unmanaged accounts with native Codex 0.160.1 or 0.163.0 on Windows/Linux; macOS is blocked. Resolve or clearly disclose those restrictions in the listing. A successful fake-provider safety probe does not prove cloud-managed accounts retain the same tool profile. The CI file defines account-free Windows/macOS/Linux build/test jobs, but those hosted jobs have not run merely because the workflow exists. They do not test real model access or native dynamic UI behavior.
 
@@ -45,5 +47,5 @@ There is no PAT, stored publisher credential, PR release trigger or Marketplace 
 
 If a run fails after publication, inspect the existing tag, release and assets before recovery.
 The workflow does not overwrite or delete existing releases or tags.
-GitHub releases in this private repository remain visible only to users with repository access.
+GitHub release access follows the current repository visibility.
 Marketplace publication still requires the user's configured account, listing and accepted publisher terms.

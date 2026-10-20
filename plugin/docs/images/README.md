@@ -19,3 +19,11 @@ The draft appears when it is ready. The visual return does not hold the draft. T
 
 The harness supplies the sample draft. The real button, background tasks, selection checks, and draft insertion run in PyCharm.
 No Codex account request occurs. This is not a recorded model response or complete real-account acceptance test.
+
+## Marketplace gallery
+
+- `marketplace/01-select-and-generate.png`: selected tracked changes and the CodexCommit button.
+- `marketplace/02-review-the-draft.png`: the completed draft in the commit message field.
+
+Both PNGs preserve exact 3840 × 2160 frames from the lossless native usage capture.
+They use the same sample files and test draft as `how-to.webp`. They have no animation or upscaling.

@@ -11,6 +11,8 @@ import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.ui.accessibility.ScreenReader;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
@@ -29,8 +31,18 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JEditorPane;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.text.Element;
+import javax.swing.text.ElementIterator;
+import javax.swing.text.html.HTMLDocument;
+import javax.swing.text.html.HTMLEditorKit;
 
 /** Account-free regressions. Every Git mutation below is confined to a newly created synthetic directory. */
 public final class IdeBoundaryTests {
@@ -264,6 +276,7 @@ public final class IdeBoundaryTests {
             JBUIScale.setSystemScaleFactor(JBUIScale.INSTANCE.computeSystemScaleFactor(UIManager::getDefaults));
             JBUIScale.scale(1f);
             screenshotLayoutTests();
+            overviewTests();
             toolbarAnimationTests();
             symlinkTest();
             System.out.println("IDE boundary tests: " + passed + " passed, 0 failed, " + skipped + " skipped. Synthetic local fixtures only; no model request.");
@@ -503,6 +516,223 @@ public final class IdeBoundaryTests {
         return first.getWidth() == second.getWidth() && first.getHeight() == second.getHeight()
                 && java.util.Arrays.equals(first.getRGB(0, 0, first.getWidth(), first.getHeight(), null, 0, first.getWidth()),
                 second.getRGB(0, 0, second.getWidth(), second.getHeight(), null, 0, second.getWidth()));
+    }
+
+    private static void overviewTests() throws Exception {
+        String picture = "https://raw.githubusercontent.com/nvxraM/CodexCommit/"
+                + "3cbb38e74bb64aedf8478d5c85003edfa70661e1/plugin/docs/images/generate-button.png";
+        test("Marketplace description without IDs retains the trusted bundled preview", () -> {
+            HTMLDocument document = overviewDocument("<div><ul><li>Select your Git changes.</li></ul><p><a href=\""
+                    + picture + "\"><img src=\"" + picture + "\" width=\"640\" height=\"135\"></a></p></div>");
+            require(document.getElement("codexcommit-overview") == null && document.getElement("codexcommit-button-preview") == null,
+                    "Sanitized fixture still contains descriptor IDs.");
+            require(CodexCommitOverview.ownDocument(document, false), "Trusted sanitized preview was not recognized.");
+        });
+        test("Overview ignores foreign missing or altered image sources and links despite copied IDs", () -> {
+            for (String foreign : List.of("https://example.invalid/picture.png", picture + "?other=1", picture + "#other",
+                    picture.replace("https://", "http://"), picture.replace("raw.githubusercontent.com", "raw.githubusercontent.com.example.invalid"),
+                    "data:image/png;base64,AAAA", "images/generate-button.png", "")) {
+                HTMLDocument foreignSource = overviewDocument("<div id=\"codexcommit-overview\"><a href=\"" + picture
+                        + "\"><img id=\"codexcommit-button-preview\" src=\"" + foreign + "\"></a></div>");
+                require(!CodexCommitOverview.ownDocument(foreignSource, true), "Untrusted preview source was recognized.");
+                HTMLDocument foreignLink = overviewDocument("<div id=\"codexcommit-overview\"><a href=\"" + foreign
+                        + "\"><img id=\"codexcommit-button-preview\" src=\"" + picture + "\"></a></div>");
+                require(!CodexCommitOverview.ownDocument(foreignLink, false)
+                        && !CodexCommitOverview.ownDocument(foreignLink, true), "Untrusted preview link was recognized.");
+            }
+            require(!CodexCommitOverview.ownDocument(overviewDocument("<a href=\"" + picture + "\"><img width=\"640\"></a>"), true),
+                    "Source removed by sanitization was treated as an arbitrary image.");
+        });
+        test("Overview replaces only its exact image when a description contains unrelated images", () -> {
+            HTMLDocument document = overviewDocument("<img src=\"https://example.invalid/other.png\">"
+                    + "<a href=\"" + picture + "\"><img src=\"" + picture + "\"></a>"
+                    + "<img id=\"codexcommit-button-preview\" src=\"data:image/png;base64,AAAA\">");
+            int recognized = 0;
+            ElementIterator elements = new ElementIterator(document);
+            for (Element element = elements.next(); element != null; element = elements.next())
+                if (CodexCommitOverview.previewElement(element, false)) recognized++;
+            require(recognized == 1, "The description changed unrelated or multiple images.");
+        });
+        test("cached Marketplace image without a source requires the exact legacy tuple and own plugin scope", () -> {
+            String oldLink = "https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/images/generate-button.png";
+            String alt = "CodexCommit button. Click to view full screen.";
+            String legacy = "<a href=\"" + oldLink + "\"><img width=\"640\" height=\"135\" alt=\"" + alt + "\"></a>";
+            HTMLDocument published = overviewDocument(legacy);
+            List<HTMLDocument> variants = new ArrayList<>();
+            for (String changed : List.of(legacy.replace(oldLink, picture), legacy.replace(oldLink, oldLink + "?raw=true"),
+                    legacy.replace(alt, alt + " other"), legacy.replace("width=\"640\"", "width=\"641\""),
+                    legacy.replace("height=\"135\"", "height=\"134\""), legacy.replace("<img ", "<img src=\"\" "),
+                    legacy.replace("<img ", "<img src=\"data:image/png;base64,AAAA\" ")))
+                variants.add(overviewDocument(changed));
+            SwingUtilities.invokeAndWait(() -> {
+                JEditorPane pane = new JEditorPane();
+                pane.setDocument(published);
+                JPanel panel = new JPanel();
+                panel.add(pane);
+                require(!CodexCommitOverview.ownDocument(pane), "Unscoped legacy Marketplace image was accepted.");
+                JLabel identifier = new JLabel("Plugin ID: other.publisher.plugin");
+                panel.add(identifier);
+                require(!CodexCommitOverview.ownDocument(pane), "Another plugin's legacy image was accepted.");
+                identifier.setText("Plugin ID: local.codex.commitmessage");
+                require(CodexCommitOverview.ownDocument(pane), "The exact published legacy image was not restored in its own plugin.");
+                for (HTMLDocument variant : variants) {
+                    pane.setDocument(variant);
+                    require(!CodexCommitOverview.ownDocument(pane), "An altered legacy image tuple was accepted.");
+                }
+            });
+        });
+        test("Overview requires its plugin scope for an unlinked image and rejects another plugin scope", () -> {
+            HTMLDocument linked = overviewDocument("<a href=\"" + picture + "\"><img src=\"" + picture + "\"></a>");
+            HTMLDocument unlinked = overviewDocument("<img src=\"" + picture + "\">");
+            SwingUtilities.invokeAndWait(() -> {
+                JEditorPane pane = new JEditorPane();
+                pane.setDocument(unlinked);
+                JPanel panel = new JPanel();
+                panel.add(pane);
+                require(!CodexCommitOverview.ownDocument(pane), "Unlinked image was accepted without the plugin scope.");
+                JLabel identifier = new JLabel("Plugin ID: local.codex.commitmessage");
+                panel.add(identifier);
+                require(CodexCommitOverview.ownDocument(pane), "The plugin's unlinked image was not recognized.");
+                identifier.setText("Plugin ID: other.publisher.plugin");
+                pane.setDocument(linked);
+                require(!CodexCommitOverview.ownDocument(pane), "Another plugin's description was enhanced.");
+                identifier.setText("Plugin ID: local.codex.commitmessage");
+                require(CodexCommitOverview.ownDocument(pane), "The plugin's sanitized linked description was not recognized.");
+                panel.add(new JLabel("Plugin ID: other.publisher.plugin"));
+                require(!CodexCommitOverview.ownDocument(pane), "Ambiguous plugin scope was accepted.");
+            });
+        });
+        test("Additional Info has only Documentation and Privacy with equal flush-left rows", () -> SwingUtilities.invokeAndWait(() -> {
+            JPanel links = CodexCommitOverview.additionalInfoLinks();
+            require(links.getComponentCount() == 2, "Native repository or license links were duplicated.");
+            JButton documentation = (JButton) links.getComponent(0);
+            JButton privacy = (JButton) links.getComponent(1);
+            require(documentation.getText().equals("<html><a href=\"\">Documentation</a></html>")
+                    && privacy.getText().equals("<html><a href=\"\">Privacy</a></html>"), "Additional Info has unexpected link labels.");
+            require(documentation.getHorizontalAlignment() == SwingConstants.LEFT && privacy.getHorizontalAlignment() == SwingConstants.LEFT
+                    && links.getAlignmentX() == Component.LEFT_ALIGNMENT, "Additional Info text is not left aligned.");
+            Dimension preferred = links.getPreferredSize();
+            require(links.getMinimumSize().equals(preferred) && links.getMaximumSize().equals(preferred),
+                    "Additional Info allows differently sized outer cells.");
+            for (int extra : new int[]{0, 150}) {
+                links.setSize(preferred.width + extra, preferred.height);
+                links.doLayout();
+                require(documentation.getX() == 0 && privacy.getX() == 0
+                        && documentation.getWidth() == privacy.getWidth() && documentation.getWidth() == links.getWidth(),
+                        "Additional Info forms a staircase or changes row widths.");
+                require(documentation.getY() < privacy.getY(), "Additional Info rows overlap or change order.");
+            }
+            JPanel parent = new JPanel();
+            parent.setLayout(new BoxLayout(parent, BoxLayout.Y_AXIS));
+            JLabel nativeLink = new JLabel("Source code");
+            nativeLink.setAlignmentX(Component.LEFT_ALIGNMENT);
+            parent.add(nativeLink);
+            parent.add(links);
+            parent.setSize(preferred.width + 150, preferred.height + nativeLink.getPreferredSize().height);
+            parent.doLayout();
+            require(links.getX() == nativeLink.getX(), "Additional Info does not align with native rows.");
+        }));
+        test("Additional Info fills only missing native documentation and privacy links", () -> {
+            HTMLDocument policyLink = overviewDocument("<a href=\"https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/PRIVACY.md\">Policy</a>");
+            SwingUtilities.invokeAndWait(() -> {
+                JPanel nativeInfo = new JPanel();
+                nativeInfo.add(new JButton("Source code"));
+                nativeInfo.add(new JLabel("License"));
+                nativeInfo.add(new JButton("Report plugin"));
+                require(CodexCommitOverview.additionalInfoLinks(nativeInfo).getComponentCount() == 2,
+                        "Native source, license, or report rows suppressed unrelated fallback links.");
+                JButton documentation = new JButton("Documentation");
+                nativeInfo.add(documentation);
+                JPanel privacyOnly = CodexCommitOverview.additionalInfoLinks(nativeInfo);
+                require(privacyOnly.getComponentCount() == 1 && ((JButton) privacyOnly.getComponent(0)).getText().contains("Privacy"),
+                        "Native Documentation was duplicated or the missing Privacy link disappeared.");
+                JLabel privacy = new JLabel("<html><a href=\"\">Privacy Policy</a></html>");
+                nativeInfo.add(privacy);
+                require(CodexCommitOverview.additionalInfoLinks(nativeInfo) == null, "Existing native documentation and privacy links were duplicated.");
+                nativeInfo.remove(documentation);
+                JPanel documentationOnly = CodexCommitOverview.additionalInfoLinks(nativeInfo);
+                require(documentationOnly.getComponentCount() == 1 && ((JButton) documentationOnly.getComponent(0)).getText().contains("Documentation"),
+                        "Native Privacy was duplicated or the missing Documentation link disappeared.");
+                nativeInfo.remove(privacy);
+                nativeInfo.add(new JLabel("<html><a href=\"https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/USAGE.md\">Read the guide</a></html>"));
+                JEditorPane policy = new JEditorPane();
+                policy.setDocument(policyLink);
+                nativeInfo.add(policy);
+                require(CodexCommitOverview.additionalInfoLinks(nativeInfo) == null, "Exact native target URLs were duplicated under different labels.");
+            });
+        });
+        test("Additional Info responds to late native links and removes its own panel when another plugin opens", () -> {
+            CodexCommitOverview[] service = new CodexCommitOverview[1];
+            JPanel[] nativeInfo = new JPanel[1];
+            JLabel[] identifier = new JLabel[1];
+            JButton documentation = new JButton("Documentation");
+            JButton privacy = new JButton("Privacy Policy");
+            try {
+                SwingUtilities.invokeAndWait(() -> {
+                    service[0] = new CodexCommitOverview();
+                    JPanel panel = new JPanel();
+                    panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+                    nativeInfo[0] = panel;
+                    panel.add(new JButton("Source code"));
+                    identifier[0] = new JLabel("Plugin ID: local.codex.commitmessage") {
+                        @Override public boolean isDisplayable() { return true; }
+                    };
+                    panel.add(identifier[0]);
+                    invokeOverview(service[0], "watch", JLabel.class, identifier[0]);
+                    require(panel.getComponent(0) instanceof JPanel, "Fallback links are not grouped above native metadata.");
+                    require(overviewFallbackLabels(panel).equals(List.of("Documentation", "Privacy")), "Initial fallback links are missing.");
+                    panel.add(documentation);
+                    invokeOverview(service[0], "event", java.awt.AWTEvent.class, new java.awt.event.ContainerEvent(panel,
+                            java.awt.event.ContainerEvent.COMPONENT_ADDED, documentation));
+                });
+                SwingUtilities.invokeAndWait(() -> {
+                    require(overviewFallbackLabels(nativeInfo[0]).equals(List.of("Privacy")), "Late native Documentation left a duplicate fallback.");
+                    nativeInfo[0].add(privacy);
+                    invokeOverview(service[0], "event", java.awt.AWTEvent.class, new java.awt.event.ContainerEvent(nativeInfo[0],
+                            java.awt.event.ContainerEvent.COMPONENT_ADDED, privacy));
+                });
+                SwingUtilities.invokeAndWait(() -> {
+                    require(overviewFallbackLabels(nativeInfo[0]).isEmpty(), "Late native Privacy left a duplicate fallback.");
+                    nativeInfo[0].remove(documentation);
+                    invokeOverview(service[0], "event", java.awt.AWTEvent.class, new java.awt.event.ContainerEvent(nativeInfo[0],
+                            java.awt.event.ContainerEvent.COMPONENT_REMOVED, documentation));
+                });
+                SwingUtilities.invokeAndWait(() -> {
+                    require(overviewFallbackLabels(nativeInfo[0]).equals(List.of("Documentation")), "Removing a native link did not restore its fallback.");
+                    identifier[0].setText("Plugin ID: other.publisher.plugin");
+                });
+                SwingUtilities.invokeAndWait(() -> {
+                    require(overviewFallbackLabels(nativeInfo[0]).isEmpty(), "The fallback panel remained attached to another plugin.");
+                    require(privacy.getParent() == nativeInfo[0], "The service removed a native link.");
+                });
+            } finally {
+                if (service[0] != null) SwingUtilities.invokeAndWait(service[0]::dispose);
+            }
+        });
+    }
+
+    private static void invokeOverview(CodexCommitOverview service, String name, Class<?> type, Object argument) {
+        try {
+            var method = CodexCommitOverview.class.getDeclaredMethod(name, type);
+            method.setAccessible(true);
+            method.invoke(service, argument);
+        } catch (ReflectiveOperationException error) { throw new AssertionError("Cannot exercise the Overview lifecycle.", error); }
+    }
+
+    private static List<String> overviewFallbackLabels(JPanel nativeInfo) {
+        List<String> result = new ArrayList<>();
+        for (Component child : nativeInfo.getComponents()) {
+            if (child instanceof JPanel links) for (Component link : links.getComponents())
+                if (link instanceof JButton button) result.add(button.getText().replaceAll("<[^>]+>", "").trim());
+        }
+        return result;
+    }
+
+    private static HTMLDocument overviewDocument(String markup) throws Exception {
+        HTMLEditorKit kit = new HTMLEditorKit();
+        HTMLDocument document = (HTMLDocument) kit.createDefaultDocument();
+        kit.read(new java.io.StringReader(markup), document, 0);
+        return document;
     }
 
     private static void screenshotLayoutTests() throws Exception {

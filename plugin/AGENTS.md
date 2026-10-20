@@ -19,9 +19,10 @@ Use the glossary terms consistently.
 Keep `docs/DESCRIPTION.md` at exactly 50 words.
 Use the same text in the first description paragraph of `../README.md`.
 Count words as groups of non-whitespace characters.
-Keep the plugin Overview separate. Use three short action bullets, the responsive picture, and brief help links.
-Keep the Overview button image embedded in the descriptor so it works offline.
-Use the exact bytes from `docs/images/generate-button.png`.
+Keep the plugin Overview separate. Use a brief introduction, three action bullets, the responsive picture, requirements, and help links.
+Use a pinned public HTTPS PNG in the descriptor. Marketplace removes inline data and custom HTML IDs.
+Bundle the exact bytes from `docs/images/generate-button.png` for offline viewing.
+Recognize the exact picture and its link after Marketplace removes IDs. Keep other plugin views unchanged.
 
 Update What's New for every version. Include only the current version and one to three short HTML bullets.
 Keep its heading and bullets within 60 words. The release audit rejects stale versions or longer notes.
