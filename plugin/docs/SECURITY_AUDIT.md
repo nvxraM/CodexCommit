@@ -1,13 +1,9 @@
 # Security audit
 
+## Current security notes
+
 The 18 October 2026 source candidate also accepts CLI 0.163.0.
 See the [current compatibility check](VERIFICATION.md#compatibility-check--18-october-2026) for its source review, native loopback tests, and limits.
-The dated audit below retains its original 0.160.1 scope.
-
-Date: 15 October 2026.
-
-This audit covers CodexCommit 1.1.0. It covers the source, build tools, release files, and the Codex CLI 0.160.1 interface. It does not certify that the software has no risk. It does not certify compliance with the ASD-STE100 dictionary.
-
 
 The current UI includes a responsive screenshot and a full-screen viewer.
 The UI enhancement identifies the exact CodexCommit picture and trusted link through Swing component metadata.
@@ -30,15 +26,23 @@ Generation retains one-click operation. The button sends the selected patch with
 It puts the draft directly in the commit message field. It retains content checks and stale-result protection.
 Examine selected changes before using the button. Examine the message before committing.
 Selected workspace XML stays out of generation. Mixed selections use a fixed generic note; workspace-only selections use a local draft.
-Read the [current verification record](VERIFICATION.md#current-candidate) for current results and limits.
-The audit below records the earlier 1.1.0 candidate.
-## Audit limits
+Read the [current verification record](VERIFICATION.md) for current results and limits.
+
+## Historical audit: CodexCommit 1.1.0
+
+Date: 15 October 2026.
+
+This audit covers CodexCommit 1.1.0, its build tools, release files, and the Codex CLI 0.160.1 interface.
+It records the earlier review dialogs and account acknowledgement. These are absent from the current one-click workflow.
+It does not certify that the software has no risk. It does not certify compliance with the ASD-STE100 dictionary.
+
+### Audit limits
 
 No real Codex/OpenAI credential file was opened. No real Codex/OpenAI key or account token was used in the plugin tests. No private patch was used. No request was sent to a real model service. Tests use synthetic text and local test servers.
 
 The supported execution scope is an unmanaged Windows or Linux computer with a trusted native Codex CLI and the default saved login. Windows was tested. Linux execution still needs acceptance tests. macOS execution is disabled. Managed account policies are outside the supported scope.
 
-## Credential and data paths
+### Credential and data paths
 
 | Data | Source | Destination | Control |
 | --- | --- | --- | --- |
@@ -51,7 +55,7 @@ The supported execution scope is an unmanaged Windows or Linux computer with a t
 
 The CLI must use an account credential to authenticate to OpenAI. This normal authentication is separate from the text sent to the model. The plugin cannot promise that credentials never leave the computer. It can avoid reading, displaying, logging, or packaging them itself.
 
-## Source review
+### Source review
 
 - `CodexRunner.java` creates a child process without a command shell. The request uses standard input. The command contains fixed settings and temporary paths. It contains no API key or account token.
 - The child environment excludes `OPENAI_API_KEY`, `CODEX_API_KEY`, `CODEX_ACCESS_TOKEN`, `CODEX_HOME`, refresh URL overrides, custom CA overrides, tracing variables, and proxy variables.
@@ -65,7 +69,7 @@ The CLI must use an account credential to authenticate to OpenAI. This normal au
 - The plugin has no HTTP client, server, developer telemetry endpoint, automatic download, commit, staging, push, or source-write function.
 - Project service disposal cancels the job and interrupts its worker. Child process cleanup has a shared time limit. A volatile worker reference is copied before use to avoid a disposal race.
 
-## Issues found during development
+### Issues found during development
 
 The audit found the following issues. These issues are closed in the reviewed source and tests. The final package must use this source.
 
@@ -80,7 +84,7 @@ The audit found the following issues. These issues are closed in the reviewed so
 
 The final verification record must state which checks passed for the exact package hash. Do not use results from an older package.
 
-## Local security test results
+### Local security test results
 
 The software test total is 52 passed, 0 failed, and 2 skipped. The core suite has 24 passing cases and 1 skipped link fixture. It includes tests for process limits, cancellation, child termination, strict text decoding, secret rejection, environment filtering, command arguments, and error output. The local Git and patch suite has 8 passing cases and 1 skipped link fixture. Windows denied creation of the skipped fixtures. The archive path tests have 11 passing source cases and 9 passing binary-release cases.
 
@@ -105,7 +109,7 @@ Its archive scan passes. It contains one project JAR with 26 entries. The offici
 
 Gitleaks 8.30.1 found no leaks in the clean publication snapshot of 48 explicitly allowed source files. The scan covered approximately 192,408 bytes. Its output uses full redaction. A clean scan does not prove the absence of every possible secret. The publication procedure also requires a staged-file scan and a history scan before a push.
 
-## Build and publication review
+### Build and publication review
 
 The Gradle distribution has a pinned checksum. The IntelliJ build plugin and target SDK have fixed versions. GitHub Actions use commit hashes. The workflow has read-only repository permission and disables stored checkout credentials. It has no signing key, Marketplace token, model credential, or publication job. `publishPlugin` stops with an error.
 
@@ -115,7 +119,7 @@ The source includes the standard Gradle wrapper. Its third-party license notice 
 
 Build tools still require trust. Direct version pins do not prove that every transitive dependency or future build is safe. Keep signing and publication credentials out of source and out of untrusted pull-request builds.
 
-## Remaining risks and release gates
+### Remaining risks and release gates
 
 1. Do not use this release with managed Codex accounts or policies. The Send review requires an unmanaged personal-account acknowledgement. This is a user acknowledgement, not a technical account-type check. Known local policy files and a cloud policy cache cause a hard stop. Their absence does not prove that a new cloud policy cannot load. Windows policy paths can also use a relocated system folder. These cases need a native policy probe or an effective-policy API.
 2. Use a trusted Codex and Git binary. A native binary header and a version string do not prove publisher identity. Another IDE plugin or a compromised computer has the IDE user's access.
@@ -125,7 +129,7 @@ Build tools still require trust. Direct version pins do not prove that every tra
 6. Test open dialogs, active generation, cancellation, project close, and plugin update or unload in an isolated IDE. An idle unload test does not cover all active states.
 7. Review the final publisher identity, contact details, privacy URL, source URL, license, and name before publication. Do not put private contact details or credentials into release metadata by accident.
 
-## Primary source evidence
+### Primary source evidence
 
 - [JetBrains plugin access model](https://plugins.jetbrains.com/docs/marketplace/understanding-plugin-security.html)
 - [JetBrains dynamic plugin rules](https://plugins.jetbrains.com/docs/intellij/dynamic-plugins.html)

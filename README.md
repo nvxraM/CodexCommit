@@ -44,6 +44,9 @@ Requests can use quota or incur charges. Cancel from the IDE background task con
 
 ## Manual install
 
+Search for **CodexCommit** in **Settings → Plugins → Marketplace**. Select **Install**.
+Or install the ZIP:
+
 1. [Download version 1.1.11](https://github.com/nvxraM/CodexCommit/releases/download/v1.1.11/CodexCommit-1.1.11.zip).
 2. In PyCharm, open **Settings → Plugins → ⚙ → Install Plugin from Disk**.
 3. Select the ZIP. Restart the IDE if requested.
