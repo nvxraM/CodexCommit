@@ -52,5 +52,14 @@ Source Code, License, and Report Plugin use the IDE's own links.
 A Marketplace token can upload the ZIP through the official update API.
 Add it only to the secure `CODEXCOMMIT_MARKETPLACE_TOKEN` environment field for `plugins.jetbrains.com`.
 Never put it in this repository or a chat message.
-Gallery uploads and general information fields use the Marketplace owner page.
+Use the owner page to update gallery pictures and general information links.
+A permitted token can also use the current owner-page API for this listing:
+
+- Read `GET /api/plugins/35249`. The `screens` field contains the gallery.
+- Send changed URL fields inside `urls` to `POST /api/plugins/35249/edit`. Preserve other fields.
+- Upload pictures to `POST /api/plugins/35249/screenshots`. Use each filename as its multipart field name.
+- Save their order with `PUT /api/plugins/35249/screenshots`. Send an array of `{ "url": "<returned URL>" }` objects.
+
+Preserve existing gallery pictures. Check the saved links and full-resolution image bytes after each update.
+Read the update's approval state before you repeat a submission.
 Submission and Marketplace approval are separate from local verification and GitHub publication.
