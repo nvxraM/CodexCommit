@@ -93,6 +93,7 @@ final class ChangeSnapshot {
     /** Called on the EDT: captures selection, partial-changelist state, and already loaded documents. */
     static ChangeSnapshot capture(Project project, CommitWorkflowUi ui, Document messageDocument) throws IOException {
         if (project.getBasePath() == null) throw new SelectionException("A local project directory is required.");
+        checkUnversionedSelection(ui.getIncludedUnversionedFiles().size());
         List<Change> changes = List.copyOf(ui.getIncludedChanges());
         if (changes.isEmpty() || changes.size() > MAX_FILES) throw new SelectionException("Select between 1 and 500 tracked files.");
         Path root = Path.of(project.getBasePath()).toAbsolutePath().normalize();
@@ -186,6 +187,7 @@ final class ChangeSnapshot {
         }
         StringBuilder output = new StringBuilder();
         int patchBytes = 0;
+        long decodedBytes = 0;
         List<Prepared> completed = new ArrayList<>();
         for (Prepared candidate : candidates) {
             Entry entry = candidate.entry();
@@ -203,6 +205,7 @@ final class ChangeSnapshot {
             String after = entry.after() == null ? "" : candidate.documentText() == null ? LocalGitReader.text(disk)
                     : candidate.documentText().replace("\r\n", "\n").replace('\r', '\n');
             if (after.indexOf('\0') >= 0) throw new SelectionException("Binary changes are not supported.");
+            decodedBytes = checkedDecodedTotal(decodedBytes, before, after);
             String patch = UnifiedPatch.build(entry.beforeName(), entry.afterName(), before, after, cancelled);
             patchBytes += patch.getBytes(StandardCharsets.UTF_8).length;
             if (patchBytes > ContentPolicy.MAX_PATCH_BYTES) throw new SelectionException("Patch exceeds 512 KiB. Select fewer changes.");
@@ -224,6 +227,7 @@ final class ChangeSnapshot {
         try {
             if (project.isDisposed() || !originalMessage.equals(ui.getCommitMessageUi().getText())
                     || messageStamp != messageDocument.getModificationStamp()
+                    || !ui.getIncludedUnversionedFiles().isEmpty()
                     || !selection.equals(selectionKey(ui.getIncludedChanges())) || prepared.size() != entries.size()) return false;
             var currentChanges = new HashMap<Path, Change>();
             for (Change change : ui.getIncludedChanges()) {
@@ -273,6 +277,16 @@ final class ChangeSnapshot {
     }
 
     void apply(String message) { ui.getCommitMessageUi().setText(message); }
+
+    static void checkUnversionedSelection(int count) throws SelectionException {
+        if (count > 0) throw new SelectionException("Add the selected unversioned source files to Git before generation, or uncheck them in the Commit window. No files were added by CodexCommit.");
+    }
+
+    static long checkedDecodedTotal(long total, String before, String after) throws SelectionException {
+        long result = total + before.getBytes(StandardCharsets.UTF_8).length + after.getBytes(StandardCharsets.UTF_8).length;
+        if (result > LocalGitReader.MAX_TOTAL_BYTES) throw new SelectionException("Selected decoded before and after text exceeds 50 MiB in UTF-8. Select fewer changes.");
+        return result;
+    }
 
     private static void checkPartial(Project project, Change change, FilePath file) throws IOException {
         if (file == null) return;

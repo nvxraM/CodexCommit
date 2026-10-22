@@ -1,5 +1,39 @@
 # Verification record
 
+## 1.1.12 - selected text preparation - 22 October 2026
+
+A local reproduction found a BOM-marked UTF-16LE Git baseline for a Markdown file and a UTF-8 working copy.
+The previous decoder treated the UTF-16 NUL bytes as binary and the service displayed an unrelated generic warning.
+Version 1.1.12 strictly decodes UTF-8 and BOM-marked UTF-16LE/BE before checking decoded NUL characters.
+It retains stored-byte preflight limits and checks decoded UTF-8 file and combined sizes before patch generation.
+Malformed encodings, binary content, sensitive-content checks, the 512 KiB patch limit and the 520 KiB request limit remain enforced.
+Preparation failures now distinguish file comparison, policy checks, executable discovery and model discovery.
+Only typed fixed validation messages are displayed; native stderr and filesystem exception text remain private.
+Checked unversioned files now stop preparation with an add-or-uncheck instruction rather than being silently omitted.
+The plugin does not add files to Git. A new unversioned selection also invalidates a pending result.
+Native executable discovery also covers npm's nested optional-package layout without invoking launchers.
+
+Local SDK compilation and synthetic regression tests passed: 34 core cases and 45 IDE boundary cases, no failures.
+Two optional symbolic-link checks were skipped because this Windows host did not permit creating test links.
+The regression includes an actual synthetic UTF-16 Git baseline and UTF-8 working copy, strict malformed/binary rejection,
+UTF-8 expansion and combined-size boundaries, and nested npm executable discovery.
+The final 1.1.12 Gradle build, structure check and archive/metadata audit passed.
+The source archive guard passed 39 cases. The release guard passed 62 cases. There were 180 passing cases overall and two optional skips.
+No research content was sent to a model. The reproduction project, installed plugin and existing IDE settings were not changed.
+Local model discovery succeeded with the existing supported native CLI. No real-account generation was used to reproduce this defect.
+
+Official Plugin Verifier 1.411 reported compatibility with PY-262.10968.92 for the final Gradle ZIP.
+The project configuration check retained the existing upper-build warning. The bounded compatibility range remains unchanged.
+Native Codex CLI 0.163.0 passed the loopback audit with model ID gpt-6.1-sol, fake authentication and a hostile synthetic diff.
+The request exposed no tools, unrelated content or credentials; the synthetic draft returned without prompt/draft persistence.
+The final local Gradle ZIP SHA-256 is 287515bd30c487f81e7d30a79a3c65c42c29b253c2776d2917ffc6028cb47a01.
+The release workflow rebuilds the exact source on Linux; its distribution checksum is recorded with that release.
+Hosted CI and publication results are recorded separately after the source commit.
+Fresh isolated native IDE interaction was not tested: this execution session exposes no native app control.
+The synthetic selection, stale-state, cancellation, process and animation regressions passed; they do not replace native GUI acceptance.
+No new platform, account type, CLI version or compatibility range is claimed by this fix.
+
+
 ## 1.1.11 — Marketplace presentation — 20 October 2026
 
 The public 1.1.10 description lost its inline PNG and custom HTML IDs during Marketplace sanitization.

@@ -31,6 +31,11 @@ final class LocalGitReader {
 
     record Blob(String object, int size) {}
 
+    /** Fixed text only; never include decoder input or native process output. */
+    static final class TextException extends IOException {
+        TextException(String message) { super(message); }
+    }
+
     LocalGitReader(Path executable, BooleanSupplier cancelled) throws IOException {
         this.executable = requireNativeGit(executable);
         this.cancelled = cancelled;
@@ -79,8 +84,32 @@ final class LocalGitReader {
     }
 
     static String text(byte[] bytes) throws IOException {
-        for (byte value : bytes) if (value == 0) throw new IOException("Binary files are not supported.");
-        return decode(bytes).replace("\r\n", "\n").replace('\r', '\n');
+        if (bytes.length > MAX_FILE_BYTES) throw new TextException("Selected file exceeds 50 MiB.");
+        var charset = StandardCharsets.UTF_8;
+        int offset = 0;
+        if (bytes.length >= 2 && bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe) {
+            charset = StandardCharsets.UTF_16LE;
+            offset = 2;
+        } else if (bytes.length >= 2 && bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff) {
+            charset = StandardCharsets.UTF_16BE;
+            offset = 2;
+        } else if (bytes.length >= 3 && bytes[0] == (byte) 0xef && bytes[1] == (byte) 0xbb && bytes[2] == (byte) 0xbf) {
+            offset = 3;
+        }
+        String text;
+        try {
+            text = charset.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    .decode(ByteBuffer.wrap(bytes, offset, bytes.length - offset)).toString();
+        } catch (CharacterCodingException ignored) {
+            throw new TextException("Selected text has an unsupported or malformed encoding. Use UTF-8 or BOM-marked UTF-16.");
+        }
+        if (text.indexOf('\0') >= 0) throw new TextException("Selected content is binary. Uncheck binary files in the Commit window.");
+        text = text.replace("\r\n", "\n").replace('\r', '\n');
+        if (text.getBytes(StandardCharsets.UTF_8).length > MAX_FILE_BYTES) {
+            throw new TextException("Decoded selected text exceeds 50 MiB in UTF-8. Select fewer changes.");
+        }
+        return text;
     }
 
     private static String decode(byte[] bytes) throws IOException {

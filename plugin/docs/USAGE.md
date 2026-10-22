@@ -3,7 +3,7 @@
 ## Requirements
 
 - Use PyCharm 2026.2.3, build `262.10968.92`, or a compatible build in the `262` branch. Other IDE releases and products have no acceptance result.
-- For versions 1.1.10 and 1.1.11, install native Codex CLI `0.160.1` or `0.163.0`. Other CLI versions are blocked.
+- For versions 1.1.10 through 1.1.12, install native Codex CLI `0.160.1` or `0.163.0`. Other CLI versions are blocked.
 - Versions through 1.1.8 require `0.160.1`.
 - Use the CLI's default saved login for a personal, unmanaged account. Enterprise and managed account configurations are not supported.
 - Configure an absolute path to native Git in the IDE. WSL and script wrappers are not supported.
@@ -66,7 +66,8 @@ A request can use account quota or incur charges. The service controls data proc
 This plugin does not provide an offline model. Cancellation cannot retract data that the service has received.
 
 The plugin stops if it cannot represent the selected changes safely.
-It excludes unversioned files, staged or custom revisions, partial file selections, other sensitive filenames, binary files, and symbolic links.
+It stops when checked unversioned files would be omitted. Add those source files to Git or uncheck them before generation.
+It excludes staged or custom revisions, partial file selections, other sensitive filenames, binary files, and symbolic links.
 The files and their Git root must be inside the project directory.
 Changes with no text difference are not supported.
 
@@ -89,6 +90,9 @@ You decide when to make a commit.
 
 The file size limit applies to each complete source file version, even when you change only one line.
 Count both the Git baseline and the current file when you calculate the combined limit.
+The limit applies to stored bytes and decoded UTF-8 text. Neither limit can exceed 50 MiB.
+UTF-8 and BOM-marked UTF-16LE or UTF-16BE are supported. Malformed encodings and decoded NUL characters are rejected.
+The patch uses normalized UTF-8 text. Encoding-only changes are not supported.
 For example, a 20 MiB baseline and a 20 MiB current file use 40 MiB of that limit.
 Only the patch and fixed instructions go into the request. The plugin does not truncate an oversized patch.
 Select fewer changes if the patch exceeds its limit.

@@ -101,6 +101,23 @@ public final class CoreTests {
             require(!env.containsKey("PATH") && !env.containsKey("HTTP_PROXY"), "No inherited tools or proxy redirects");
             require(env.get("HOME").equals(System.getProperty("user.home")), "Saved auth uses the user's normal home");
         });
+        check("npm nested native package resolves without executing a launcher", () -> {
+            Path folder = Files.createTempDirectory("codexcommit-npm-");
+            try {
+                Path bin = Files.createDirectory(folder.resolve("bin"));
+                Path cwd = Files.createDirectory(folder.resolve("project"));
+                String arch = System.getProperty("os.arch", "").toLowerCase(java.util.Locale.ROOT);
+                boolean arm = arch.contains("aarch") || arch.contains("arm64");
+                Path nativeFile = bin.resolve("node_modules/@openai/codex/node_modules/@openai/codex-win32-"
+                        + (arm ? "arm64" : "x64") + "/vendor/" + (arm ? "aarch64" : "x86_64") + "-pc-windows-msvc/bin/codex.exe");
+                Files.createDirectories(nativeFile.getParent());
+                Files.write(nativeFile, new byte[]{'M', 'Z', 0, 0});
+                nativeFile.toFile().setExecutable(true);
+                Files.writeString(bin.resolve("codex.cmd"), "do not execute this launcher");
+                require(CodexExecutableLocator.find("", Map.of("PATH", bin.toString()), cwd, true).equals(nativeFile.toRealPath()),
+                        "Nested npm binary was missed in favour of unrelated discovery.");
+            } finally { delete(folder); }
+        });
         check("audited profile closes tools and persistence", () -> {
             List<String> command = CodexRunner.command(Path.of("/native/codex"), Path.of("/private/work"), Path.of("/private/work/models.json"), "gpt-5.4");
             for (String argument : List.of("--ignore-user-config", "--ignore-rules", "--ephemeral", "--strict-config", "read-only",

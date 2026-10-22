@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.12 - selected text preparation
+
+- Decode UTF-8 and BOM-marked UTF-16 with strict validation.
+- Keep raw and decoded text limits. Retain binary and sensitive-content checks.
+- Report preparation failures by stage. Stop if checked unversioned files would be omitted.
+- Find the native CLI in nested npm packages.
+
 ## 1.1.11 — Marketplace presentation
 
 - Fix the Overview picture after Marketplace removes custom HTML attributes.

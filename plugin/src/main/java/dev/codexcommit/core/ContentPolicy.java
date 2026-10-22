@@ -27,11 +27,16 @@ public final class ContentPolicy {
 
     private ContentPolicy() { }
 
+    /** Only fixed policy messages; no rejected text is included. */
+    public static final class ValidationException extends IllegalArgumentException {
+        private ValidationException(String message) { super(message); }
+    }
+
     public static void validatePatch(String patch) {
         requireText(patch, MAX_PATCH_BYTES, "The selected diff is empty or exceeds the 512 KiB limit. Select fewer changes.");
         rejectControls(patch);
         if (SENSITIVE_PATH.matcher(patch).find()) {
-            throw new IllegalArgumentException("A selected path appears to contain credentials or key material. Exclude it before generating.");
+            throw new ValidationException("A selected path appears to contain credentials or key material. Exclude it before generating.");
         }
         rejectSecrets(patch);
     }
@@ -41,7 +46,7 @@ public final class ContentPolicy {
         rejectControls(message);
         rejectSecrets(message);
         if (message.startsWith("```") || message.lines().count() > 100) {
-            throw new IllegalArgumentException("Codex returned an unexpected draft format. Review the selection and try again.");
+            throw new ValidationException("Codex returned an unexpected draft format. Review the selection and try again.");
         }
     }
 
@@ -54,20 +59,20 @@ public final class ContentPolicy {
     private static void requireText(String value, int maxBytes, String message) {
         if (value == null || value.isBlank() || value.length() > maxBytes
                 || value.getBytes(StandardCharsets.UTF_8).length > maxBytes) {
-            throw new IllegalArgumentException(message);
+            throw new ValidationException(message);
         }
     }
 
     private static void rejectSecrets(String value) {
         if (SECRET_PATTERNS.stream().anyMatch(pattern -> pattern.matcher(value).find())) {
-            throw new IllegalArgumentException("Possible credentials detected. Remove them from the selection before generating. Pattern checks are incomplete.");
+            throw new ValidationException("Possible credentials detected. Remove them from the selection before generating. Pattern checks are incomplete.");
         }
     }
 
     private static void rejectControls(String value) {
         if (value.codePoints().anyMatch(c -> (Character.isISOControl(c) && c != '\n' && c != '\r' && c != '\t')
                 || (c >= 0x202a && c <= 0x202e) || (c >= 0x2066 && c <= 0x2069))) {
-            throw new IllegalArgumentException("The text contains unsupported control or direction-changing characters.");
+            throw new ValidationException("The text contains unsupported control or direction-changing characters.");
         }
     }
 }

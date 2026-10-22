@@ -42,6 +42,7 @@ public final class CodexCommitProjectService implements Disposable {
         String draft;
         String failure;
         boolean fresh;
+        String preparationFailure;
     }
 
     interface Backend {
@@ -86,23 +87,27 @@ public final class CodexCommitProjectService implements Disposable {
             return;
         }
         task(job, "CodexCommit: prepare selected changes", () -> {
+            job.preparationFailure = "Could not read or compare the selected Git files. Check native Git, the saved baseline, file access, and text encoding. No request was sent.";
             String patch = job.snapshot.build(() -> cancelled(job));
             if (job.snapshot.workspaceOnly()) {
                 job.draft = "Update IDE workspace settings\n\n- Update the saved workspace state.";
+                job.preparationFailure = null;
                 return;
             }
+            job.preparationFailure = "The selected patch failed the text or sensitive-content checks. Review the selected files. No request was sent.";
             job.prompt = PromptBuilder.build(patch, job.snapshot.hasWorkspaceSettings());
+            job.preparationFailure = "Native Codex CLI was not found or is not usable. Open Settings > Tools > CodexCommit and select its absolute executable path. No request was sent.";
             job.executable = CodexExecutableLocator.find(CodexCommitSettings.getInstance().getExecutable());
             job.indicator.setIndeterminate(true);
             job.indicator.setText2("Detect the current Codex model");
+            job.preparationFailure = "Could not detect the Codex model. Use native Codex CLI " + CodexRunner.SUPPORTED_CLI_VERSIONS
+                    + ". Check the saved CLI model and personal unmanaged account configuration. No request was sent.";
             job.model = backend.resolveModel(job.executable, () -> cancelled(job));
+            job.preparationFailure = null;
         }, () -> whenFresh(job, () -> {
             if (job.snapshot.workspaceOnly()) { job.snapshot.apply(job.draft); finish(job); }
             else generate(job);
-        }), "Could not prepare the selected changes or detect the Codex model. "
-                + "Check native Codex/Git paths and select a model in Codex. "
-                + "The combined before/after text must be at most 50 MiB, "
-                + "and the patch at most 512 KiB. No request was sent.");
+        }), "Could not prepare the selected changes. Check the selected files and local Git configuration. No request was sent.");
     }
 
     private void generate(Job job) {
@@ -142,10 +147,14 @@ public final class CodexCommitProjectService implements Disposable {
                 } catch (InterruptedException ignored) {
                     job.cancelled.set(true);
                     indicator.cancel();
+                } catch (LocalGitReader.TextException exception) {
+                    job.failure = exception.getMessage() + " No request was sent.";
+                } catch (ContentPolicy.ValidationException exception) {
+                    job.failure = job.preparationFailure == null ? failureMessage : exception.getMessage() + " No request was sent.";
                 } catch (ChangeSnapshot.SelectionException exception) {
                     job.failure = exception.getMessage() + " No request was sent.";
                 } catch (Exception ignored) {
-                    job.failure = failureMessage;
+                    job.failure = job.preparationFailure == null ? failureMessage : job.preparationFailure;
                 } finally {
                     job.worker = null;
                     stopped.countDown();

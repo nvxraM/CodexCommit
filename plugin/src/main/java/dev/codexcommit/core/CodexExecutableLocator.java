@@ -104,6 +104,8 @@ public final class CodexExecutableLocator {
         String triple = arch + (windows ? "-pc-windows-msvc" : os.equals("darwin") ? "-apple-darwin" : "-unknown-linux-musl");
         String file = windows ? "codex.exe" : "codex";
         return List.of(openAi.resolve("codex-" + os + "-" + npmArch).resolve("vendor").resolve(triple).resolve("bin").resolve(file),
+                openAi.resolve("codex/node_modules/@openai").resolve("codex-" + os + "-" + npmArch)
+                        .resolve("vendor").resolve(triple).resolve("bin").resolve(file),
                 openAi.resolve("codex").resolve("vendor").resolve(triple).resolve("codex").resolve(file));
     }
 

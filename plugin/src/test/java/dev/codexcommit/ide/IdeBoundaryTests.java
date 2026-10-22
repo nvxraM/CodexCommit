@@ -164,6 +164,39 @@ public final class IdeBoundaryTests {
                 rejects(() -> LocalGitReader.text(new byte[]{'a', 0, 'b'}));
                 rejects(() -> LocalGitReader.text(new byte[]{(byte) 0xc3, 0x28}));
             });
+            test("BOM-marked UTF-16 baselines decode strictly before patch generation", () -> {
+                String original = "# Synthetic project\r\nUnicode: \u03bb \ud83d\ude80\r\n";
+                for (var charset : List.of(StandardCharsets.UTF_16LE, StandardCharsets.UTF_16BE)) {
+                    byte[] body = original.getBytes(charset);
+                    byte[] bytes = new byte[body.length + 2];
+                    bytes[0] = (byte) (charset.equals(StandardCharsets.UTF_16LE) ? 0xff : 0xfe);
+                    bytes[1] = (byte) (charset.equals(StandardCharsets.UTF_16LE) ? 0xfe : 0xff);
+                    System.arraycopy(body, 0, bytes, 2, body.length);
+                    require(LocalGitReader.text(bytes).equals(original.replace("\r\n", "\n")), "UTF-16 text changed.");
+                    rejects(() -> LocalGitReader.text(java.util.Arrays.copyOf(bytes, bytes.length - 1)));
+                }
+                require(LocalGitReader.text(new byte[]{(byte)0xef, (byte)0xbb, (byte)0xbf, 'x'}).equals("x"), "UTF-8 BOM leaked.");
+                rejects(() -> LocalGitReader.text(new byte[]{(byte)0xff, (byte)0xfe, 0, 0}));
+                rejects(() -> LocalGitReader.text(new byte[]{(byte)0xff, (byte)0xfe, 0, (byte)0xd8}));
+                rejects(() -> LocalGitReader.text(new byte[]{(byte)0xff, (byte)0xfe, 0, 0, 'x', 0, 0, 0}));
+            });
+            test("decoded UTF-8 totals retain the 50 MiB combined boundary", () -> {
+                require(ChangeSnapshot.checkedDecodedTotal(LocalGitReader.MAX_TOTAL_BYTES - 4, "\u03bb", "\u03bb")
+                        == LocalGitReader.MAX_TOTAL_BYTES, "Exact decoded boundary rejected.");
+                rejects(() -> ChangeSnapshot.checkedDecodedTotal(LocalGitReader.MAX_TOTAL_BYTES - 3, "\u03bb", "\u03bb"));
+                rejects(() -> LocalGitReader.text(("\ufeff" + "\u0800".repeat(LocalGitReader.MAX_FILE_BYTES / 3 + 1))
+                        .getBytes(StandardCharsets.UTF_16LE)));
+            });
+            test("checked unversioned files cannot be silently omitted", () -> {
+                ChangeSnapshot.checkUnversionedSelection(0);
+                try {
+                    ChangeSnapshot.checkUnversionedSelection(4);
+                    throw new AssertionError("Unversioned selection was silently omitted.");
+                } catch (ChangeSnapshot.SelectionException expected) {
+                    require(expected.getMessage().contains("Add the selected unversioned source files to Git")
+                            && expected.getMessage().contains("uncheck"), "Recovery instruction missing.");
+                }
+            });
             test("current file reads enforce byte cap and project boundary", () -> {
                 Path file = fixture.resolve("bounded.txt");
                 Files.write(file, new byte[LocalGitReader.MAX_FILE_BYTES]);
@@ -199,6 +232,23 @@ public final class IdeBoundaryTests {
                 Files.writeString(file, "small\n");
                 require(ChangeSnapshot.readBounded(fixture, file).length == 6, "Small current file rejected.");
                 rejects(() -> new LocalGitReader(git, () -> false).inspect(fixture, revision, "historical.txt"));
+            });
+            test("UTF-16 Git README baseline and UTF-8 working text produce a safe text patch", () -> {
+                String name = "encoding-readme.md";
+                Files.write(fixture.resolve(name), "\ufeff# Sample\r\nold\r\n".getBytes(StandardCharsets.UTF_16LE));
+                command(fixture, "", "add", "--", name);
+                command(fixture, "", "-c", "user.name=CodexCommit Tests", "-c", "user.email=tests@example.invalid",
+                        "-c", "commit.gpgsign=false", "commit", "--quiet", "--no-verify", "-m", "UTF-16 synthetic baseline");
+                String revision = command(fixture, "", "rev-parse", "HEAD").strip();
+                var reader = new LocalGitReader(git, () -> false);
+                String before = reader.read(fixture, reader.inspect(fixture, revision, name));
+                Files.writeString(fixture.resolve(name), "# Sample\nnew\n", StandardCharsets.UTF_8);
+                String after = LocalGitReader.text(ChangeSnapshot.readBounded(fixture, fixture.resolve(name)));
+                require(before.equals("# Sample\nold\n"), "Historical UTF-16 text was not decoded.");
+                String patch = UnifiedPatch.format(name, name, before, after,
+                        List.of(new UnifiedPatch.Part(1, 2, 1, 2)), () -> false);
+                dev.codexcommit.core.PromptBuilder.build(patch);
+                require(patch.contains("-old\n+new\n") && patch.indexOf('\0') < 0, "Encoding conversion corrupted patch.");
             });
             test("large UTF-8 source survives bounded disk and Git reads", () -> {
                 String content = "# λ\n".repeat(LocalGitReader.MAX_FILE_BYTES / 5) + "#".repeat(LocalGitReader.MAX_FILE_BYTES % 5);
