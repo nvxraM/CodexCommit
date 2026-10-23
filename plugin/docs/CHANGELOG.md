@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.13 - selected unversioned source files
+
+- Include explicitly selected eligible unversioned files as additions without staging them.
+- Reject ignored, sensitive, duplicate or unavailable selections. Recheck pending file state.
+- Add synthetic Git and isolated PyCharm API coverage. Record native GUI and provider limits.
+
 ## 1.1.12 - selected text preparation
 
 - Decode UTF-8 and BOM-marked UTF-16 with strict validation.

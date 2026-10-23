@@ -22,7 +22,7 @@ public final class GenerateCommitMessageAction extends DumbAwareAction {
         }
         event.getPresentation().setEnabled(project != null && !project.isDisposed() && ui != null
                 && event.getData(VcsDataKeys.COMMIT_MESSAGE_DOCUMENT) != null
-                && !ui.getIncludedChanges().isEmpty()
+                && (!ui.getIncludedChanges().isEmpty() || !ui.getIncludedUnversionedFiles().isEmpty())
                 && !project.getService(CodexCommitProjectService.class).isBusy());
     }
 

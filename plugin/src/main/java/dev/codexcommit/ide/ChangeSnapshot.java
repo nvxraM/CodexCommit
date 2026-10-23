@@ -10,6 +10,7 @@ import com.intellij.openapi.vcs.VcsRoot;
 import com.intellij.openapi.vcs.changes.BinaryContentRevision;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ChangeListChange;
+import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.openapi.vcs.changes.CurrentContentRevision;
 import com.intellij.openapi.vcs.ex.ExclusionState;
@@ -39,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -62,7 +64,7 @@ final class ChangeSnapshot {
     private static final Set<String> SENSITIVE_DIRECTORIES = Set.of(".git", ".idea", ".ssh", ".aws", ".azure", ".kube", ".gnupg", ".codex");
 
     private record Entry(Path before, Path after, Path repository, String revision, String beforeName, String afterName,
-                         boolean workspace, Document document, long documentStamp, CharSequence documentText, VirtualFile file, long fileStamp) {}
+                         boolean unversioned, boolean workspace, Document document, long documentStamp, CharSequence documentText, VirtualFile file, long fileStamp) {}
     private record DiskState(long size, FileTime modified, Object key) {}
     private record Prepared(Entry entry, LocalGitReader.Blob blob, String documentText, DiskState disk, String diskHash) {}
 
@@ -93,9 +95,10 @@ final class ChangeSnapshot {
     /** Called on the EDT: captures selection, partial-changelist state, and already loaded documents. */
     static ChangeSnapshot capture(Project project, CommitWorkflowUi ui, Document messageDocument) throws IOException {
         if (project.getBasePath() == null) throw new SelectionException("A local project directory is required.");
-        checkUnversionedSelection(ui.getIncludedUnversionedFiles().size());
-        List<Change> changes = List.copyOf(ui.getIncludedChanges());
-        if (changes.isEmpty() || changes.size() > MAX_FILES) throw new SelectionException("Select between 1 and 500 tracked files.");
+        List<FilePath> unversionedFiles = List.copyOf(ui.getIncludedUnversionedFiles());
+        List<Change> changes = selectedChanges(ui.getIncludedChanges(), unversionedFiles);
+        Set<Path> unversionedPaths = new HashSet<>();
+        for (FilePath file : unversionedFiles) unversionedPaths.add(Path.of(file.getPath()).toAbsolutePath().normalize());
         Path root = Path.of(project.getBasePath()).toAbsolutePath().normalize();
         GitExecutable configured = GitExecutableManager.getInstance().getExecutable(project);
         if (!configured.isLocal()) throw new SelectionException("Only local native Git is supported.");
@@ -120,6 +123,8 @@ final class ChangeSnapshot {
             FilePath afterFile = afterRevision == null ? null : afterRevision.getFile();
             Path before = checkedPath(root, beforeFile);
             Path after = checkedPath(root, afterFile);
+            boolean unversioned = after != null && unversionedPaths.contains(after);
+            if (unversioned) checkUnversionedFile(project, root, afterFile);
             boolean workspace = workspaceChange(before == null ? null : root.relativize(before),
                     after == null ? null : root.relativize(after));
             FilePath active = afterFile != null ? afterFile : beforeFile;
@@ -147,9 +152,9 @@ final class ChangeSnapshot {
             String revision = beforeRevision == null ? null : beforeRevision.getRevisionNumber().asString();
             VirtualFile file = workspace || afterFile == null ? null : afterFile.getVirtualFile();
             entries.add(new Entry(before, after, repository, revision, relative(root, before), relative(root, after),
-                    workspace, document, stamp, text, file, file == null ? -1 : file.getModificationStamp()));
+                    unversioned, workspace, document, stamp, text, file, file == null ? -1 : file.getModificationStamp()));
         }
-        return new ChangeSnapshot(project, ui, root, git, selectionKey(changes), ui.getCommitMessageUi().getText(), messageDocument, List.copyOf(entries));
+        return new ChangeSnapshot(project, ui, root, git, selectionKey(ui), ui.getCommitMessageUi().getText(), messageDocument, List.copyOf(entries));
     }
 
     /** Preflights every baseline object before reading any file body, then builds a bounded text patch. */
@@ -164,6 +169,9 @@ final class ChangeSnapshot {
             if (entry.after() != null) validateLocation(root, entry.after());
             Path repository = entry.repository().toRealPath();
             if (!repository.startsWith(root.toRealPath())) throw new SelectionException("The Git root must be inside this project.");
+            if (entry.unversioned() && !reader.isEligibleUnversioned(entry.repository(), relative(entry.repository(), entry.after()))) {
+                throw new SelectionException("A selected unversioned file is ignored or is now tracked. Refresh the Commit window and select the files again.");
+            }
             if (entry.workspace()) {
                 validateWorkspaceLocation(root, entry.before(), entry.after());
                 candidates.add(new Prepared(entry, null, null, null, null));
@@ -227,10 +235,9 @@ final class ChangeSnapshot {
         try {
             if (project.isDisposed() || !originalMessage.equals(ui.getCommitMessageUi().getText())
                     || messageStamp != messageDocument.getModificationStamp()
-                    || !ui.getIncludedUnversionedFiles().isEmpty()
-                    || !selection.equals(selectionKey(ui.getIncludedChanges())) || prepared.size() != entries.size()) return false;
+                    || !selection.equals(selectionKey(ui)) || prepared.size() != entries.size()) return false;
             var currentChanges = new HashMap<Path, Change>();
-            for (Change change : ui.getIncludedChanges()) {
+            for (Change change : selectedChanges(ui.getIncludedChanges(), ui.getIncludedUnversionedFiles())) {
                 ContentRevision revision = change.getAfterRevision() != null ? change.getAfterRevision() : change.getBeforeRevision();
                 if (revision != null) currentChanges.put(Path.of(revision.getFile().getPath()).toAbsolutePath().normalize(), change);
             }
@@ -238,6 +245,7 @@ final class ChangeSnapshot {
                 Entry entry = candidate.entry();
                 Change change = currentChanges.get(entry.after() == null ? entry.before() : entry.after());
                 if (change == null) return false;
+                if (entry.unversioned()) checkUnversionedFile(project, root, change.getAfterRevision().getFile());
                 checkPartial(project, change, entry.after() == null ? null : change.getAfterRevision().getFile());
                 // Workspace contents never enter the request. Ignore routine IDE autosaves.
                 if (entry.workspace()) continue;
@@ -258,10 +266,12 @@ final class ChangeSnapshot {
         try {
             if (prepared.size() != entries.size()) return false;
             int checked = 0;
+            LocalGitReader reader = new LocalGitReader(git, cancelled);
             for (Prepared candidate : prepared) {
                 if (cancelled.getAsBoolean()) throw new InterruptedException("Cancelled.");
                 progress("Verify selected files", checked++, prepared.size(), 0, 1);
                 Entry entry = candidate.entry();
+                if (entry.unversioned() && !reader.isEligibleUnversioned(entry.repository(), relative(entry.repository(), entry.after()))) return false;
                 if (entry.workspace()) {
                     validateWorkspaceLocation(root, entry.before(), entry.after());
                     continue;
@@ -278,8 +288,33 @@ final class ChangeSnapshot {
 
     void apply(String message) { ui.getCommitMessageUi().setText(message); }
 
-    static void checkUnversionedSelection(int count) throws SelectionException {
-        if (count > 0) throw new SelectionException("Add the selected unversioned source files to Git before generation, or uncheck them in the Commit window. No files were added by CodexCommit.");
+    static List<Change> selectedChanges(List<? extends Change> tracked, List<? extends FilePath> unversioned) throws SelectionException {
+        if (tracked.size() + unversioned.size() < 1 || tracked.size() + unversioned.size() > MAX_FILES) {
+            throw new SelectionException("Select between 1 and 500 source files.");
+        }
+        List<Change> result = new ArrayList<>(tracked);
+        for (FilePath file : unversioned) {
+            if (file.isDirectory() || file.isNonLocal()) throw new SelectionException("Select individual local unversioned files. Directory selections are not supported.");
+            result.add(new Change(null, new CurrentContentRevision(file)));
+        }
+        Set<Path> paths = new HashSet<>();
+        for (Change change : result) {
+            ContentRevision revision = change.getAfterRevision() == null ? change.getBeforeRevision() : change.getAfterRevision();
+            if (revision == null || !paths.add(Path.of(revision.getFile().getPath()).toAbsolutePath().normalize())) {
+                throw new SelectionException("A selected file is unavailable or selected more than once. Refresh the Commit window.");
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    private static void checkUnversionedFile(Project project, Path root, FilePath file) throws SelectionException {
+        if (sensitive(root.relativize(Path.of(file.getPath()).toAbsolutePath().normalize()))) {
+            throw new SelectionException("Unversioned IDE settings or sensitive files are excluded. Uncheck them in the Commit window.");
+        }
+        VirtualFile virtual = file.getVirtualFile();
+        if (virtual != null && ChangeListManager.getInstance(project).isIgnoredFile(virtual)) {
+            throw new SelectionException("A selected unversioned file is ignored by the IDE. Uncheck it in the Commit window.");
+        }
     }
 
     static long checkedDecodedTotal(long total, String before, String after) throws SelectionException {
@@ -407,6 +442,11 @@ final class ChangeSnapshot {
         return changes.stream().map(change -> change.getClass().getName() + "|" + revisionKey(change.getBeforeRevision())
                         + "|" + revisionKey(change.getAfterRevision()) + "|" + (change instanceof ChangeListChange item ? item.getChangeListId() : ""))
                 .sorted(Comparator.naturalOrder()).collect(Collectors.joining("\n"));
+    }
+
+    private static String selectionKey(CommitWorkflowUi ui) throws SelectionException {
+        return selectionKey(selectedChanges(ui.getIncludedChanges(), ui.getIncludedUnversionedFiles())) + "\nUNVERSIONED\n"
+                + ui.getIncludedUnversionedFiles().stream().map(FilePath::getPath).sorted().collect(Collectors.joining("\n"));
     }
 
     private static String revisionKey(ContentRevision revision) {

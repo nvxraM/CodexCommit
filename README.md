@@ -25,7 +25,7 @@ Or use [manual installation](#manual-install) below. [Requirements](plugin/docs/
 
 ## Use
 
-1. Open **Commit**. Select complete tracked file changes in one changelist.
+1. Open **Commit**. Select complete file changes in one changelist. You can include eligible unversioned source files.
 2. Select the coloured **Generate Commit Message with CodexCommit** button.
 
 ![The Codex button in the Commit tool window](plugin/docs/images/generate-button.webp)
@@ -47,7 +47,7 @@ Requests can use quota or incur charges. Cancel from the IDE background task con
 Search for **CodexCommit** in **Settings → Plugins → Marketplace**. Select **Install**.
 Or install the ZIP:
 
-1. [Download version 1.1.12](https://github.com/nvxraM/CodexCommit/releases/download/v1.1.12/CodexCommit-1.1.12.zip).
+1. [Download version 1.1.13](https://github.com/nvxraM/CodexCommit/releases/download/v1.1.13/CodexCommit-1.1.13.zip).
 2. In PyCharm, open **Settings → Plugins → ⚙ → Install Plugin from Disk**.
 3. Select the ZIP. Restart the IDE if requested.
 

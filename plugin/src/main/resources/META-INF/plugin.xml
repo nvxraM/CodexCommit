@@ -1,7 +1,7 @@
 <idea-plugin url="https://github.com/nvxraM/CodexCommit">
   <id>local.codex.commitmessage</id>
   <name>CodexCommit</name>
-  <version>1.1.12</version>
+  <version>1.1.13</version>
   <vendor email="nvxram.support@gmail.com" url="https://github.com/nvxraM/CodexCommit">nvxraM</vendor>
   <description><![CDATA[
     <div id="codexcommit-overview">
@@ -19,11 +19,10 @@
     </div>
   ]]></description>
   <change-notes><![CDATA[
-    <h3>Version 1.1.12</h3>
+    <h3>Version 1.1.13</h3>
     <ul>
-      <li>Read BOM-marked UTF-16 text in selected Git changes.</li>
-      <li>Show specific preparation errors and stop omitted unversioned files.</li>
-      <li>Find native Codex in nested npm installations.</li>
+      <li>Include selected unversioned source files without staging them.</li>
+      <li>Keep ignore, sensitive-content, size and selection freshness checks.</li>
     </ul>
   ]]></change-notes>
   <idea-version since-build="262.10968.92" until-build="262.*"/>

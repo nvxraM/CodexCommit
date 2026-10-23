@@ -1,5 +1,27 @@
 # Verification record
 
+## 1.1.13 - selected unversioned files - 23 October 2026
+
+Selected eligible unversioned files now enter the patch as additions without staging.
+Native Git checks exact untracked paths and repository ignore rules. IDE ignore checks,
+sensitive-file exclusions, bounded text reads, project boundaries and freshness checks remain.
+The selection limit counts tracked and unversioned files together. No selected file is silently omitted.
+
+The final local Gradle check, build, structure and archive audits passed: 34 core,
+46 IDE boundary, 40 source guard and 62 release guard cases, 182 passes in total.
+Two optional Windows symbolic-link branches were skipped. The project configuration task
+retained its existing warning about the bounded upper build; the range was not expanded.
+Official Plugin Verifier 1.411 reported compatibility with PY-262.10968.92.
+The local ZIP SHA-256 is 019dee0e12ad0e3075eb4e28e42dd33dd89f46725339e1b038b6d9a77471438a.
+The release workflow builds the tested source again and supplies its own distribution checksum.
+
+Two corrected isolated PyCharm API baseline runs passed 106 assertions. Five additional
+focused rounds passed 50 assertions. These finite deterministic trials used synthetic content
+and mock provider responses. See [the QA record](QA-UNVERSIONED.md) for exact denominators,
+invalid harness attempts, reproduction steps, native GUI concurrency gaps and the unresolved
+intermittent IDE coroutine error observed during one baseline JVM shutdown.
+The installed plugin and research repositories were not changed. No real provider request was made.
+
 ## 1.1.12 - selected text preparation - 22 October 2026
 
 A local reproduction found a BOM-marked UTF-16LE Git baseline for a Markdown file and a UTF-8 working copy.

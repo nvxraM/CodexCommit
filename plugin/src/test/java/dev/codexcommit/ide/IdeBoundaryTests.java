@@ -187,15 +187,30 @@ public final class IdeBoundaryTests {
                 rejects(() -> LocalGitReader.text(("\ufeff" + "\u0800".repeat(LocalGitReader.MAX_FILE_BYTES / 3 + 1))
                         .getBytes(StandardCharsets.UTF_16LE)));
             });
-            test("checked unversioned files cannot be silently omitted", () -> {
-                ChangeSnapshot.checkUnversionedSelection(0);
-                try {
-                    ChangeSnapshot.checkUnversionedSelection(4);
-                    throw new AssertionError("Unversioned selection was silently omitted.");
-                } catch (ChangeSnapshot.SelectionException expected) {
-                    require(expected.getMessage().contains("Add the selected unversioned source files to Git")
-                            && expected.getMessage().contains("uncheck"), "Recovery instruction missing.");
-                }
+            test("selected unversioned files become exact bounded additions", () -> {
+                FilePath one = testFilePath("src/new file.py", false);
+                FilePath two = testFilePath("zcombinedtest/.gitkeep", false);
+                List<Change> changes = ChangeSnapshot.selectedChanges(List.of(), List.of(one, two));
+                require(changes.size() == 2 && changes.get(0).getBeforeRevision() == null
+                        && changes.get(0).getAfterRevision().getFile() == one, "Selection was omitted or gained a baseline.");
+                rejects(() -> ChangeSnapshot.selectedChanges(changes, List.of(one)));
+                rejects(() -> ChangeSnapshot.selectedChanges(List.of(), List.of(testFilePath("directory", true))));
+                rejects(() -> ChangeSnapshot.selectedChanges(List.of(), List.of()));
+                rejects(() -> ChangeSnapshot.selectedChanges(List.of(), java.util.Collections.nCopies(501, one)));
+            });
+            test("Git unversioned preflight excludes ignored and tracked paths without staging", () -> {
+                LocalGitReader reader = new LocalGitReader(git, () -> false);
+                Files.writeString(fixture.resolve(".gitignore"), "ignored.py\n");
+                Files.writeString(fixture.resolve("ignored.py"), "ignored synthetic text\n");
+                Files.writeString(fixture.resolve("unversioned [literal].py"), "selected synthetic text\n");
+                Files.writeString(fixture.resolve("tracked.py"), "tracked synthetic text\n");
+                command(fixture, "", "add", "--", "tracked.py");
+                String before = command(fixture, "", "write-tree");
+                require(reader.isEligibleUnversioned(fixture, "unversioned [literal].py"), "Eligible unversioned file rejected.");
+                require(!reader.isEligibleUnversioned(fixture, "ignored.py"), "Ignored path accepted.");
+                require(!reader.isEligibleUnversioned(fixture, "tracked.py"), "Tracked path accepted as unversioned.");
+                require(!reader.isEligibleUnversioned(fixture, "unversioned*"), "Pathspec was expanded.");
+                require(before.equals(command(fixture, "", "write-tree")), "Preflight altered index.");
             });
             test("current file reads enforce byte cap and project boundary", () -> {
                 Path file = fixture.resolve("bounded.txt");
@@ -954,6 +969,19 @@ public final class IdeBoundaryTests {
         }
     }
 
+    private static FilePath testFilePath(String relative, boolean directory) {
+        String path = fixture.resolve(relative).toString();
+        return (FilePath) Proxy.newProxyInstance(FilePath.class.getClassLoader(), new Class<?>[]{FilePath.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getPath", "toString" -> path;
+                    case "isDirectory" -> directory;
+                    case "isNonLocal" -> false;
+                    case "getVirtualFile" -> null;
+                    case "hashCode" -> System.identityHashCode(proxy);
+                    case "equals" -> proxy == args[0];
+                    default -> null;
+                });
+    }
     private static Path findGit() throws IOException {
         String configured = System.getenv("CODEXCOMMIT_TEST_GIT");
         if (configured != null && !configured.isBlank()) return LocalGitReader.requireNativeGit(Path.of(configured));

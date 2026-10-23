@@ -39,7 +39,7 @@ Use a different integration if your account needs these settings.
 ## Prepare a commit message
 
 1. Open the Commit tool window.
-2. Select complete tracked file changes in one changelist. Include all hunks.
+2. Select complete file changes in one changelist. Include all hunks. You can include eligible unversioned source files.
 3. Examine the selected changes for private data and secrets.
 4. Select Generate Commit Message with CodexCommit once.
 5. Wait for the draft in the commit message field.
@@ -66,7 +66,8 @@ A request can use account quota or incur charges. The service controls data proc
 This plugin does not provide an offline model. Cancellation cannot retract data that the service has received.
 
 The plugin stops if it cannot represent the selected changes safely.
-It stops when checked unversioned files would be omitted. Add those source files to Git or uncheck them before generation.
+Selected eligible unversioned files enter the patch as additions. The plugin does not stage them.
+It stops if a selected unversioned file is ignored, sensitive, unavailable, or now tracked. Refresh the Commit window or uncheck the file.
 It excludes staged or custom revisions, partial file selections, other sensitive filenames, binary files, and symbolic links.
 The files and their Git root must be inside the project directory.
 Changes with no text difference are not supported.
@@ -80,7 +81,7 @@ You decide when to make a commit.
 
 | Item | Limit |
 | --- | --- |
-| Selected tracked files | 500 |
+| Selected tracked and unversioned files | 500 |
 | Each file version | 50 MiB, within the combined limit |
 | Combined before and after text | 50 MiB |
 | Selected patch | 512 KiB |
@@ -99,7 +100,8 @@ Select fewer changes if the patch exceeds its limit.
 The model can impose a smaller context limit. A 50 MiB file allowance does not permit a 50 MiB request.
 Content verification runs in the background. It remains subject to the combined limit.
 
-Add unversioned source files to Git before generation.
+Select individual unversioned source files. Directory selections are not supported.
+The plugin does not add these files to Git.
 You can keep tracked `.idea/workspace.xml` checked for your Git commit.
 The same rule applies to nested `.idea/workspace.xml` files outside other sensitive directories.
 The plugin does not read their old, current, or unsaved XML contents for generation.

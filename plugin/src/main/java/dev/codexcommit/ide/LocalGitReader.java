@@ -74,6 +74,11 @@ final class LocalGitReader {
         return new Blob(entry.group(2), (int) size);
     }
 
+    boolean isEligibleUnversioned(Path repository, String relativePath) throws IOException, InterruptedException {
+        String listed = decode(run(repository, List.of("ls-files", "--others", "--exclude-standard", "-z", "--", relativePath), 8192));
+        return listed.equals(relativePath + "\0");
+    }
+
     String read(Path repository, Blob blob) throws IOException, InterruptedException {
         if (!OBJECT.matcher(blob.object()).matches() || blob.size() < 0 || blob.size() > MAX_FILE_BYTES) {
             throw new IOException("Invalid Git object metadata.");

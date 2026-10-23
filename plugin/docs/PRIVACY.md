@@ -3,7 +3,7 @@
 Publisher: **nvxraM**. For privacy questions, contact [nvxram.support@gmail.com](mailto:nvxram.support@gmail.com).
 Notice URL: [CodexCommit privacy notice](https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/PRIVACY.md).
 
-CodexCommit processes the tracked changes you include in the Commit tool window to prepare a commit-message draft. Selecting the Generate button sends the source patch and fixed task instructions through your local Codex CLI. No additional review or confirmation dialog opens. Check the selected changes before you use the button. The CLI communicates using its own authentication. This may send filenames, source code, comments, and any personal or secret information present in the patch to the service used by Codex.
+CodexCommit processes the tracked changes and eligible unversioned source files you include in the Commit tool window to prepare a commit-message draft. Selecting the Generate button sends the source patch and fixed task instructions through your local Codex CLI. No additional review or confirmation dialog opens. Check the selected changes before you use the button. The CLI communicates using its own authentication. This may send filenames, source code, comments, and any personal or secret information present in the patch to the service used by Codex.
 
 Selected `.idea/workspace.xml` files stay checked for your Git commit.
 The plugin omits their old, current, and unsaved XML contents from generation, hashes, and size calculations.

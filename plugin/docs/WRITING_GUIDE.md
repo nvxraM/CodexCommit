@@ -55,7 +55,7 @@ This glossary records project terms. It does not approve arbitrary words under t
 | SDK | Software development kit. The build uses an IDE SDK. |
 | stage | The Git action that adds a change to the index. The plugin does not do this action. |
 | symbolic link | A filesystem entry that points to another path. |
-| tracked file | A file represented by a selected Git change. Unversioned files are excluded. |
+| tracked file | A file represented by a selected Git change. Eligible selected unversioned files enter the patch as additions. |
 | unmanaged account | A personal account without enterprise or administrator configuration. The plugin cannot prove this condition in every case. |
 | UTF-8 | The normalized patch encoding. Source text can also use BOM-marked UTF-16LE or UTF-16BE. |
 
