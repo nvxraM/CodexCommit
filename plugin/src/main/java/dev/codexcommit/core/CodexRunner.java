@@ -24,10 +24,17 @@ import java.util.stream.Stream;
 /** One bounded native CLI process; never runs from the repository or through a shell. */
 public final class CodexRunner {
     public static final String AUDITED_CLI_VERSION = "0.163.0";
-    public static final String SUPPORTED_CLI_VERSIONS = "0.160.1 or " + AUDITED_CLI_VERSION;
+    public static final String SUPPORTED_CLI_VERSIONS = "0.160.1 or " + AUDITED_CLI_VERSION + "; Linux also supports 0.166.0";
 
     static boolean isAuditedVersion(String output) {
-        return output != null && List.of("codex-cli 0.160.1", "codex-cli " + AUDITED_CLI_VERSION).contains(output.strip());
+        return isAuditedVersion(output, System.getProperty("os.name", ""));
+    }
+
+    static boolean isAuditedVersion(String output, String os) {
+        if (output == null) return false;
+        String version = output.strip();
+        return List.of("codex-cli 0.160.1", "codex-cli " + AUDITED_CLI_VERSION).contains(version)
+                || (os.toLowerCase(Locale.ROOT).startsWith("linux") && version.equals("codex-cli 0.166.0"));
     }
     private static final Pattern MODEL_ID = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}");
     private static final long GENERATION_TIMEOUT_MILLIS = 120_000;
@@ -295,8 +302,14 @@ public final class CodexRunner {
         List<ProcessHandle> all = new ArrayList<>(remembered);
         process.descendants().forEach(all::add);
         all.stream().distinct().forEach(ProcessHandle::destroyForcibly);
-        if (process.isAlive()) process.destroyForcibly();
         boolean interrupted = false;
+        // Let a still-running parent reap its children before it is stopped. Killing
+        // both at once can leave orphan zombies on hosts whose PID 1 does not reap.
+        long reapDeadline = Math.min(deadline, System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(250));
+        while (all.stream().anyMatch(ProcessHandle::isAlive) && process.isAlive() && System.nanoTime() < reapDeadline) {
+            try { Thread.sleep(10); } catch (InterruptedException ex) { interrupted = true; }
+        }
+        if (process.isAlive()) process.destroyForcibly();
         while ((process.isAlive() || all.stream().anyMatch(ProcessHandle::isAlive)) && System.nanoTime() < deadline) {
             try { process.waitFor(50, TimeUnit.MILLISECONDS); if (!process.isAlive()) Thread.sleep(10); }
             catch (InterruptedException ex) { interrupted = true; }

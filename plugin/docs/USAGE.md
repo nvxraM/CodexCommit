@@ -2,8 +2,9 @@
 
 ## Requirements
 
-- Use PyCharm 2026.2.3, build `262.10968.92`, or a compatible build in the `262` branch. Other IDE releases and products have no acceptance result.
-- For versions 1.1.10 through 1.1.12, install native Codex CLI `0.160.1` or `0.163.0`. Other CLI versions are blocked.
+- Use PyCharm 2026.2.4, build `262.11879.98`, or a compatible build in the `262` branch. Other IDE releases and products have no acceptance result.
+- For version 1.1.14, Linux also supports native Codex CLI `0.166.0`. Windows support for this CLI version remains blocked pending a native audit.
+- For versions 1.1.10 through 1.1.14, install native Codex CLI `0.160.1` or `0.163.0`. Other CLI versions are blocked.
 - Versions through 1.1.8 require `0.160.1`.
 - Use the CLI's default saved login for a personal, unmanaged account. Enterprise and managed account configurations are not supported.
 - Configure an absolute path to native Git in the IDE. WSL and script wrappers are not supported.
@@ -172,3 +173,12 @@ Automatic plugin publication is disabled.
 
 The descriptions and this README use project rules based on ASD-STE100 Simplified Technical English.
 No formal conformance assessment has been made. See [WRITING_GUIDE.md](WRITING_GUIDE.md) for the writing rules and project terms.
+
+## Project directory refusals
+
+CodexCommit uses the project directory reported by the IDE.
+If a selected file is outside that directory, open its containing project with **File > Open**.
+Then select the files again. A refresh does not change the IDE project directory.
+A separate message identifies an invalid relative path during selection validation.
+These notices omit absolute paths and file contents. IDE settings exclusions have a separate message.
+A OneDrive path alone does not establish the cause of a refusal.

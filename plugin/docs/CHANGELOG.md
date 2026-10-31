@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.14 - current Linux CLI and preparation diagnostics
+
+- Support native Codex CLI 0.166.0 on Linux after a source and loopback request audit.
+- Load selected file metadata in the background. Recheck the selection and typed message before capture.
+- Give a parent process time to reap terminated children before cleanup stops it.
+- Distinguish project directory checks from invalid relative paths without showing private paths.
+
 ## 1.1.13 - selected unversioned source files
 
 - Include explicitly selected eligible unversioned files as additions without staging them.

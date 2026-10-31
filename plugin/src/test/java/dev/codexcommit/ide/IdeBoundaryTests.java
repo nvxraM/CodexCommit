@@ -212,6 +212,30 @@ public final class IdeBoundaryTests {
                 require(!reader.isEligibleUnversioned(fixture, "unversioned*"), "Pathspec was expanded.");
                 require(before.equals(command(fixture, "", "write-tree")), "Preflight altered index.");
             });
+            test("project boundary diagnostics identify the phase without private paths", () -> {
+                Path outside = fixture.getParent().resolve("private-outside.py");
+                String relativeMessage = filenameFailure(Path.of("../private-outside.py"));
+                require(relativeMessage.contains("relative path is invalid") && !relativeMessage.contains("private-outside"), "Relative-path diagnostic leaked a name or lost its reason.");
+                try { ChangeSnapshot.validateLocation(fixture, outside); throw new AssertionError("Outside path accepted."); }
+                catch (ChangeSnapshot.SelectionException e) {
+                    require(e.getMessage().contains("during preparation") && e.getMessage().contains("File > Open"), "Recovery action or phase missing.");
+                    require(!e.getMessage().contains(fixture.toString()) && !e.getMessage().contains("private-outside"), "Absolute path or filename disclosed.");
+                }
+            });
+            test("OneDrive-style project and source path remain inside the project", () -> {
+                Path root = Files.createDirectories(fixture.resolve("OneDrive/Documents/USC/Papers/Mulloway Genome Assembly/OrthoMatrix"));
+                Path source = root.resolve("Protein_CDS_Alignment_Pipeline.py");
+                Files.writeString(source, "print('synthetic')\n");
+                ChangeSnapshot.validateLocation(root, source);
+                require(new String(ChangeSnapshot.readBounded(root, source), StandardCharsets.UTF_8).contains("synthetic"), "Equivalent source path rejected.");
+                if (System.getProperty("os.name").startsWith("Windows")) {
+                    Path caseRoot = Path.of(root.toString().toUpperCase(Locale.ROOT));
+                    ChangeSnapshot.validateLocation(caseRoot, source);
+                    require(source.startsWith(caseRoot), "Windows case-insensitive provider mismatch.");
+                }
+                rejects(() -> ChangeSnapshot.validateLocation(root.resolve("child"), source));
+                rejects(() -> ChangeSnapshot.validateLocation(root, root.resolveSibling("OrthoMatrix-other").resolve(source.getFileName())));
+            });
             test("current file reads enforce byte cap and project boundary", () -> {
                 Path file = fixture.resolve("bounded.txt");
                 Files.write(file, new byte[LocalGitReader.MAX_FILE_BYTES]);

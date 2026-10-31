@@ -76,6 +76,29 @@ public final class CodexCommitProjectService implements Disposable {
         Job job = new Job();
         active = job;
         if (toolbarAnimation != null) toolbarAnimation.refresh();
+        final java.util.List<com.intellij.openapi.vcs.changes.Change> changes;
+        final String selection;
+        final String message = ui.getCommitMessageUi().getText();
+        final long messageStamp = messageDocument.getModificationStamp();
+        try {
+            changes = ChangeSnapshot.selectedChanges(ui.getIncludedChanges(), ui.getIncludedUnversionedFiles());
+            selection = ChangeSnapshot.selectionKey(ui);
+        } catch (ChangeSnapshot.SelectionException exception) {
+            finish(job);
+            notice(exception.getMessage() + " No request was sent.");
+            return;
+        }
+        task(job, "CodexCommit: load selected file metadata", () ->
+                ChangeSnapshot.preflight(project, changes, () -> cancelled(job)), () -> {
+            try {
+                if (!selection.equals(ChangeSnapshot.selectionKey(ui)) || messageStamp != messageDocument.getModificationStamp()
+                        || !message.equals(ui.getCommitMessageUi().getText())) { stale(job); return; }
+            } catch (ChangeSnapshot.SelectionException exception) { stale(job); return; }
+            prepare(job, ui, messageDocument);
+        }, "Cannot read the selected file metadata. Refresh the Commit window and select the files again. No request was sent.");
+    }
+
+    private void prepare(Job job, CommitWorkflowUi ui, Document messageDocument) {
         try { job.snapshot = ChangeSnapshot.capture(project, ui, messageDocument); }
         catch (ChangeSnapshot.SelectionException exception) {
             finish(job);

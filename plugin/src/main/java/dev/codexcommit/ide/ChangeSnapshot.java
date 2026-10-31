@@ -92,6 +92,17 @@ final class ChangeSnapshot {
         this.entries = entries;
     }
 
+    /** Worker-only preflight: FilePath metadata resolution can load VFS records from disk. */
+    static void preflight(Project project, List<Change> changes, BooleanSupplier cancelled) throws Exception {
+        if (project.getBasePath() == null) throw new SelectionException("A local project directory is required.");
+        Path root = Path.of(project.getBasePath()).toAbsolutePath().normalize();
+        for (Change change : changes) {
+            if (cancelled.getAsBoolean()) throw new InterruptedException("Cancelled.");
+            if (change.getBeforeRevision() != null) com.intellij.openapi.application.ReadAction.computeBlocking(() -> checkedPath(root, change.getBeforeRevision().getFile()));
+            if (change.getAfterRevision() != null) com.intellij.openapi.application.ReadAction.computeBlocking(() -> checkedPath(root, change.getAfterRevision().getFile()));
+        }
+    }
+
     /** Called on the EDT: captures selection, partial-changelist state, and already loaded documents. */
     static ChangeSnapshot capture(Project project, CommitWorkflowUi ui, Document messageDocument) throws IOException {
         if (project.getBasePath() == null) throw new SelectionException("A local project directory is required.");
@@ -354,14 +365,14 @@ final class ChangeSnapshot {
         VirtualFile virtual = file.getVirtualFile();
         if (virtual != null && virtual.is(VFileProperty.SYMLINK)) throw new SelectionException("Symbolic links are excluded.");
         Path path = Path.of(file.getPath()).toAbsolutePath().normalize();
-        if (!path.startsWith(root) || path.equals(root)) throw new SelectionException("Selected files must be inside the project.");
+        if (!path.startsWith(root) || path.equals(root)) throw new SelectionException("A selected file is outside the IDE project directory. Open its containing project with File > Open, then select the files again.");
         checkSensitivePath(root.relativize(path));
         return path;
     }
 
     static void checkSensitivePath(Path relative) throws SelectionException {
         if (relative.isAbsolute() || !relative.equals(relative.normalize()) || relative.normalize().startsWith("..")) {
-            throw new SelectionException("Selected files must be inside the project.");
+            throw new SelectionException("A selected relative path is invalid. Refresh the Commit window and select the files again.");
         }
         if (workspaceSettings(relative)) return;
         if (!sensitive(relative)) return;
@@ -411,7 +422,7 @@ final class ChangeSnapshot {
     }
 
     static void validateLocation(Path root, Path path) throws IOException {
-        if (!path.startsWith(root) || path.equals(root)) throw new SelectionException("Selected files must be inside the project.");
+        if (!path.startsWith(root) || path.equals(root)) throw new SelectionException("A selected file is outside the IDE project directory during preparation. Open its containing project with File > Open, then select the files again.");
         Path current = root;
         for (Path segment : root.relativize(path)) {
             String name = segment.toString();
@@ -444,7 +455,7 @@ final class ChangeSnapshot {
                 .sorted(Comparator.naturalOrder()).collect(Collectors.joining("\n"));
     }
 
-    private static String selectionKey(CommitWorkflowUi ui) throws SelectionException {
+    static String selectionKey(CommitWorkflowUi ui) throws SelectionException {
         return selectionKey(selectedChanges(ui.getIncludedChanges(), ui.getIncludedUnversionedFiles())) + "\nUNVERSIONED\n"
                 + ui.getIncludedUnversionedFiles().stream().map(FilePath::getPath).sorted().collect(Collectors.joining("\n"));
     }

@@ -1,5 +1,9 @@
 # Selected unversioned file QA
 
+The new 31 October 2026 baseline and five numbered rounds are recorded in
+[VERIFICATION.md](VERIFICATION.md#1114---compatibility-maintenance---31-october-2026).
+The results below are the historical 23 October run, not the current denominators.
+
 ## Candidate status — 23 October 2026
 
 This record covers the 1.1.13 candidate after the published 1.1.12 baseline.

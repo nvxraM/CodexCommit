@@ -1,5 +1,141 @@
 # Verification record
 
+## 1.1.14 - compatibility maintenance - 31 October 2026
+
+Official stable releases checked during this run:
+
+- [PyCharm 2026.2.4](https://data.services.jetbrains.com/products/releases?code=PCP&latest=true&type=release), build `PY-262.11879.98`, released 30 October.
+- [Codex CLI 0.166.0](https://github.com/openai/codex/releases/tag/rust-v0.166.0), released 29 October.
+
+The source baseline was `0291a5938ef41aea0c71a1c297a811726ab02b99`.
+The remote had one branch, no open pull requests and no running CI job.
+The latest GitHub release was 1.1.13. Marketplace update 1200873 was approved,
+listed and visible. Its range was `262.10968.92` through `262.*` and included PyCharm 2026.2.4.
+The candidate keeps this bounded range and builds against 2026.2.4.
+
+### Confirmed changes
+
+The original cleanup killed a subprocess and its descendants immediately together.
+On this container, the existing descendant regression failed twice because a terminated
+child became an orphan zombie under a non-reaping PID 1. Cleanup now gives the parent
+up to 250 ms, within the existing cleanup deadline, to reap terminated children before
+stopping the parent. The existing real-process cancellation regression then passed.
+
+A native mouse-input test exposed `SlowOperations` on the EDT in
+`ChangeSnapshot.checkedPath`, through `FilePath.getFileType` and VFS record loading.
+The service now loads selected file metadata in a background task under a read action.
+It rechecks the selection and typed message before the EDT snapshot.
+It retains the path, file-type, symbolic-link, sensitive-content, ignore and partial-selection checks.
+
+Codex 0.166.0 was blocked by the old exact-version gate. Its tagged model schema,
+tool registration, configuration loading and provider defaults were inspected.
+The unchanged restricted profile passed the real Linux native-CLI loopback audit.
+The audit used fake authentication, hostile synthetic diff text and local response data.
+The request contained `tools=[]`, the exact reviewed prompt, and the requested model ID.
+Unselected-file, instruction, configuration, skill, environment and home-path canaries
+were absent from the body. Unrelated canaries were absent from headers. Fake authentication
+appeared only in Authorization. No prompt or draft persistence was found.
+Audits passed with `gpt-6.1-sol` and `gpt-5.4`; these are test model IDs, not live account-access checks.
+The downloaded native archive matched the official release asset SHA-256:
+`a0bf572d2f93f056c6712a6da348e96078dc84f3885fd7be67807ef389cb3978`.
+Version 1.1.14 permits 0.166.0 on Linux only. Windows retains 0.160.1 and 0.163.0.
+Windows 0.166.0 and macOS execution remain blocked pending native policy audits.
+
+The three former identical containment messages now distinguish the initial project-directory
+check, an invalid relative path, and the preparation-time project-directory check.
+They give a recovery action and omit absolute paths and file contents.
+Synthetic tests cover the reported OneDrive-style directory and source filename,
+a wrong project base, sibling-prefix escape and Windows case semantics when run on Windows.
+The user's actual IDE base path was not available. These tests do not establish the cause
+of the October 29 report. No OneDrive or case-normalization workaround was added.
+
+### Baseline and five additional rounds
+
+The full local suite passed **186/186 scenario groups**, with zero optional skips:
+34 core, 50 IDE boundary, 40 source archive guard and 62 release guard cases.
+These groups contain multiple assertions; they are not 186 independent user sessions.
+The suite covers real synthetic Git repositories and subprocesses, plus mock/proxy IDE objects.
+It includes partial-selection refusal, index preservation, literal paths, native executable
+and model discovery failures, malformed/empty responses, elapsed subprocess timeout,
+cancellation, sensitive/binary/large files, encoding bounds and symbolic links.
+
+After the fixes, a separate ApplicationStarter ran in actual PyCharm 2026.2.4 APIs.
+Each run used fresh config, system, plugins, log and home directories and a disposable Git project.
+Commit selections were proxies; commit messages were actual IDE Documents.
+The backend was deterministic and account-free. The test-only extension was added to a
+sandbox copy of the JAR and is absent from the distribution.
+
+| Pass | Focus | Passed / completed | Failed |
+| --- | --- | ---: | ---: |
+| Baseline | Tracked modified/added/deleted/renamed files, mixed unversioned selection, draft validation, typed message, local commit/push | 13/13 | 0 |
+| Additional round 1 | Spaces, Unicode, UTF-8 BOM, UTF-16LE/BE BOM and shared regressions | 9/9 | 0 |
+| Additional round 2 | Boundaries, missing/duplicate/ignored/sensitive/large files and symbolic-link escape | 12/12 | 0 |
+| Additional round 3 | Discovery failure/cancellation, backend error, synthetic timeout/protocol error and shared regressions | 9/9 | 0 |
+| Additional round 4 | Reentrant starts, selection changes during discovery, in-flight disposal and shared regressions | 10/10 | 0 |
+| Additional round 5 | Ten repeated disk-freshness checks and shared regressions | 14/14 | 0 |
+
+This is **67/67 completed IDE-API scenario groups**, including **54/54** in the five
+additional numbered rounds. The local push used a disposable bare remote. It did not
+stage or send unselected files to a model. A fresh complete pass was run after the EDT fix.
+Headless tasks run synchronously, so these checks do not establish native click concurrency.
+
+The native supplemental harness used actual mouse events on a test button and real
+asynchronous IDE background tasks in PyCharm 2026.2.4 with its bundled JBR and Xvfb.
+Its selection was a proxy and its backend was synthetic. All **4/4 native scenario groups passed** after the fix.
+The corrected native log has no CodexCommit `SlowOperations` error. It tested five extra clicks
+while a worker ran, typed-message preservation, EDT disposal/cancellation and project closure.
+The maintained native starter is `src/test/java/dev/codexcommit/ide/GuiConcurrencyStarter.java`.
+Register it in a disposable plugin copy, with `IdeApiRounds` and their nested test classes.
+Use fresh directories under `codexcommit.qa.root`, set `codexcommit.qa.git` to native Git,
+and launch `codexcommit-qa-rounds` with the SDK boot classpath and expanded VM arguments.
+Use the bundled JBR for the native run. Keep data sharing off in the disposable profile.
+Trust only the synthetic project and dismiss its first-run tour before the mouse checks.
+The test extension and classes must not enter the production ZIP.
+This tests the service with native event timing; it does not test the production Commit toolbar
+or a real provider. The results and remaining diagnostic warnings are recorded below.
+
+### Invalid trials, warnings and limits
+
+A first IDE harness launch lacked expansion of SDK VM-argument placeholders and did not start.
+The next baseline had 12 passing groups and one invalid setup failure because the Git mapping
+was not ready. The harness now waits for the mapping; corrected baselines passed 13/13.
+Neither trial is included in the final denominators. An initial verifier used an older CLI
+and lacked proxy configuration. A concurrent verifier trial lost temporary cache files.
+The corrected verifier uses 1.411, the configured proxy and a separate cache without concurrent access.
+These were setup failures, not compatibility passes. One compile attempt needed a checked-exception
+handler for the new selection recheck; the corrected full build passed.
+
+Headless startup logs contain bundled commercial-plugin dependency-loading errors.
+Native startup also logged a JetBrains OS Integration daemon launch error, without a CodexCommit frame.
+Those IDE diagnostics are unresolved; successful assertions do not establish that they are harmless.
+The earlier intermittent Git-ignore shutdown error remains unresolved and was not reproduced
+in the final numbered rounds. The initial native run's CodexCommit EDT diagnostic was a confirmed
+plugin issue and led to the background metadata change.
+The configuration checker retains the warning about `until-build`. The supported range stays bounded.
+Official verifier layout diagnostics include missing optional layout entries in the SDK.
+Verifier compatibility results are separate from these startup and layout warnings.
+
+Authenticated live-provider requests, Windows 0.166.0, native macOS execution, the user's original
+project, full native Commit-toolbar acceptance, dynamic unload/reload, UI accessibility/theme/scaling,
+and closing a native project before explicitly cancelling an active worker remain untested.
+The native test closes the project after disposing the active service.
+No private research project, installed plugin, existing settings or credentials were changed.
+No QA request transmitted private project contents. Writing review is not formal STE certification.
+
+The final supported-API full suite, build, archive audit, plugin structure and configuration
+checks passed. Official Plugin Verifier 1.411 reported **Compatible** against both
+`PY-262.11879.98` and `PY-262.10968.92`. An intermediate verifier reported deprecated
+`ReadAction.compute` usage; the final source uses the supported `computeBlocking` API.
+The source allowlist accepted all 75 release source files. Gitleaks 8.30.1 found no leaks
+in the allowlisted source snapshot or extracted JAR resources; the archive audit also
+checked packaged class data and metadata. These scans do not prove the absence of every secret.
+The final local ZIP SHA-256 is
+`7304712dd2d462a5c6d8cf083f2567c231ae1781526f12c90ea83c9ddb9957f7`.
+The GitHub release workflow rebuilds the exact committed source and publishes its own checksum.
+Hosted CI and publication results are recorded separately after the source commit.
+Marketplace upload is assigned to the parent task to prevent duplicate submissions.
+
+
 ## 1.1.13 - selected unversioned files - 23 October 2026
 
 Selected eligible unversioned files now enter the patch as additions without staging.
