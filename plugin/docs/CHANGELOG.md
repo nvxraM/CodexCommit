@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.15 - PyCharm 2026.3 compatibility and setup guidance
+
+- Support PyCharm 2026.3 with a bounded upper build of `263.*`.
+- Show the audited Codex CLI versions in Settings before generation.
+- Include the separate VCS plugin in the local SDK build classpath.
+- Keep unaudited Codex 0.167.0 blocked.
+
 ## 1.1.14 - current Linux CLI and preparation diagnostics
 
 - Support native Codex CLI 0.166.0 on Linux after a source and loopback request audit.

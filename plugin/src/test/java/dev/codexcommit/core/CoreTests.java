@@ -27,7 +27,7 @@ public final class CoreTests {
             require(CodexRunner.isAuditedVersion("codex-cli 0.166.0\n", "Linux"), "Accept audited Linux CLI");
             for (String os : List.of("Windows 11", "Mac OS X", "Unknown"))
                 require(!CodexRunner.isAuditedVersion("codex-cli 0.166.0", os), "Keep unaudited platforms blocked");
-            for (String rejected : List.of("codex-cli 0.166.0-alpha.1", "codex-cli 0.166.00", "codex-cli 0.166.0\nextra", "codex-cli 0.163.0-alpha.1", "codex-cli 0.164.0", "codex-cli 0.162.0",
+            for (String rejected : List.of("codex-cli 0.167.0", "codex-cli 0.166.0-alpha.1", "codex-cli 0.166.00", "codex-cli 0.166.0\nextra", "codex-cli 0.163.0-alpha.1", "codex-cli 0.164.0", "codex-cli 0.162.0",
                     "codex-cli 0.163.00", "0.163.0", "codex-cli 0.163.0\nextra")) {
                 require(!CodexRunner.isAuditedVersion(rejected), "Reject unverified CLI output");
             }

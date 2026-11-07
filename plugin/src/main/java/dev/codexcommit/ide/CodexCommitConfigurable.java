@@ -3,6 +3,7 @@ package dev.codexcommit.ide;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import dev.codexcommit.core.CodexExecutableLocator;
+import dev.codexcommit.core.CodexRunner;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,6 +25,7 @@ public final class CodexCommitConfigurable implements Configurable {
         row.add(executable, BorderLayout.CENTER);
         panel.add(row, BorderLayout.NORTH);
         panel.add(new JLabel("<html>Leave blank to discover the native Codex executable on PATH.<br>"
+                + "Supported native Codex CLI versions: " + CodexRunner.SUPPORTED_CLI_VERSIONS + ".<br>"
                 + "Use an absolute path to codex.exe (Windows) or codex (Linux). macOS execution is disabled in this release.<br>"
                 + "Shell wrappers, WSL, and custom commands are not accepted.<br><br>"
                 + "Sign in using the official Codex CLI outside the IDE. CodexCommit does not store credentials.<br>"

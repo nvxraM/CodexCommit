@@ -1,7 +1,7 @@
 <idea-plugin url="https://github.com/nvxraM/CodexCommit">
   <id>local.codex.commitmessage</id>
   <name>CodexCommit</name>
-  <version>1.1.14</version>
+  <version>1.1.15</version>
   <vendor email="nvxram.support@gmail.com" url="https://github.com/nvxraM/CodexCommit">nvxraM</vendor>
   <description><![CDATA[
     <div id="codexcommit-overview">
@@ -13,20 +13,20 @@
     </ul>
     <p><a href="https://raw.githubusercontent.com/nvxraM/CodexCommit/3cbb38e74bb64aedf8478d5c85003edfa70661e1/plugin/docs/images/generate-button.png"><img id="codexcommit-button-preview" src="https://raw.githubusercontent.com/nvxraM/CodexCommit/3cbb38e74bb64aedf8478d5c85003edfa70661e1/plugin/docs/images/generate-button.png" width="640" height="135" alt="CodexCommit button in the Commit window."></a></p>
     <p>Click the image to view full size.</p>
-    <p><b>Requirements</b><br>PyCharm 2026.2.3 or 2026.2.4 on Windows or Linux.<br>Native Git and Codex CLI 0.160.1 or 0.163.0.<br>Linux also supports Codex CLI 0.166.0.<br>A personal, unmanaged Codex account.</p>
+    <p><b>Requirements</b><br>PyCharm 2026.2.3, 2026.2.4 or 2026.3 on Windows or Linux.<br>Native Git and Codex CLI 0.160.1 or 0.163.0.<br>Linux also supports Codex CLI 0.166.0.<br>A personal, unmanaged Codex account.</p>
     <p>Sends selected source changes to OpenAI.<br>Check for private data before generation.</p>
     <p><a href="https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/USAGE.md">User guide</a> &middot; <a href="https://github.com/nvxraM/CodexCommit">GitHub</a> &middot; <a href="https://github.com/nvxraM/CodexCommit/blob/main/plugin/docs/PRIVACY.md">Privacy</a></p>
     </div>
   ]]></description>
   <change-notes><![CDATA[
-    <h3>Version 1.1.14</h3>
+    <h3>Version 1.1.15</h3>
     <ul>
-      <li>Support native Codex 0.166.0 on Linux. Load selected file metadata in the background.</li>
-      <li>Let child processes stop before their parent during cleanup.</li>
-      <li>Explain project directory and relative path refusals separately.</li>
+      <li>Support PyCharm 2026.3. Keep the supported IDE build range bounded.</li>
+      <li>Show audited Codex CLI versions in Settings.</li>
+      <li>Include the separate VCS plugin when building with the local PyCharm 2026.3 SDK.</li>
     </ul>
   ]]></change-notes>
-  <idea-version since-build="262.10968.92" until-build="262.*"/>
+  <idea-version since-build="262.10968.92" until-build="263.*"/>
   <depends>com.intellij.modules.platform</depends>
   <depends>com.intellij.modules.vcs</depends>
   <depends>Git4Idea</depends>

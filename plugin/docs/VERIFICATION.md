@@ -1,5 +1,105 @@
 # Verification record
 
+## 1.1.15 - compatibility maintenance - 7 November 2026
+
+Fresh official stable checks found PyCharm 2026.3, build `PY-263.7307.206`
+(released 5 November), and Codex CLI 0.167.0 (released 6 November).
+Sources: [JetBrains release API](https://data.services.jetbrains.com/products/releases?code=PCP&latest=true&type=release)
+and [Codex release](https://github.com/openai/codex/releases/tag/rust-v0.167.0).
+The source baseline and remote main were `6c7fae8a8c2739aa0e54ffeb52c89459baf0504b`.
+The public remote had one branch, no open PR and no active workflow. GitHub 1.1.14
+was latest. The authenticated Marketplace API showed update 1209249 approved,
+listed and not hidden, with no newer update in the returned version list.
+
+### Addition and confirmed repair
+
+Settings now shows the audited native CLI versions before generation. This helps
+users choose an accepted CLI without first triggering a failed request. The label
+uses the runtime allowlist constant. An actual IDE-API test checks the label and
+confirms that opening Settings does not mark configuration modified.
+
+PyCharm 2026.3 moved VCS implementation classes to `platform-vcs-plugin`.
+The local SDK build helper omitted this directory and failed compilation.
+It now includes that exact bundled directory alongside the existing Git directories.
+Compilation, 34 core groups, 50 boundary groups and the archive audit then passed
+against the downloaded 2026.3 SDK. Its official archive SHA-256 matched
+`70d448ee1aa2a60234a6135b7ef9af6403fb691c26446113d587ccee06f6b813`.
+The Gradle build stays on 2026.2.4 to retain its earlier API baseline. The declared
+upper build is now `263.*`; the lower build remains `262.10968.92`.
+Codex 0.167.0 remains blocked pending a source and native policy audit. A regression
+checks its refusal. No new CLI compatibility claim follows from this maintenance.
+
+### Baseline and five additional rounds
+
+The full Gradle baseline passed **186/186 scenario groups**: 34 core, 50 IDE boundary,
+40 source archive and 62 release guard, with zero optional skips. These are finite
+scenario groups with multiple assertions, not independent user sessions.
+The actual PyCharm 2026.3 API harness then ran in separate disposable profiles and
+synthetic Git repositories. Selection objects were proxies; commit messages were
+actual IDE Documents. Backend responses were synthetic and account-free.
+
+| Pass | Focus | Passed / completed | Failed |
+| --- | --- | ---: | ---: |
+| Baseline | Tracked add/delete/rename, mixed selection, responses, typed message, Settings, disposable local push | 14/14 | 0 |
+| Additional round 1 | Spaces, Unicode, UTF-8 BOM and UTF-16LE/BE BOM | 9/9 | 0 |
+| Additional round 2 | Boundaries, missing/duplicate/ignored/sensitive/large files and symlink escape | 12/12 | 0 |
+| Additional round 3 | Discovery errors/cancellation, request cancellation, synthetic timeout/protocol error | 9/9 | 0 |
+| Additional round 4 | Reentrant starts, discovery selection freshness, in-flight disposal/cancellation | 10/10 | 0 |
+| Additional round 5 | Ten repeated disk-freshness checks plus shared regressions | 14/14 | 0 |
+
+Total: **68/68 IDE-API groups**, including **54/54** in the five additional rounds.
+Each extra round includes selected-addition/index, selection-freshness, binary and
+empty-file regressions. The full suite also covers partial selection, malformed text,
+missing Git/CLI/model setup and real local-process timeout, cancellation and cleanup.
+The existing native Linux Codex 0.160.1 passed the loopback CLI audit with test model
+`gpt-5.4`: `tools=[]`, exact prompt, no unrelated canaries in body/headers and no
+prompt/draft/key persistence. Only fake authentication and synthetic content were used.
+
+### Final artifact gates
+
+After the five additional rounds, the final full Gradle suite again passed
+**186/186 groups**, with zero optional skips. Build, plugin structure, project
+configuration and archive audit completed. The configuration checker retains the
+bounded `until-build` warning. Official Plugin Verifier **1.411** reported
+**Compatible** for the production ZIP on **PY-262.10968.92**, **PY-262.11879.98**
+and **PY-263.7307.206**. This is binary/API compatibility, not native UI acceptance.
+The production ZIP SHA-256 is
+`5d66743018d717d78e448ba60f3a733d665fbba947bb02407f7e7264974c1e6d`.
+The GitHub release workflow rebuilds the exact source and publishes its checksum.
+The source allowlist accepted all **75 files**. Gitleaks 8.30.1 found no leaks in
+the allowlisted source and extracted JAR resource scans. The archive audit also
+checked packaged class data. These checks cannot prove the absence of every secret.
+The same baseline and five numbered rounds were repeated using the production
+Gradle JAR compiled against 2026.2.4, loaded into actual PyCharm 2026.3. They again
+passed 14/14, 9/9, 12/12, 9/9, 10/10 and 14/14 groups: another **68/68**.
+This specifically checks the older compile baseline on the new runtime. The test
+extension and classes exist only in the disposable sandbox copy.
+The pre-publication Git history scan also found no leaks across 29 existing commits.
+Hosted CI, GitHub publication and Marketplace receipt are verified separately.
+
+### Invalid setup attempts and coverage gaps
+
+An initial local build started before SDK extraction completed and did not compile.
+Three IDE launcher attempts did not execute a round: unit-test mode excluded bundled
+plugins; a missing default filesystem-provider setting stopped startup; and an unexpanded
+SDK-home placeholder prevented provider loading. Corrected isolated launches produced
+the counts above. These setup failures are excluded from valid QA denominators.
+
+Native GUI QA reached the JetBrains user-agreement screen in a fresh profile.
+The agreement was left unaccepted and the isolated process was stopped. **0 native
+scenario groups completed; native GUI QA is blocked, not passed.** The successful
+headless rounds do not establish native asynchronous timing or production toolbar behavior.
+Startup logged bundled-plugin dependency issues, unavailable external Marketplace requests,
+and font-cache warnings. The native attempt also logged dconf cache write refusals.
+Verifier SDK layout warnings concern missing optional entries. These diagnostics remain
+separate from plugin assertion results; they are not declared harmless.
+
+Authenticated provider responses, Codex 0.167.0, Windows 0.166.0, native macOS,
+full native Commit-toolbar acceptance, UI theme/scaling/accessibility, dynamic unload,
+and native project-close concurrency remain untested. macOS CLI execution stays blocked.
+No user project, installed plugin, settings or credentials were changed. No private
+project content was transmitted. No universal reliability or user failure-rate claim is made.
+
 ## 1.1.14 - compatibility maintenance - 31 October 2026
 
 Official stable releases checked during this run:

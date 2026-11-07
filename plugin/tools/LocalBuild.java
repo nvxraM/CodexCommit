@@ -35,7 +35,8 @@ public final class LocalBuild {
         // Bundled Git plugin layout varies between IDE releases; inspect its declared plugin folder too.
         try (var dirs = Files.list(ide.resolve("plugins"))) {
             for (Path plugin : dirs.filter(Files::isDirectory).toList()) {
-                if (!plugin.getFileName().toString().toLowerCase(Locale.ROOT).contains("git")) continue;
+                String folder = plugin.getFileName().toString().toLowerCase(Locale.ROOT);
+                if (!folder.contains("git") && !folder.equals("platform-vcs-plugin")) continue;
                 try (var stream = Files.walk(plugin)) {
                     stream.filter(p -> p.toString().endsWith(".jar")).forEach(sdkJars::add);
                 }
