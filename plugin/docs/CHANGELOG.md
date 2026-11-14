@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.16 - executable selection in Settings
+
+- Choose the native Codex executable with the IDE file picker.
+- Keep path validation, reset and blank-path discovery behavior.
+- Keep unaudited Codex 0.167.0, 0.168.0 and 0.169.0 blocked.
+
 ## 1.1.15 - PyCharm 2026.3 compatibility and setup guidance
 
 - Support PyCharm 2026.3 with a bounded upper build of `263.*`.

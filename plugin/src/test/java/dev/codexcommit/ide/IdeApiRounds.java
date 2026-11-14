@@ -45,6 +45,21 @@ public final class IdeApiRounds implements ApplicationStarter {
 
   if(round==0){
    test("settings show audited CLI versions",()->{edt(()->{var settings=new CodexCommitConfigurable();try{var panel=(javax.swing.JPanel)settings.createComponent();boolean found=false;for(var component:panel.getComponents())if(component instanceof javax.swing.JLabel label && label.getText().contains(dev.codexcommit.core.CodexRunner.SUPPORTED_CLI_VERSIONS))found=true;require(found,"Settings omit supported CLI versions");require(!settings.isModified(),"Opening settings changed configuration");}finally{settings.disposeUIResources();}});});
+   test("executable picker preserves validation reset and discovery",()->{edt(()->{
+    var settings=new CodexCommitConfigurable();String saved=CodexCommitSettings.getInstance().getExecutable();
+    try{CodexCommitSettings.getInstance().setExecutable("");var panel=(javax.swing.JPanel)settings.createComponent();
+     var row=(javax.swing.JPanel)((java.awt.BorderLayout)panel.getLayout()).getLayoutComponent(java.awt.BorderLayout.NORTH);
+     var picker=(com.intellij.openapi.ui.TextFieldWithBrowseButton)((java.awt.BorderLayout)row.getLayout()).getLayoutComponent(java.awt.BorderLayout.CENTER);
+     var label=(javax.swing.JLabel)((java.awt.BorderLayout)row.getLayout()).getLayoutComponent(java.awt.BorderLayout.WEST);
+     require(picker.isEnabled(),"Picker disabled");require(label.getLabelFor()==picker.getTextField(),"Label target missing");
+     require(!settings.isModified(),"Empty discovery path modified on open");
+     picker.setText(root.resolve("missing-codex").toString());require(settings.isModified(),"Edited path not detected");
+     try{settings.apply();throw new AssertionError("Missing executable accepted");}catch(com.intellij.openapi.options.ConfigurationException expected){}
+     require(CodexCommitSettings.getInstance().getExecutable().isEmpty(),"Invalid path stored");
+     settings.reset();require(picker.getText().isEmpty()&&!settings.isModified(),"Reset failed");
+     picker.setText("  ");settings.apply();require(CodexCommitSettings.getInstance().getExecutable().isEmpty(),"Discovery path changed");
+    }catch(com.intellij.openapi.options.ConfigurationException e){throw new RuntimeException(e);}finally{settings.disposeUIResources();CodexCommitSettings.getInstance().setExecutable(saved);}
+   });});
    test("tracked modified added deleted and renamed selection",()->{
     Files.writeString(fixture.resolve("delete.py"),"print('delete')\n");Files.writeString(fixture.resolve("old name.py"),"print('rename')\n");git("add","--","delete.py","old name.py");git("-c","user.name=Synthetic QA","-c","user.email=qa@example.invalid","commit","--quiet","-m","Add synthetic files");String rev=git("rev-parse","HEAD");
     Files.writeString(fixture.resolve("baseline.py"),"print('modified')\n");Files.delete(fixture.resolve("delete.py"));Files.move(fixture.resolve("old name.py"),fixture.resolve("new name.py"));Files.writeString(fixture.resolve("added.py"),"print('added')\n");edt(()->LocalFileSystem.getInstance().refreshAndFindFileByNioFile(fixture));

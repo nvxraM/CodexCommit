@@ -1,5 +1,102 @@
 # Verification record
 
+## 1.1.16 - executable selection - 14 November 2026
+
+Official stable release checks found PyCharm **2026.3**, build **PY-263.7307.206**
+(5 November), and Codex **0.169.0** (13 November).
+Sources: [JetBrains release API](https://data.services.jetbrains.com/products/releases?code=PCP&latest=true&type=release)
+and [Codex release](https://github.com/openai/codex/releases/tag/rust-v0.169.0).
+Remote main and the clean source baseline were `32490612611b2a68d89835ae3e03310d9c9731d9`.
+The remote had one branch, no open pull request and no active workflow.
+Marketplace update **1214287**, version **1.1.15**, was approved, listed and not hidden.
+The authenticated version list contained no newer update. That version was not uploaded again.
+The IDE range remains `262.10968.92` through `263.*`.
+Codex 0.167.0, 0.168.0 and 0.169.0 remain blocked. Regressions confirm their refusal.
+No new CLI support or policy-audit result is claimed.
+
+### Addition
+
+Settings now offers the IDE file picker for the native Codex executable.
+This reduces manual path entry, including paths with spaces. The existing native
+executable validation still runs on Apply. Blank paths still enable discovery.
+The label identifies its text field for accessibility. UI disposal releases the picker.
+An actual IDE-API regression checks invalid-path refusal, unchanged stored settings,
+reset, blank-path application and the label target. It does not click the native picker.
+
+### Baseline and five additional rounds
+
+The baseline passed **186/186 groups**: 34 core, 50 IDE boundary, 40 source archive
+and 62 release guard, with zero optional skips. The full Gradle check, build, structure
+and project-configuration tasks passed against the installed 2026.2.3 SDK.
+Compilation and the 84 core/boundary groups passed against the checksum-verified
+PyCharm 2026.3 SDK. The production compile baseline remains 2026.2.4 in CI.
+These are scenario groups with multiple assertions, not independent user sessions.
+
+Each following run used actual PyCharm 2026.3 APIs in its own disposable profile
+and synthetic Git repository. Selection objects were proxies; message fields were
+actual IDE Documents. Backends were deterministic, synthetic and account-free.
+
+| Pass | Focus | Passed / completed | Failed |
+| --- | --- | ---: | ---: |
+| Baseline | Settings picker, tracked add/delete/rename, mixed selection, responses, typed message, local commit/push | 15/15 | 0 |
+| Additional round 1 | Spaces, Unicode, UTF-8 BOM and UTF-16LE/BE BOM | 9/9 | 0 |
+| Additional round 2 | Missing, duplicate, ignored, sensitive and large files; symbolic link escape | 12/12 | 0 |
+| Additional round 3 | Discovery faults/cancellation, request cancellation, synthetic timeout/protocol error | 9/9 | 0 |
+| Additional round 4 | Reentrant starts, discovery selection freshness, in-flight disposal/cancellation | 10/10 | 0 |
+| Additional round 5 | Ten repeated disk-freshness checks and shared regressions | 14/14 | 0 |
+
+Total: **69/69 IDE-API groups**, including **54/54** in the five additional rounds.
+All six runs closed their synthetic projects and exited successfully.
+Each extra round also checked selected additions with an unchanged index, selection
+freshness, binary refusal and empty `.gitkeep`. The core/boundary suite covers partial
+selection, malformed text, missing Git/CLI/model setup and real local subprocess
+timeout, cancellation and cleanup. Only a disposable local remote was used for
+commit/push QA. No private project content was sent to a provider.
+
+### Final artifact gates
+
+After the five additional rounds, the full Gradle suite passed **186/186 groups**
+again with no optional skips. A further full build against the checksum-verified
+2026.2.4 SDK also passed **186/186**. Build, plugin structure, configuration and release
+archive checks passed. The bounded `until-build` warning remains. The build also
+reported that Gradle plugin 2.20.1 is available; this release keeps 2.19.0.
+Official Plugin Verifier **1.411** reported **Compatible** for the production ZIP on
+**PY-262.10968.92**, **PY-262.11879.98** and **PY-263.7307.206**. SDK layout warnings
+about optional missing classpath entries remain recorded separately. This checks binary/API
+compatibility, not native UI behavior. The local production ZIP SHA-256 is
+`1257b5da417348cf02e49c4e211f111e2d69823cca2b8466a69b63d53ba1e1fe`.
+The release workflow rebuilds the exact commit and supplies the released ZIP checksum.
+The two Gradle SDK builds have identical JAR entries except their SDK-specific manifest.
+The 75-file source allowlist passed. Gitleaks 8.30.1 found no leaks in the reviewed
+source, extracted JAR resources or 30-commit existing history. The archive guard also
+checked packaged classes. These checks do not prove that all secrets are absent.
+GitHub exact-commit CI, release asset checks and Marketplace receipt are verified separately.
+Marketplace approval is not treated as evidence of native GUI acceptance or a security audit.
+Detailed Marketplace server verification reports were not retrieved through the update API.
+
+### Gaps and setup diagnostics
+
+A networked Gradle attempt stalled during dependency retrieval and was stopped.
+The corrected cached-SDK Gradle run passed. An offline 2026.2.4 build then lacked
+its Java instrumentation dependency. The network-enabled retry passed. These setup
+failures are not failed plugin groups.
+Verifier command discovery used invalid arguments and then the default unwritable home.
+Those attempts executed no plugin verification and are excluded from valid results.
+IDE startup logged bundled-plugin and external-service diagnostics. Boundary rendering
+logged unavailable writable font caches. These warnings remain separate from assertions.
+They are not declared harmless. No invalid IDE-API trials entered the denominators.
+
+Native GUI QA reached the JetBrains user-agreement screen in a fresh isolated profile.
+The terms were left unaccepted. A screenshot was retained outside the repository and
+only the owned IDE/display processes were stopped. **Zero native scenario groups completed.**
+Native picker click-through, production Commit-toolbar behavior, native asynchronous
+concurrency and project-close timing remain blocked, not passed.
+Authenticated live-provider responses, native macOS, Windows 0.166.0, dynamic unload,
+and UI theme/scaling/accessibility acceptance remain untested. Headless reentrancy
+and synthetic timeout exceptions do not establish native thread interleavings or live
+provider behavior. No universal compatibility or reliability claim follows from these results.
+No installed plugin, active user IDE profile, private research source or credential was changed.
+
 ## 1.1.15 - compatibility maintenance - 7 November 2026
 
 Fresh official stable checks found PyCharm 2026.3, build `PY-263.7307.206`

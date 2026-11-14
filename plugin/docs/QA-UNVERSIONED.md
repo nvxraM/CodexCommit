@@ -1,7 +1,8 @@
 # Selected unversioned file QA
 
-The 7 November 2026 baseline and five numbered rounds are recorded in
-[VERIFICATION.md](VERIFICATION.md#1115---compatibility-maintenance---7-november-2026).
+The 14 November 2026 baseline and five numbered rounds are recorded in
+[VERIFICATION.md](VERIFICATION.md#1116---executable-selection---14-november-2026).
+They passed 15/15 baseline and 54/54 additional IDE-API scenario groups.
 The results below are the historical 23 October run, not the current denominators.
 
 ## Candidate status — 23 October 2026
