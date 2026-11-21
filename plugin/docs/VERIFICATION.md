@@ -1,5 +1,102 @@
 # Verification record
 
+## Maintenance - pending selection regressions - 21 November 2026
+
+Official stable checks found PyCharm **2026.3.0.1**, build **PY-263.7307.329**
+(19 November), and Codex **0.171.0** (20 November).
+Sources: [JetBrains release API](https://data.services.jetbrains.com/products/releases?code=PCP&latest=true&type=release)
+and [Codex release](https://github.com/openai/codex/releases/tag/rust-v0.171.0).
+The source baseline was `37819a437de22a847c5a24edc1df7bf268e5d496`.
+Remote main had no open pull requests or active GitHub workflows. Only main was listed.
+Saved coding-task activity was not available through this task's tools.
+The authenticated Marketplace list showed **1.1.16**, update **1220148**, approved,
+listed and not hidden, with no newer entry. The published GitHub version was also 1.1.16.
+The IDE range remains `262.10968.92` through `263.*`.
+Codex 0.170.0 and 0.171.0 remain blocked pending native policy audits.
+New regressions check their refusal. No current-stable Codex execution support is claimed.
+
+### Useful addition
+
+Two actual IDE-API regressions check pending unversioned selections after another
+operation stages or ignores the selected file. Both first check the eligible state,
+then confirm that the same unchanged file becomes stale. Both check that validation
+preserves the Git index. Each test restores its synthetic fixture state.
+These tests protect the existing stale-result guard. No production defect was confirmed.
+This change adds tests and verification documentation only. It does not change plugin
+runtime code or metadata. Version 1.1.16 is retained; no new binary release or duplicate
+Marketplace submission is warranted for this test-only maintenance.
+
+### Baseline and five additional rounds
+
+The full Gradle baseline passed **186/186 groups**: 34 core, 50 IDE boundary,
+40 source archive and 62 release guard, with zero optional skips.
+Build, structure and project-configuration tasks passed on the cached 2026.2.3 SDK
+and the declared 2026.2.4 SDK. A separate local build compiled production and test
+sources on the new 2026.3.0.1 SDK and passed its **84/84** core/boundary groups.
+The downloaded SDK matched JetBrains' official SHA-256:
+`277b7f1197495fa9dd4c8e2337783c7417188a2a3810fd5b979b9fefcbd49084`.
+
+Each round below used actual PyCharm 2026.3.0.1 APIs in a separate disposable profile
+and synthetic Git project. Selections were proxies, messages were actual IDE Documents,
+and provider responses were deterministic account-free substitutes.
+
+| Pass | Focus | Passed / completed | Failed |
+| --- | --- | ---: | ---: |
+| Baseline | Settings, tracked add/delete/rename, mixed selection, responses, typed message, local commit/push | 15/15 | 0 |
+| Additional round 1 | Spaces, Unicode, UTF-8 BOM and UTF-16LE/BE BOM | 9/9 | 0 |
+| Additional round 2 | File boundaries, symlink escape, pending tracked/ignored transitions and index preservation | 14/14 | 0 |
+| Additional round 3 | Discovery faults/cancellation and request cancellation/timeout/protocol error | 9/9 | 0 |
+| Additional round 4 | Reentrant starts, discovery selection freshness and in-flight disposal/cancellation | 10/10 | 0 |
+| Additional round 5 | Ten disk-freshness repetitions and shared regressions | 14/14 | 0 |
+
+Total: **71/71 IDE-API groups**, including **56/56** in the five additional rounds.
+All six processes closed their synthetic projects and exited successfully.
+The full suite also checks partial selection, malformed text, missing Git/CLI/model
+setup and real local subprocess timeout, cancellation and cleanup. The commit/push
+scenario used only a disposable local bare remote. No private project content was sent.
+The existing native Linux Codex **0.160.1** passed its loopback integration audit with
+fake authentication and synthetic input: automatic model discovery, exact prompt,
+`tools=[]`, unrelated-canary exclusion and no prompt/draft/test-key persistence.
+This does not test the current stable CLI or an authenticated provider.
+
+### Final checks and limits
+
+After all five extra rounds, the final full Gradle suite passed **186/186 groups**
+again with zero optional skips. Build, structure and project-configuration tasks passed.
+The 75-file source allowlist also passed. The local production ZIP SHA-256 is
+`1257b5da417348cf02e49c4e211f111e2d69823cca2b8466a69b63d53ba1e1fe`.
+The existing released ZIP and its checksum were downloaded and verified:
+`b6c86c02318f7caaa95b7dbc0348b13c4965e1a3b12eec595da484d59997efe7`.
+The local/released JARs have the same 65 entries. Only `META-INF/MANIFEST.MF`
+differs, recording the build host and JDK. Production classes and resources match.
+No released tag or asset was changed. Exact-commit CI is verified separately.
+
+Official Plugin Verifier **1.411**, in documented offline mode, reported **Compatible**
+for the Gradle production ZIP on **PY-262.10968.92**, **PY-262.11879.98**
+and **PY-263.7307.329**. The existing released ZIP also passed on **PY-263.7307.329**.
+No dependencies were downloaded. This checks binary/API compatibility.
+Detailed Marketplace server verification reports were not retrieved through the update API.
+The bounded upper-build warning remains. The build reports Gradle plugin 2.20.1
+available; this maintenance retains 2.19.0.
+Verifier SDK-layout warnings about missing optional classpath entries remain unresolved.
+The networked verifier could not retrieve documented API changes or some optional
+IDE dependencies. Its owned process was stopped after the offline pass completed.
+Its diagnostics are separate from the completed offline results.
+A preliminary local build started before SDK extraction finished and failed setup.
+Verifier argument/home discovery attempts also failed setup. None counts as a plugin test.
+No invalid IDE-API trial entered the completed-round denominators.
+IDE logs contain bundled ML model/class-loading and external-service connection warnings.
+They are retained as unresolved diagnostics, not counted as plugin assertion failures.
+
+Native launch in a fresh isolated profile reached the JetBrains user-agreement screen.
+The terms were left unaccepted. A screenshot was retained outside the repository.
+Only the owned disposable IDE/display processes were stopped.
+**Zero native workflow groups completed.** Native toolbar and file-picker use,
+asynchronous click concurrency, project-close timing, dynamic unload, GUI accessibility,
+Windows/macOS operation and authenticated live-provider responses remain untested.
+No universal reliability or full compatibility claim follows from these scenario groups.
+The user's installed plugin, active IDE, projects, settings and credentials were preserved.
+
 ## 1.1.16 - executable selection - 14 November 2026
 
 Official stable release checks found PyCharm **2026.3**, build **PY-263.7307.206**

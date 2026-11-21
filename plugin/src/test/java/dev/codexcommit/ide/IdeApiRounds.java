@@ -87,6 +87,28 @@ public final class IdeApiRounds implements ApplicationStarter {
    test("large source refused",()->{Path large=fixture.resolve("large.py");try(var channel=java.nio.channels.FileChannel.open(large,StandardOpenOption.CREATE,StandardOpenOption.WRITE)){channel.position(50L*1024*1024);channel.write(java.nio.ByteBuffer.wrap(new byte[]{1}));}var s=new Selection();s.unversioned.add(file("large.py"));refuse(()->s.capture().build(()->false));});
   }
   if(round==4)test("in-flight service disposal cancels and preserves message",()->{var s=selection();var service=project.getService(CodexCommitProjectService.class);var signalled=new java.util.concurrent.atomic.AtomicBoolean();backend(new CodexCommitProjectService.Backend(){public String resolveModel(Path e,BooleanSupplier c){return "gpt-test";}public String generate(Path e,String p,String m,BooleanSupplier c){service.dispose();signalled.set(c.getAsBoolean());return "Must not apply";}});start(s);require(signalled.get(),"Disposal did not cancel backend");require(s.message.getText().equals("User message"),"Disposed result applied");});
+  if(round==2){
+   test("pending unversioned file becomes tracked",()->{
+    String name="pending-tracked.py";Files.writeString(fixture.resolve(name),"print('pending tracked')\n");
+    var s=new Selection();s.unversioned.add(file(name));var snapshot=s.capture();snapshot.build(()->false);
+    require(snapshot.contentIsFresh(()->false),"Initial unversioned file stale");
+    git("add","--",name);String stagedTree=git("write-tree");
+    try{require(!snapshot.contentIsFresh(()->false),"Tracked file retained as unversioned");
+     require(stagedTree.equals(git("write-tree")),"Freshness check changed the user index");
+    }finally{git("reset","--quiet","HEAD","--",name);}
+   });
+   test("pending unversioned file becomes ignored",()->{
+    String name="pending-ignored.py";Files.writeString(fixture.resolve(name),"print('pending ignored')\n");
+    var s=new Selection();s.unversioned.add(file(name));var snapshot=s.capture();snapshot.build(()->false);
+    require(snapshot.contentIsFresh(()->false),"Initial unversioned file stale");
+    Path exclude=fixture.resolve(".git/info/exclude");Files.createDirectories(exclude.getParent());
+    String original=Files.exists(exclude)?Files.readString(exclude):"";String tree=git("write-tree");
+    try{Files.writeString(exclude,original+"\n"+name+"\n");
+     require(!snapshot.contentIsFresh(()->false),"Ignored file retained as eligible");
+     require(tree.equals(git("write-tree")),"Freshness check changed the user index");
+    }finally{Files.writeString(exclude,original);}
+   });
+  }
   if(round==5)for(int i=0;i<10;i++){final int n=i;test("repeated disk freshness "+i,()->{String name="stability-"+n+".py";Files.writeString(fixture.resolve(name),"print('first')\n");var s=new Selection();s.unversioned.add(file(name));var snapshot=s.capture();snapshot.build(()->false);require(snapshot.contentIsFresh(()->false),"Fresh rejected");Files.writeString(fixture.resolve(name),"print('second')\n");require(!snapshot.contentIsFresh(()->false),"Stale accepted");});}
   edt(()->com.intellij.openapi.project.ex.ProjectManagerEx.getInstanceEx().forceCloseProject(project,true));record("TOTAL "+passed+" passed, "+failed+" failed");Thread.sleep(1500);System.exit(failed==0?0:2);
  }catch(Throwable e){e.printStackTrace();System.exit(3);}}
